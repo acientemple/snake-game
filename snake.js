@@ -146,6 +146,7 @@ class SnakeGame {
         // 检查食物碰撞
         if (head.x === this.food.x && head.y === this.food.y) {
             this.score += 10 + this.speed * 2;
+            document.getElementById('score').textContent = this.score;
             this.food = this.generateFood();
         } else {
             this.snake.pop(); // 移除尾部
