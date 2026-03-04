@@ -173,7 +173,11 @@ class SnakeGame {
     }
 
     start() {
-        if (this.isRunning) return;
+        // 如果游戏正在运行但暂停中，先停止现有游戏再重新开始
+        if (this.isRunning) {
+            clearInterval(this.gameTimer);
+            clearTimeout(this.speedTimer);
+        }
 
         // 重置游戏状态
         this.snake = [{x: 10, y: 10}];
@@ -215,6 +219,8 @@ class SnakeGame {
             document.getElementById('pause-btn').textContent = '继续';
         } else {
             document.getElementById('pause-btn').textContent = '暂停';
+            // 恢复游戏循环
+            this.gameLoop();
         }
     }
 
