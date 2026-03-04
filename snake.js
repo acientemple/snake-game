@@ -118,12 +118,6 @@ class SnakeGame {
             Math.PI * 2
         );
         this.ctx.fill();
-
-        // 绘制分数
-        this.ctx.fillStyle = '#2c3e50';
-        this.ctx.font = '20px Arial';
-        this.ctx.fillText(`分数: ${this.score}`, 10, 30);
-        this.ctx.fillText(`时间: ${this.timeRemaining}s`, 10, 55);
     }
 
     move() {
