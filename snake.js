@@ -252,6 +252,9 @@ class SnakeGame {
         // 保存记录
         this.saveRecord();
 
+        // 保存玩家名字
+        this.savePlayerName(this.playerName);
+
         // 重置UI
         document.getElementById('start-btn').textContent = '开始游戏';
         document.getElementById('pause-btn').disabled = true;
@@ -294,6 +297,34 @@ class SnakeGame {
         localStorage.setItem('snake-records', JSON.stringify(records));
     }
 
+    savePlayerName(name) {
+        if (!name || name === '匿名玩家') return;
+        let names = this.loadPlayerNames();
+        // 如果名字不存在，则添加
+        if (!names.includes(name)) {
+            names.unshift(name); // 添加到列表开头
+            if (names.length > 10) names.pop(); // 最多保存10个
+            localStorage.setItem('snake-player-names', JSON.stringify(names));
+            this.updatePlayerNamesDropdown();
+        }
+    }
+
+    loadPlayerNames() {
+        const names = localStorage.getItem('snake-player-names');
+        return names ? JSON.parse(names) : [];
+    }
+
+    updatePlayerNamesDropdown() {
+        const datalist = document.getElementById('player-names');
+        const names = this.loadPlayerNames();
+        datalist.innerHTML = '';
+        names.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            datalist.appendChild(option);
+        });
+    }
+
     displayRecords() {
         const recordsList = document.getElementById('records-list');
         const records = this.loadRecords();
@@ -333,4 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 初始显示记录
     game.displayRecords();
+
+    // 初始化玩家名字下拉列表
+    game.updatePlayerNamesDropdown();
 });
