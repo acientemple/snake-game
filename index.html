@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃蛇游戏</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>贪吃蛇游戏</h1>
+            <div class="player-info">
+                <label for="player-name">玩家姓名:</label>
+                <input type="text" id="player-name" placeholder="输入您的名字">
+            </div>
+        </div>
+
+        <div class="game-controls">
+            <button id="start-btn">开始游戏</button>
+            <button id="pause-btn">暂停</button>
+            <button id="fullscreen-btn">全屏</button>
+        </div>
+
+        <div class="game-settings">
+            <div class="setting-item">
+                <label for="game-time">游戏时间 (秒):</label>
+                <input type="number" id="game-time" value="0" min="0" max="300">
+            </div>
+            <div class="setting-item">
+                <label for="game-speed">游戏速度:</label>
+                <input type="range" id="game-speed" min="1" max="10" value="5">
+                <span id="speed-value">5</span>
+            </div>
+        </div>
+
+        <div class="game-canvas-container">
+            <canvas id="game-canvas" width="600" height="400"></canvas>
+        </div>
+
+        <div class="game-stats">
+            <div class="stat-item">
+                <span>分数:</span>
+                <span id="score">0</span>
+            </div>
+            <div class="stat-item">
+                <span>剩余时间:</span>
+                <span id="time-remaining">0</span>
+            </div>
+        </div>
+
+        <div class="records-container">
+            <h2>游戏记录</h2>
+            <button id="clear-records-btn">清除记录</button>
+            <div id="records-list"></div>
+        </div>
+    </div>
+
+    <script src="snake.js"></script>
+</body>
+</html>
