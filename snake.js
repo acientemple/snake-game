@@ -38,15 +38,19 @@ class SnakeGame {
 
             switch(e.key) {
                 case 'ArrowUp':
+                    e.preventDefault();
                     if (this.direction.y === 0) this.direction = {x: 0, y: -1};
                     break;
                 case 'ArrowDown':
+                    e.preventDefault();
                     if (this.direction.y === 0) this.direction = {x: 0, y: 1};
                     break;
                 case 'ArrowLeft':
+                    e.preventDefault();
                     if (this.direction.x === 0) this.direction = {x: -1, y: 0};
                     break;
                 case 'ArrowRight':
+                    e.preventDefault();
                     if (this.direction.x === 0) this.direction = {x: 1, y: 0};
                     break;
                 case 'f':
