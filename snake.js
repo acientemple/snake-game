@@ -2246,10 +2246,12 @@ class SnakeGame {
     }
 
     clearRecords() {
-        // 只清除当前用户的记录
+        // 获取当前用户名
         const currentUser = window.auth ? window.auth.currentUser : null;
-        if (!currentUser) {
-            alert('请先登录才能清除记录');
+        const playerName = document.getElementById('player-name').value;
+
+        if (!currentUser && !playerName) {
+            alert('请先登录或输入玩家姓名');
             return;
         }
 
@@ -2264,14 +2266,16 @@ class SnakeGame {
         }
 
         const allRecords = this.loadRecords();
+        const userToDelete = currentUser || playerName;
 
         // 获取当前用户的前三名（保留）
-        const myRecords = allRecords.filter(r => r.username === currentUser);
+        const myRecords = allRecords.filter(r => (r.username === userToDelete) || (r.playerName === userToDelete));
         const myTop3 = myRecords.slice(0, 3);
 
         // 过滤掉当前用户的记录，但保留前三名
         const filteredRecords = allRecords.filter(r => {
-            if (r.username !== currentUser) return true;
+            const isMyRecord = (r.username === userToDelete) || (r.playerName === userToDelete);
+            if (!isMyRecord) return true;
             // 检查是否在前三名中
             return myTop3.some(tr => tr.score === r.score && tr.date === r.date);
         });
