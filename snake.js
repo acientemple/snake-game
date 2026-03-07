@@ -2873,29 +2873,20 @@ class SnakeGame {
             return;
         }
 
-        // 第一次确认
-        if (!confirm('确定要清除你的所有游戏记录吗？')) {
-            return;
-        }
-
-        // 第二次确认
-        if (!confirm('此操作不可恢复，确定要继续吗？')) {
+        // 确认一次即可
+        if (!confirm('确定要清除「' + userToDelete + '」的所有游戏记录吗？')) {
             return;
         }
 
         const allRecords = this.loadRecords();
-        alert('当前记录数: ' + allRecords.length + ', 用户: ' + userToDelete);
 
-        // 简单处理：删除所有该用户的记录
+        // 删除该用户的记录
         const filteredRecords = allRecords.filter(r => {
             return (r.username !== userToDelete) && (r.playerName !== userToDelete);
         });
 
-        alert('删除后记录数: ' + filteredRecords.length);
-
         this.saveRecords(filteredRecords);
         this.displayRecords();
-        alert('记录已清除');
     }
 
     // 初始化记录标签页（保留兼容）
