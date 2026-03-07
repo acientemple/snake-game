@@ -465,9 +465,50 @@ class AuthSystem {
                     document.getElementById('auth-error').textContent = '';
                     this.showGame();
                 } else if (response.status === 401) {
-                    document.getElementById('auth-error').textContent = 'GitHub 认证失败，请检查密码是否正确';
+                    document.getElementById('auth-error').innerHTML = 'GitHub 已停止密码认证，请使用 <a href="#" onclick="document.getElementById(\'admin-form\').style.display=\'none\';document.getElementById(\'login-form\').style.display=\'block\';">普通用户登录</a> 或使用 Token 登录';
                 } else if (response.status === 404) {
                     document.getElementById('auth-error').textContent = 'GitHub 用户不存在';
+                } else {
+                    document.getElementById('auth-error').textContent = '验证失败: ' + response.statusText;
+                }
+            } catch (error) {
+                document.getElementById('auth-error').textContent = '验证失败: ' + error.message;
+            }
+        });
+
+        // 管理员 Token 登录
+        document.getElementById('admin-token-login-btn').addEventListener('click', async () => {
+            const token = document.getElementById('admin-github-token').value.trim();
+
+            if (!token) {
+                document.getElementById('auth-error').textContent = '请输入 GitHub Token';
+                return;
+            }
+
+            document.getElementById('auth-error').textContent = '正在验证...';
+
+            try {
+                // 使用 GitHub API 验证 Token
+                const response = await fetch('https://api.github.com/user', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    // 管理员登录成功
+                    this.currentUser = userData.login;
+                    this.isAdmin = true;
+                    localStorage.setItem('snake-current-user', userData.login);
+                    localStorage.setItem('snake-admin', 'true');
+                    localStorage.setItem('snake-github-token', token);
+                    document.getElementById('auth-error').textContent = '';
+                    this.showGame();
+                } else if (response.status === 401) {
+                    document.getElementById('auth-error').textContent = 'Token 无效或已过期';
                 } else {
                     document.getElementById('auth-error').textContent = '验证失败: ' + response.statusText;
                 }
@@ -674,7 +715,14 @@ class AuthSystem {
                     <div id="global-stats"></div>
                 </div>
                 <div class="admin-section">
+                    <h3>游戏记录管理</h3>
+                    <button id="view-all-records" class="auth-btn" style="padding:8px 15px;margin:5px 0;">查看所有记录</button>
+                    <button id="clear-records-btn" class="auth-btn" style="padding:8px 15px;margin:5px 0;background:#e74c3c;">清空所有记录</button>
+                    <div id="all-records-view" style="display:none;background:#fff;padding:10px;border-radius:5px;max-height:300px;overflow-y:auto;margin-top:10px;"></div>
+                </div>
+                <div class="admin-section">
                     <h3>数据管理</h3>
+                    <button id="export-all-data" class="auth-btn" style="padding:8px 15px;margin:5px 0;background:#2ecc71;">导出全部数据</button>
                     <button id="clear-all-btn" class="auth-btn" style="background:#e74c3c;">清空所有数据</button>
                 </div>
                 <div class="admin-section">
@@ -770,6 +818,61 @@ class AuthSystem {
             }
         });
 
+        // 导出全部数据
+        document.getElementById('export-all-data').addEventListener('click', () => {
+            const allData = {
+                exportTime: new Date().toISOString(),
+                users: this.users,
+                records: JSON.parse(localStorage.getItem('snake-records') || '[]'),
+                topRecords: JSON.parse(localStorage.getItem('snake-top-records') || '[]'),
+                playerNames: JSON.parse(localStorage.getItem('snake-player-names') || '[]'),
+                emailjsConfig: localStorage.getItem('snake-emailjs-config')
+            };
+            const blob = new Blob([JSON.stringify(allData, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'snake-game-backup-' + new Date().toISOString().substring(0,10) + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('数据已导出为 JSON 文件');
+        });
+
+        // 查看所有游戏记录
+        document.getElementById('view-all-records').addEventListener('click', () => {
+            const records = JSON.parse(localStorage.getItem('snake-records') || '[]');
+            const topRecords = JSON.parse(localStorage.getItem('snake-top-records') || '[]');
+            const view = document.getElementById('all-records-view');
+
+            let html = '<h4>最近游戏记录（按时间排序，最新在前）</h4>';
+            if (records.length === 0) {
+                html += '<p>暂无记录</p>';
+            } else {
+                const sortedRecords = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
+                html += '<table style="width:100%;border-collapse:collapse;font-size:12px;"><tr style="background:#f5f5f5;"><th style="text-align:left;padding:6px;">玩家</th><th style="text-align:right;padding:6px;">分数</th><th style="text-align:left;padding:6px;">模式</th><th style="text-align:left;padding:6px;">日期</th></tr>';
+                sortedRecords.slice(0, 50).forEach(r => {
+                    const modeName = {'classic': '经典', 'timed': '限时', 'endless': '无尽', 'battle': '对战'}[r.mode] || r.mode;
+                    html += `<tr><td style="padding:6px;border-bottom:1px solid #eee;">${r.playerName || r.username || '-'}</td><td style="padding:6px;border-bottom:1px solid #eee;text-align:right;">${r.score}</td><td style="padding:6px;border-bottom:1px solid #eee;">${modeName}</td><td style="padding:6px;border-bottom:1px solid #eee;">${r.date ? r.date.substring(0,16) : '-'}</td></tr>`;
+                });
+                html += '</table>';
+                if (records.length > 50) {
+                    html += `<p style="color:#666;font-size:12px;">...还有 ${records.length - 50} 条记录未显示</p>`;
+                }
+            }
+            view.innerHTML = html;
+            view.style.display = 'block';
+        });
+
+        // 清空所有游戏记录
+        document.getElementById('clear-records-btn').addEventListener('click', () => {
+            if (confirm('确定要清空所有游戏记录吗？此操作不可恢复！')) {
+                localStorage.removeItem('snake-records');
+                localStorage.removeItem('snake-top-records');
+                alert('游戏记录已清空');
+                self.loadAdminData();
+            }
+        });
+
         // 清空所有数据
         document.getElementById('clear-all-btn').addEventListener('click', () => {
             if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
@@ -781,27 +884,81 @@ class AuthSystem {
     }
 
     loadAdminData() {
-        // 显示用户列表
-        const userList = document.getElementById('user-list');
         const users = Object.keys(this.users);
+
+        // 显示用户列表（带删除功能）
+        const userList = document.getElementById('user-list');
         if (users.length === 0) {
             userList.innerHTML = '<p>暂无注册用户</p>';
         } else {
-            let html = '<table style="width:100%;border-collapse:collapse;"><tr><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">用户名</th><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">邮箱</th><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">注册时间</th></tr>';
+            let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><tr style="background:#f5f5f5;"><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">用户名</th><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">邮箱</th><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">注册时间</th><th style="text-align:center;padding:8px;border-bottom:1px solid #ddd;">操作</th></tr>';
             users.forEach(u => {
                 const user = this.users[u];
-                html += `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${u}</td><td style="padding:8px;border-bottom:1px solid #eee;">${user.email || '-'}</td><td style="padding:8px;border-bottom:1px solid #eee;">${user.created ? user.created.substring(0,10) : '-'}</td></tr>`;
+                html += `<tr>
+                    <td style="padding:8px;border-bottom:1px solid #eee;">${u}</td>
+                    <td style="padding:8px;border-bottom:1px solid #eee;">${user.email || '-'}</td>
+                    <td style="padding:8px;border-bottom:1px solid #eee;">${user.created ? user.created.substring(0,10) : '-'}</td>
+                    <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">
+                        <button onclick="window.auth.adminDeleteUser('${u}'); game.loadAdminData();" style="background:#e74c3c;color:white;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;font-size:12px;">删除</button>
+                    </td>
+                </tr>`;
             });
             html += '</table>';
             userList.innerHTML = html;
         }
 
+        // 计算全局统计数据
+        let totalGames = 0;
+        let totalScore = 0;
+        let topScore = 0;
+        const records = JSON.parse(localStorage.getItem('snake-records') || '[]');
+        records.forEach(r => {
+            totalGames++;
+            totalScore += r.score || 0;
+            if (r.score > topScore) topScore = r.score;
+        });
+
         // 显示全局统计
         const stats = document.getElementById('global-stats');
         stats.innerHTML = `
-            <p>总用户数: ${users.length}</p>
-            <p>存储键数: ${localStorage.length}</p>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+                <div style="background:#f5f5f5;padding:10px;border-radius:5px;text-align:center;">
+                    <div style="font-size:24px;font-weight:bold;color:#667eea;">${users.length}</div>
+                    <div style="font-size:12px;color:#666;">总用户数</div>
+                </div>
+                <div style="background:#f5f5f5;padding:10px;border-radius:5px;text-align:center;">
+                    <div style="font-size:24px;font-weight:bold;color:#667eea;">${totalGames}</div>
+                    <div style="font-size:12px;color:#666;">总游戏次数</div>
+                </div>
+                <div style="background:#f5f5f5;padding:10px;border-radius:5px;text-align:center;">
+                    <div style="font-size:24px;font-weight:bold;color:#667eea;">${topScore}</div>
+                    <div style="font-size:12px;color:#666;">最高分</div>
+                </div>
+                <div style="background:#f5f5f5;padding:10px;border-radius:5px;text-align:center;">
+                    <div style="font-size:24px;font-weight:bold;color:#667eea;">${records.length}</div>
+                    <div style="font-size:12px;color:#666;">游戏记录数</div>
+                </div>
+            </div>
         `;
+    }
+
+    // 管理员删除用户
+    adminDeleteUserConfirm(username) {
+        if (confirm(`确定要删除用户 "${username}" 吗？此操作不可恢复！`)) {
+            const result = window.auth.adminDeleteUser(username);
+            if (result.success) {
+                // 同时删除该用户的成就、记录等数据
+                localStorage.removeItem(`snake-achievements-${username}`);
+                localStorage.removeItem(`snake-records-${username}`);
+                localStorage.removeItem(`snake-stats-${username}`);
+                localStorage.removeItem(`snake-skins-${username}`);
+                localStorage.removeItem(`snake-sounds-${username}`);
+                alert('用户已删除');
+                this.loadAdminData();
+            } else {
+                alert(result.message);
+            }
+        }
     }
 
     async syncToGitHub() {
