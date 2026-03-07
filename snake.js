@@ -110,6 +110,66 @@ class AuthSystem {
         return this.users[username] || null;
     }
 
+    // 登录用户修改自己的密码
+    changePassword(oldPassword, newPassword) {
+        const username = this.currentUser;
+        const user = this.users[username];
+
+        if (!user) {
+            return { success: false, message: '用户不存在' };
+        }
+
+        if (user.password !== simpleHash(oldPassword)) {
+            return { success: false, message: '原密码错误' };
+        }
+
+        if (newPassword.length < 3) {
+            return { success: false, message: '新密码至少3位' };
+        }
+
+        user.password = simpleHash(newPassword);
+        this.saveUsers();
+        return { success: true, message: '密码修改成功' };
+    }
+
+    // 显示修改密码对话框
+    showChangePasswordDialog() {
+        const dialog = document.createElement('div');
+        dialog.id = 'change-password-dialog';
+        dialog.className = 'modal show';
+        dialog.innerHTML = `
+            <div class="modal-content" style="max-width:400px;">
+                <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+                <h3>修改密码</h3>
+                <input type="password" id="old-password" placeholder="原密码" style="width:100%;padding:12px;margin:10px 0;border:2px solid #ddd;border-radius:8px;">
+                <input type="password" id="new-password-change" placeholder="新密码（至少3位）" style="width:100%;padding:12px;margin:10px 0;border:2px solid #ddd;border-radius:8px;">
+                <input type="password" id="new-password-confirm" placeholder="确认新密码" style="width:100%;padding:12px;margin:10px 0;border:2px solid #ddd;border-radius:8px;">
+                <button id="confirm-change-pass" class="auth-btn">确认修改</button>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        document.getElementById('confirm-change-pass').addEventListener('click', () => {
+            const oldPass = document.getElementById('old-password').value;
+            const newPass = document.getElementById('new-password-change').value;
+            const confirmPass = document.getElementById('new-password-confirm').value;
+
+            if (newPass !== confirmPass) {
+                alert('两次输入的新密码不一致');
+                return;
+            }
+
+            const result = this.changePassword(oldPass, newPass);
+            if (result.success) {
+                alert('密码修改成功！');
+                dialog.remove();
+            } else {
+                alert(result.message);
+            }
+        });
+    }
+
     login(username, password) {
         const user = this.users[username];
         if (!user) {
@@ -194,23 +254,89 @@ class AuthSystem {
             document.getElementById('login-form').style.display = 'block';
         });
 
+        // 忘记密码 - 第一步：发送重置链接
         document.getElementById('forgot-btn').addEventListener('click', () => {
             const username = document.getElementById('forgot-username').value.trim();
             const email = document.getElementById('forgot-email').value.trim();
-            const newPassword = document.getElementById('forgot-password').value;
 
-            const result = this.resetPassword(username, email, newPassword);
-            if (result.success) {
-                alert('密码重置成功！请使用新密码登录');
-                document.getElementById('forgot-username').value = '';
-                document.getElementById('forgot-email').value = '';
-                document.getElementById('forgot-password').value = '';
-                document.getElementById('forgot-form').style.display = 'none';
-                document.getElementById('login-form').style.display = 'block';
-            } else {
-                document.getElementById('auth-error').textContent = result.message;
+            const user = this.users[username];
+            if (!user) {
+                document.getElementById('auth-error').textContent = '用户不存在';
+                return;
             }
+            if (user.email !== email) {
+                document.getElementById('auth-error').textContent = '用户名与邮箱不匹配';
+                return;
+            }
+
+            // 生成重置码
+            const resetCode = Math.random().toString(36).substring(2, 10);
+            localStorage.setItem('snake-reset-code', resetCode);
+            localStorage.setItem('snake-reset-user', username);
+
+            // 显示模拟的重置链接
+            const resetLink = `${window.location.origin}${window.location.pathname}?reset=${resetCode}`;
+            document.getElementById('reset-link').textContent = resetLink;
+            document.getElementById('forgot-step1').style.display = 'none';
+            document.getElementById('forgot-step2').style.display = 'block';
+            document.getElementById('auth-error').textContent = '';
         });
+
+        // 忘记密码 - 第二步：使用链接
+        document.getElementById('use-link-btn').addEventListener('click', () => {
+            document.getElementById('forgot-step2').style.display = 'none';
+            document.getElementById('forgot-step3').style.display = 'block';
+        });
+
+        // 忘记密码 - 第三步：确认重置
+        document.getElementById('confirm-reset-btn').addEventListener('click', () => {
+            const newPassword = document.getElementById('new-password-input').value;
+            const resetCode = localStorage.getItem('snake-reset-code');
+            const resetUser = localStorage.getItem('snake-reset-user');
+
+            if (!resetCode || !resetUser) {
+                document.getElementById('auth-error').textContent = '重置链接已失效';
+                return;
+            }
+
+            if (newPassword.length < 3) {
+                document.getElementById('auth-error').textContent = '密码至少3位';
+                return;
+            }
+
+            // 重置密码
+            this.users[resetUser].password = simpleHash(newPassword);
+            this.saveUsers();
+
+            // 清理
+            localStorage.removeItem('snake-reset-code');
+            localStorage.removeItem('snake-reset-user');
+
+            alert('密码重置成功！请使用新密码登录');
+            // 重置表单
+            document.getElementById('forgot-username').value = '';
+            document.getElementById('forgot-email').value = '';
+            document.getElementById('new-password-input').value = '';
+            document.getElementById('forgot-step1').style.display = 'block';
+            document.getElementById('forgot-step2').style.display = 'none';
+            document.getElementById('forgot-step3').style.display = 'none';
+            document.getElementById('forgot-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+        });
+
+        // 检查URL是否有重置参数
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('reset')) {
+            const code = urlParams.get('reset');
+            const storedCode = localStorage.getItem('snake-reset-code');
+            if (code === storedCode) {
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('forgot-form').style.display = 'block';
+                document.getElementById('forgot-step1').style.display = 'none';
+                document.getElementById('forgot-step2').style.display = 'none';
+                document.getElementById('forgot-step3').style.display = 'block';
+            }
+        }
 
         // 开发者登录 - 使用 GitHub API 验证
         document.getElementById('admin-login-btn').addEventListener('click', async () => {
@@ -363,9 +489,15 @@ class AuthSystem {
         const adminBadge = this.isAdmin ? ' <span style="color:#e74c3c;">[管理员]</span>' : '';
         userInfo.innerHTML = `
             <span>欢迎, ${this.currentUser}${adminBadge}</span>
+            <button class="change-pass-btn" id="change-pass-btn">修改密码</button>
             <button class="logout-btn" id="logout-btn">退出</button>
         `;
         header.insertBefore(userInfo, header.firstChild);
+
+        // 修改密码按钮
+        document.getElementById('change-pass-btn').addEventListener('click', () => {
+            this.showChangePasswordDialog();
+        });
 
         // 开发者模式下显示管理面板按钮
         if (this.isAdmin) {
@@ -1595,6 +1727,7 @@ class SnakeGame {
 
     saveRecord() {
         const records = this.loadRecords();
+        const topRecords = this.loadTopRecords();
         const currentUser = window.auth ? window.auth.currentUser : null;
         const record = {
             username: currentUser || this.playerName || '匿名',
@@ -1611,8 +1744,33 @@ class SnakeGame {
             records.splice(50);
         }
 
+        // 保存前三名到永久记录
+        const top3 = records.slice(0, 3);
+        top3.forEach(r => {
+            if (!topRecords.find(tr => tr.score === r.score && tr.date === r.date)) {
+                topRecords.push(r);
+            }
+        });
+        // 去重
+        const uniqueTop = [];
+        topRecords.forEach(r => {
+            if (!uniqueTop.find(tr => tr.score === r.score && tr.date === r.date)) {
+                uniqueTop.push(r);
+            }
+        });
+        this.saveTopRecords(uniqueTop);
+
         this.saveRecords(records);
-        this.displayRecords('mine');
+        this.displayRecords();
+    }
+
+    loadTopRecords() {
+        const records = localStorage.getItem('snake-top-records');
+        return records ? JSON.parse(records) : [];
+    }
+
+    saveTopRecords(records) {
+        localStorage.setItem('snake-top-records', JSON.stringify(records));
     }
 
     loadRecords() {
@@ -1624,7 +1782,9 @@ class SnakeGame {
     getUserRecords() {
         const allRecords = this.loadRecords();
         const currentUser = window.auth ? window.auth.currentUser : null;
-        if (!currentUser) return allRecords;
+        // 未登录时返回空
+        if (!currentUser) return [];
+        // 只返回当前用户的记录
         return allRecords.filter(r => r.username === currentUser);
     }
 
@@ -1659,44 +1819,87 @@ class SnakeGame {
         });
     }
 
-    displayRecords(tab = 'mine') {
-        const recordsList = document.getElementById('records-list');
-        let records;
+    displayRecords() {
+        // 获取全部记录（包括永久记录）
+        const allRecords = this.loadRecords();
+        const topRecords = this.loadTopRecords();
 
-        if (tab === 'all') {
-            records = this.loadRecords();
-        } else {
-            records = this.getUserRecords();
-        }
+        // 合并显示（普通记录 + 永久记录）
+        const combinedRecords = [...allRecords];
 
-        recordsList.innerHTML = '';
-
-        if (records.length === 0) {
-            recordsList.innerHTML = '<div class="record-item">暂无记录</div>';
-            return;
-        }
-
-        recordsList.innerHTML = '';
-        records.forEach((record, index) => {
-            const recordItem = document.createElement('div');
-            recordItem.className = 'record-item';
-            if (index === 0) recordItem.classList.add('highlight');
-
-            const modeName = {
-                'classic': '经典',
-                'timed': '限时',
-                'endless': '无尽',
-                'battle': '对战'
-            }[record.mode] || '经典';
-
-            const username = record.username || record.playerName || '匿名';
-
-            recordItem.innerHTML = `
-                <strong>${username}</strong> - <span style="color:#667eea;">${modeName}</span><br>
-                分数: ${record.score} | 时间: ${record.time}s | ${record.date}
-            `;
-            recordsList.appendChild(recordItem);
+        // 添加不在普通记录中的永久记录
+        topRecords.forEach(tr => {
+            if (!combinedRecords.find(r => r.score === tr.score && r.date === tr.date)) {
+                combinedRecords.push(tr);
+            }
         });
+
+        // 按分数排序
+        combinedRecords.sort((a, b) => b.score - a.score);
+
+        const allRecordsList = document.getElementById('records-list-all');
+        if (combinedRecords.length === 0) {
+            allRecordsList.innerHTML = '<div class="record-item">暂无记录</div>';
+        } else {
+            allRecordsList.innerHTML = '';
+            combinedRecords.slice(0, 10).forEach((record, index) => {
+                const recordItem = document.createElement('div');
+                recordItem.className = 'record-item';
+                if (index < 3) recordItem.classList.add('highlight');
+
+                const modeName = {
+                    'classic': '经典',
+                    'timed': '限时',
+                    'endless': '无尽',
+                    'battle': '对战'
+                }[record.mode] || '经典';
+
+                const username = record.username || record.playerName || '匿名';
+
+                // 检查是否是永久记录
+                const isTop = topRecords.find(tr => tr.score === record.score && tr.date === record.date);
+                const badge = isTop ? ' 🏆' : '';
+
+                recordItem.innerHTML = `
+                    <strong>${username}${badge}</strong> - <span style="color:#667eea;">${modeName}</span><br>
+                    分数: ${record.score} | 时间: ${record.time}s | ${record.date}
+                `;
+                allRecordsList.appendChild(recordItem);
+            });
+        }
+
+        // 显示当前用户记录
+        const myRecords = this.getUserRecords();
+        const myRecordsList = document.getElementById('records-list-mine');
+        if (myRecords.length === 0) {
+            myRecordsList.innerHTML = '<div class="record-item">暂无记录</div>';
+        } else {
+            myRecordsList.innerHTML = '';
+            myRecords.forEach((record, index) => {
+                const recordItem = document.createElement('div');
+                recordItem.className = 'record-item';
+                if (index < 3) recordItem.classList.add('highlight');
+
+                const modeName = {
+                    'classic': '经典',
+                    'timed': '限时',
+                    'endless': '无尽',
+                    'battle': '对战'
+                }[record.mode] || '经典';
+
+                const username = record.username || record.playerName || '匿名';
+
+                // 检查是否是永久记录
+                const isTop = topRecords.find(tr => tr.score === record.score && tr.date === record.date);
+                const badge = isTop ? ' 🏆' : '';
+
+                recordItem.innerHTML = `
+                    <strong>${username}${badge}</strong> - <span style="color:#667eea;">${modeName}</span><br>
+                    分数: ${record.score} | 时间: ${record.time}s | ${record.date}
+                `;
+                myRecordsList.appendChild(recordItem);
+            });
+        }
     }
 
     clearRecords() {
@@ -1707,25 +1910,37 @@ class SnakeGame {
             return;
         }
 
-        if (confirm('确定要清除你的所有游戏记录吗？')) {
-            const allRecords = this.loadRecords();
-            const filteredRecords = allRecords.filter(r => r.username !== currentUser);
-            this.saveRecords(filteredRecords);
-            this.displayRecords('mine');
+        // 第一次确认
+        if (!confirm('确定要清除你的所有游戏记录吗？')) {
+            return;
         }
+
+        // 第二次确认
+        if (!confirm('此操作不可恢复，确定要继续吗？')) {
+            return;
+        }
+
+        const allRecords = this.loadRecords();
+        const topRecords = this.loadTopRecords();
+
+        // 获取当前用户的前三名
+        const myRecords = allRecords.filter(r => r.username === currentUser);
+        const myTop3 = myRecords.slice(0, 3);
+
+        // 过滤掉当前用户的记录，但保留前三名
+        const filteredRecords = allRecords.filter(r => {
+            if (r.username !== currentUser) return true;
+            // 如果是当前用户的记录，检查是否在前三名中
+            return myTop3.find(tr => tr.score === r.score && tr.date === r.date);
+        });
+
+        this.saveRecords(filteredRecords);
+        this.displayRecords();
     }
 
-    // 初始化记录标签页
+    // 初始化记录标签页（保留兼容）
     initRecordTabs() {
-        const self = this;
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                const tab = this.dataset.tab;
-                self.displayRecords(tab);
-            });
-        });
+        // 不再需要标签页，两列显示
     }
 
     // 成就系统
