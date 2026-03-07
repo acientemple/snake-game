@@ -558,12 +558,22 @@ class AuthSystem {
 
             const result = this.register(username, password, email);
             if (result.success) {
-                // 确认保存
-                const userCount = Object.keys(this.users).length;
-                console.log('注册成功，当前用户数:', userCount);
-                alert('注册成功！当前用户数: ' + userCount);
-                document.getElementById('auth-error').style.color = 'green';
-                document.getElementById('auth-error').textContent = '注册成功！请登录';
+                // 检查是否有 GitHub Token，如果有则自动同步
+                const githubToken = document.getElementById('github-token').value.trim();
+                if (githubToken) {
+                    localStorage.setItem('snake-github-token', githubToken);
+                    document.getElementById('auth-error').style.color = 'green';
+                    document.getElementById('auth-error').textContent = '注册成功！正在同步到GitHub...';
+                    // 自动同步
+                    this.syncToGitHub(githubToken).then(() => {
+                        document.getElementById('auth-error').textContent = '注册成功！已同步到GitHub，请登录';
+                    }).catch(() => {
+                        document.getElementById('auth-error').textContent = '注册成功！同步失败，请登录后手动同步';
+                    });
+                } else {
+                    document.getElementById('auth-error').style.color = 'green';
+                    document.getElementById('auth-error').textContent = '注册成功！请登录';
+                }
                 setTimeout(() => {
                     document.getElementById('reg-username').value = '';
                     document.getElementById('reg-email').value = '';
@@ -941,11 +951,17 @@ class AuthSystem {
         }
     }
 
-    async syncToGitHub() {
-        const token = document.getElementById('github-token').value.trim();
+    async syncToGitHub(externalToken = null) {
+        let token = externalToken;
+        if (!token) {
+            token = document.getElementById('github-token')?.value.trim();
+        }
+        if (!token) {
+            token = localStorage.getItem('snake-github-token');
+        }
         if (!token) {
             alert('请输入 GitHub Token');
-            return;
+            return Promise.reject();
         }
 
         const username = this.currentUser;
