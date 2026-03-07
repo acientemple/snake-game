@@ -558,6 +558,10 @@ class AuthSystem {
 
             const result = this.register(username, password, email);
             if (result.success) {
+                // 确认保存
+                const userCount = Object.keys(this.users).length;
+                console.log('注册成功，当前用户数:', userCount);
+                alert('注册成功！当前用户数: ' + userCount);
                 document.getElementById('auth-error').style.color = 'green';
                 document.getElementById('auth-error').textContent = '注册成功！请登录';
                 setTimeout(() => {
