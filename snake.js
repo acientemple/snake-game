@@ -41,15 +41,6 @@ class AuthSystem {
         }
         return token;
     }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (e) {
-            console.log('更新共享Token失败', e);
-        }
-    }
 
     // 初始化方法，在 DOM 加载完成后调用
     async initAuth() {
