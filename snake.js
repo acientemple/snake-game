@@ -138,7 +138,29 @@ class AuthSystem {
     // 从 GitHub 加载用户数据
     async loadUsersFromGitHub(token, gistId) {
         try {
-            const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            let targetGistId = gistId;
+
+            // 如果没有gistId，尝试查找
+            if (!targetGistId) {
+                const listResponse = await fetch('https://api.github.com/gists', {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                if (listResponse.ok) {
+                    const gists = await listResponse.json();
+                    const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
+                    if (existingGist) {
+                        targetGistId = existingGist.id;
+                        localStorage.setItem('snake-users-gist-id', targetGistId);
+                    }
+                }
+            }
+
+            if (!targetGistId) return null;
+
+            const response = await fetch(`https://api.github.com/gists/${targetGistId}`, {
                 headers: {
                     'Authorization': `token ${token}`,
                     'Accept': 'application/vnd.github.v3+json'
@@ -160,26 +182,41 @@ class AuthSystem {
     // 保存用户数据到 GitHub
     async saveUsersToGitHub() {
         const token = localStorage.getItem('snake-github-token');
-        let gistId = localStorage.getItem('snake-users-gist-id');
-
         if (!token) return false;
 
-        const gistData = {
-            description: 'Snake Game Users Data',
-            public: false,
-            files: {
-                'snake-users.json': {
-                    content: JSON.stringify(this.users, null, 2)
+        try {
+            // 先查找是否已有"Snake Game Users Data"的Gist
+            const listResponse = await fetch('https://api.github.com/gists', {
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            let existingGistId = null;
+            if (listResponse.ok) {
+                const gists = await listResponse.json();
+                const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
+                if (existingGist) {
+                    existingGistId = existingGist.id;
                 }
             }
-        };
 
-        try {
+            const gistData = {
+                description: 'Snake Game Users Data',
+                public: false,
+                files: {
+                    'snake-users.json': {
+                        content: JSON.stringify(this.users, null, 2)
+                    }
+                }
+            };
+
             let url = 'https://api.github.com/gists';
             let method = 'POST';
 
-            if (gistId) {
-                url += `/${gistId}`;
+            if (existingGistId) {
+                url += `/${existingGistId}`;
                 method = 'PATCH';
             }
 
@@ -195,6 +232,7 @@ class AuthSystem {
             if (response.ok) {
                 const gist = await response.json();
                 localStorage.setItem('snake-users-gist-id', gist.id);
+                console.log('用户数据已保存到GitHub');
                 return true;
             }
         } catch (e) {
