@@ -683,7 +683,7 @@ class AuthSystem {
                 <div class="admin-section">
                     <h3>游戏记录管理</h3>
                     <button id="view-all-records" class="auth-btn" style="padding:8px 15px;margin:5px 0;">查看所有记录</button>
-                    <button id="clear-records-btn" class="auth-btn" style="padding:8px 15px;margin:5px 0;background:#e74c3c;">清空所有记录</button>
+                    <button id="clear-all-records-btn" class="auth-btn" style="padding:8px 15px;margin:5px 0;background:#e74c3c;">清空所有记录</button>
                     <div id="all-records-view" style="display:none;background:#fff;padding:10px;border-radius:5px;max-height:300px;overflow-y:auto;margin-top:10px;"></div>
                 </div>
                 <div class="admin-section">
@@ -836,7 +836,7 @@ class AuthSystem {
         });
 
         // 清空所有游戏记录
-        document.getElementById('clear-records-btn').addEventListener('click', () => {
+        document.getElementById('clear-all-records-btn').addEventListener('click', () => {
             if (confirm('确定要清空所有游戏记录吗？此操作不可恢复！')) {
                 localStorage.removeItem('snake-records');
                 localStorage.removeItem('snake-top-records');
