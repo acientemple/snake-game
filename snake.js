@@ -733,14 +733,20 @@ class AuthSystem {
                         <input type="text" id="emailjs-template-id" placeholder="Template ID" style="padding:8px;width:200px;margin:5px 0;">
                         <button id="save-email-config" class="auth-btn" style="padding:8px 15px;width:auto;margin:0;">保存配置</button>
                     </div>
-                    <p style="font-size:12px;color:#666;">配置说明：</p>
+                    <p style="font-size:12px;color:#666;"><strong>配置说明（重要！）：</strong></p>
                     <ol style="font-size:12px;color:#666;margin-left:20px;">
                         <li>注册 <a href="https://www.emailjs.com/" target="_blank">EmailJS</a> 账号</li>
-                        <li>创建 Email Service (如 Gmail)</li>
-                        <li>创建 Email Template</li>
-                        <li>在 Template 中使用变量: {{to_name}}, {{reset_link}}</li>
-                        <li>将获取的 ID 填入上方配置</li>
+                        <li><strong>删除旧服务重建：</strong>如果之前Gmail服务权限不足，先在EmailJS后台删除 Gmail 服务，重新添加</li>
+                        <li>添加 Gmail 服务时，必须勾选 <strong>"Send email on your behalf"</strong> 权限</li>
+                        <li>创建 Email Template，变量用: <code>{{to_name}}</code>, <code>{{reset_link}}</code></li>
+                        <li>获取 Public Key（在 Account → API Keys）</li>
+                        <li>获取 Service ID（Email Services 中）</li>
+                        <li>获取 Template ID（Email Templates 中）</li>
                     </ol>
+                    <p style="font-size:12px;color:#e74c3c;background:#fdf0ef;padding:10px;border-radius:5px;">
+                        <strong>如果遇到 "insufficient authentication biases" 错误：</strong><br>
+                        必须删除旧的 Gmail 服务，重新连接并授予 <strong>"Send email on your behalf"</strong> 权限
+                    </p>
                     <div id="email-config-status" style="margin-top:10px;font-size:12px;"></div>
                 </div>
             </div>
