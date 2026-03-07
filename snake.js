@@ -2253,8 +2253,9 @@ class SnakeGame {
         // 获取当前用户名
         const currentUser = window.auth ? window.auth.currentUser : null;
         const playerName = document.getElementById('player-name').value;
+        const userToDelete = currentUser || playerName;
 
-        if (!currentUser && !playerName) {
+        if (!userToDelete) {
             alert('请先登录或输入玩家姓名');
             return;
         }
@@ -2270,23 +2271,18 @@ class SnakeGame {
         }
 
         const allRecords = this.loadRecords();
-        const userToDelete = currentUser || playerName;
+        alert('当前记录数: ' + allRecords.length + ', 用户: ' + userToDelete);
 
-        // 获取当前用户的前三名（保留）
-        const myRecords = allRecords.filter(r => (r.username === userToDelete) || (r.playerName === userToDelete));
-        const myTop3 = myRecords.slice(0, 3);
-
-        // 过滤掉当前用户的记录，但保留前三名
+        // 简单处理：删除所有该用户的记录
         const filteredRecords = allRecords.filter(r => {
-            const isMyRecord = (r.username === userToDelete) || (r.playerName === userToDelete);
-            if (!isMyRecord) return true;
-            // 检查是否在前三名中
-            return myTop3.some(tr => tr.score === r.score && tr.date === r.date);
+            return (r.username !== userToDelete) && (r.playerName !== userToDelete);
         });
+
+        alert('删除后记录数: ' + filteredRecords.length);
 
         this.saveRecords(filteredRecords);
         this.displayRecords();
-        alert('记录已清除（前三名已保留）');
+        alert('记录已清除');
     }
 
     // 初始化记录标签页（保留兼容）
