@@ -71,6 +71,14 @@ class SnakeGame {
             this.speed = parseInt(e.target.value);
             document.getElementById('speed-value').textContent = this.speed;
         });
+
+        // 全屏变化事件（处理 ESC 键退出全屏）
+        document.addEventListener('fullscreenchange', () => {
+            const container = document.querySelector('.game-container');
+            if (!document.fullscreenElement) {
+                container.classList.remove('fullscreen-mode');
+            }
+        });
     }
 
     generateFood() {
@@ -230,10 +238,13 @@ class SnakeGame {
     }
 
     toggleFullscreen() {
+        const container = document.querySelector('.game-container');
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen();
+            container.classList.add('fullscreen-mode');
         } else {
             document.exitFullscreen();
+            container.classList.remove('fullscreen-mode');
         }
     }
 
