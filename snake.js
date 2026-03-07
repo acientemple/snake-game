@@ -548,6 +548,97 @@ class AuthSystem {
         }
     }
 
+    // 保存共享 Token 到 GitHub
+    async saveSharedTokenToGitHub(token, username) {
+        const githubToken = token;
+        if (!githubToken) return;
+
+        try {
+            // 查找现有 Gist
+            const listResponse = await fetch('https://api.github.com/gists', {
+                headers: {
+                    'Authorization': `token ${githubToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            let existingGistId = null;
+            let cloudUsers = {};
+            let cloudRecords = '[]';
+            let cloudTopRecords = '[]';
+
+            if (listResponse.ok) {
+                const gists = await listResponse.json();
+                const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
+                if (existingGist) {
+                    existingGistId = existingGist.id;
+
+                    // 获取现有 Gist 内容
+                    const gistResponse = await fetch(`https://api.github.com/gists/${existingGistId}`, {
+                        headers: {
+                            'Authorization': `token ${githubToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    if (gistResponse.ok) {
+                        const gist = await gistResponse.json();
+                        cloudUsers = JSON.parse(gist.files['snake-users.json']?.content || '{}');
+                        cloudRecords = gist.files['snake-records.json']?.content || '[]';
+                        cloudTopRecords = gist.files['snake-top-records.json']?.content || '[]';
+                    }
+                }
+            }
+
+            const gistData = {
+                description: 'Snake Game Users Data',
+                public: false,
+                files: {
+                    'snake-users.json': {
+                        content: JSON.stringify(cloudUsers, null, 2)
+                    },
+                    'snake-records.json': {
+                        content: cloudRecords
+                    },
+                    'snake-top-records.json': {
+                        content: cloudTopRecords
+                    },
+                    'snake-config.json': {
+                        content: JSON.stringify({
+                            sharedToken: token,
+                            sharedUser: username
+                        }, null, 2)
+                    }
+                }
+            };
+
+            let url = 'https://api.github.com/gists';
+            let method = 'POST';
+
+            if (existingGistId) {
+                url += `/${existingGistId}`;
+                method = 'PATCH';
+            }
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': `token ${githubToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(gistData)
+            });
+
+            if (response.ok) {
+                const gist = await response.json();
+                localStorage.setItem('snake-users-gist-id', gist.id);
+                console.log('共享 Token 已保存到 GitHub');
+            }
+        } catch (e) {
+            console.log('保存共享 Token 失败', e);
+        }
+    }
+
     register(username, password, email = '') {
         if (!username || !password) {
             return { success: false, message: '用户名和密码不能为空' };
@@ -774,117 +865,6 @@ class AuthSystem {
             document.getElementById('forgot-form').style.display = 'none';
             document.getElementById('login-form').style.display = 'block';
         });
-
-        // 设置共享 GitHub Token（供所有玩家使用）
-        const setSharedTokenBtn = document.getElementById('set-shared-token-btn');
-        if (setSharedTokenBtn) {
-            setSharedTokenBtn.addEventListener('click', async () => {
-                const token = document.getElementById('shared-github-token').value.trim();
-                const statusEl = document.getElementById('shared-token-status');
-
-                if (!token) {
-                    statusEl.textContent = '请输入 Token';
-                    statusEl.style.color = 'red';
-                    return;
-                }
-
-                statusEl.textContent = '正在验证并保存 Token...';
-
-                try {
-                    // 验证 Token
-                    const response = await fetch('https://api.github.com/user', {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `token ${token}`,
-                            'Accept': 'application/vnd.github.v3+json'
-                        }
-                    });
-
-                    if (response.ok) {
-                        const userData = await response.json();
-                        // 保存为共享 Token
-                        localStorage.setItem('snake-shared-github-token', token);
-                        localStorage.setItem('snake-shared-github-user', userData.login);
-
-                        // 同时保存到GitHub Gist，让其他用户也能获取
-                        try {
-                            // 查找现有Gist
-                            const listResponse = await fetch('https://api.github.com/gists', {
-                                headers: {
-                                    'Authorization': `token ${token}`,
-                                    'Accept': 'application/vnd.github.v3+json'
-                                }
-                            });
-
-                            let existingGistId = localStorage.getItem('snake-users-gist-id');
-                            if (listResponse.ok) {
-                                const gists = await listResponse.json();
-                                const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
-                                if (existingGist) {
-                                    existingGistId = existingGist.id;
-                                }
-                            }
-
-                            const gistData = {
-                                description: 'Snake Game Users Data',
-                                public: false,
-                                files: {
-                                    'snake-users.json': {
-                                        content: JSON.stringify(this.users || {}, null, 2)
-                                    },
-                                    'snake-config.json': {
-                                        content: JSON.stringify({
-                                            sharedToken: token,
-                                            sharedUser: userData.login
-                                        }, null, 2)
-                                    }
-                                }
-                            };
-
-                            let url = 'https://api.github.com/gists';
-                            let method = 'POST';
-                            if (existingGistId) {
-                                // 更新现有Gist
-                                const getGist = await fetch(`https://api.github.com/gists/${existingGistId}`, {
-                                    headers: {
-                                        'Authorization': `token ${token}`,
-                                        'Accept': 'application/vnd.github.v3+json'
-                                    }
-                                });
-                                if (getGist.ok) {
-                                    const gist = getGist.json();
-                                    gistData.files['snake-records.json'] = { content: gist.files['snake-records.json']?.content || '[]' };
-                                    gistData.files['snake-top-records.json'] = { content: gist.files['snake-top-records.json']?.content || '[]' };
-                                }
-                                url += `/${existingGistId}`;
-                                method = 'PATCH';
-                            }
-
-                            await fetch(url, {
-                                method: method,
-                                headers: {
-                                    'Authorization': `token ${token}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(gistData)
-                            });
-                        } catch (e) {
-                            console.log('保存共享Token到Gist失败', e);
-                        }
-
-                        statusEl.textContent = '✓ 共享 Token 已保存到云端！其他用户登录时将自动获取。';
-                        statusEl.style.color = 'green';
-                        console.log('共享 Token 已设置，用户:', userData.login);
-                    } else {
-                        statusEl.textContent = '✗ Token 无效或已过期';
-                        statusEl.style.color = 'red';
-                    }
-                } catch (error) {
-                    statusEl.textContent = '✗ 验证失败: ' + error.message;
-                    statusEl.style.color = 'red';
-                }
-            });
-        }
 
         // 忘记密码 - 第一步：发送重置链接
         document.getElementById('forgot-btn').addEventListener('click', () => {
@@ -1279,6 +1259,15 @@ class AuthSystem {
                     <button id="clear-all-btn" class="auth-btn" style="background:#e74c3c;">清空所有数据</button>
                 </div>
                 <div class="admin-section">
+                    <h3>⚙️ 共享 GitHub Token（供所有玩家使用）</h3>
+                    <div style="background:#e8f5e9;padding:15px;border-radius:8px;margin:10px 0;">
+                        <p style="font-size:13px;color:#2e7d32;margin-bottom:10px;">设置共享 Token 后，所有玩家都可以自动同步游戏记录，无需各自输入 Token</p>
+                        <input type="text" id="admin-shared-token" placeholder="输入共享的 GitHub Token" style="padding:8px;width:300px;margin:5px 0;">
+                        <button id="save-shared-token" class="auth-btn" style="padding:8px 15px;width:auto;margin:0;background:#4caf50;">保存共享 Token</button>
+                        <p id="shared-token-admin-status" style="font-size:12px;margin-top:5px;color:#666;"></p>
+                    </div>
+                </div>
+                <div class="admin-section">
                     <h3>EmailJS 邮件配置</h3>
                     <div style="margin-bottom:10px;">
                         <input type="text" id="emailjs-public-key" placeholder="Public Key" style="padding:8px;width:200px;margin:5px 0;">
@@ -1308,6 +1297,50 @@ class AuthSystem {
         document.body.appendChild(panel);
         this.loadAdminData();
         this.loadEmailConfig();
+
+        // 保存共享 Token
+        document.getElementById('save-shared-token').addEventListener('click', async () => {
+            const token = document.getElementById('admin-shared-token').value.trim();
+            const statusEl = document.getElementById('shared-token-admin-status');
+
+            if (!token) {
+                statusEl.textContent = '请输入 Token';
+                statusEl.style.color = 'red';
+                return;
+            }
+
+            statusEl.textContent = '正在验证并保存 Token...';
+
+            try {
+                // 验证 Token
+                const response = await fetch('https://api.github.com/user', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    // 保存为共享 Token
+                    localStorage.setItem('snake-shared-github-token', token);
+                    localStorage.setItem('snake-shared-github-user', userData.login);
+
+                    // 同时保存到GitHub Gist
+                    await self.saveSharedTokenToGitHub(token, userData.login);
+
+                    statusEl.textContent = '✓ 共享 Token 已保存到云端！所有玩家将自动使用此 Token。';
+                    statusEl.style.color = 'green';
+                } else {
+                    statusEl.textContent = '✗ Token 无效或已过期';
+                    statusEl.style.color = 'red';
+                }
+            } catch (error) {
+                statusEl.textContent = '✗ 验证失败: ' + error.message;
+                statusEl.style.color = 'red';
+            }
+        });
 
         // 保存邮件配置
         document.getElementById('save-email-config').addEventListener('click', () => {
