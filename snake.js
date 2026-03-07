@@ -33,6 +33,10 @@ class AuthSystem {
 
     // 初始化方法，在 DOM 加载完成后调用
     initAuth() {
+        // 检查是否已登录
+        if (this.isLoggedIn()) {
+            console.log('已自动登录: ' + this.currentUser);
+        }
         this.init();
     }
 
