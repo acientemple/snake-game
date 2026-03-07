@@ -992,6 +992,9 @@ class AuthSystem {
                     localStorage.setItem('snake-shared-github-token', token);
                     localStorage.setItem('snake-shared-github-user', userData.login);
 
+                    // 保存到 GitHub
+                    await this.saveSharedTokenToGitHub(token, userData.login);
+
                     // 异步从 GitHub 加载最新用户数据
                     await this.refreshUsers();
                     console.log('用户数据已刷新');
