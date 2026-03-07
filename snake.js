@@ -2862,7 +2862,7 @@ class SnakeGame {
         }
     }
 
-    clearRecords() {
+    async clearRecords() {
         // 获取当前用户名
         const currentUser = window.auth ? window.auth.currentUser : null;
         const playerName = document.getElementById('player-name').value;
@@ -2886,6 +2886,13 @@ class SnakeGame {
         });
 
         this.saveRecords(filteredRecords);
+
+        // 同步到GitHub
+        if (window.auth && window.auth.currentUser) {
+            await window.auth.saveUsers();
+            await window.auth.syncRecordsFromGitHub();
+        }
+
         this.displayRecords();
     }
 
