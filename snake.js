@@ -36,9 +36,14 @@ class AuthSystem {
         this.currentUser = null;
         this.users = this.loadUsers();
         this.emailEnabled = false;
-        dbg('Auth before init');
+        // 不在这里调用 init()，等 DOM 加载完成后再调用
+    }
+
+    // 初始化方法，在 DOM 加载完成后调用
+    initAuth() {
+        dbg('Auth initAuth start');
         this.init();
-        dbg('Auth after init');
+        dbg('Auth initAuth done');
     }
 
     // 初始化 EmailJS
@@ -1107,7 +1112,8 @@ document.addEventListener('DOMContentLoaded', () => {
     dbg('DOM loaded');
     try {
         window.auth = new AuthSystem();
-        dbg('Auth created OK');
+        window.auth.initAuth();
+        dbg('Auth init done, users: ' + Object.keys(window.auth.users).join(','));
     } catch(e) {
         dbg('Auth error: ' + e.message);
     }
