@@ -33,11 +33,22 @@ class AuthSystem {
 
     // 初始化方法，在 DOM 加载完成后调用
     initAuth() {
+        // 如果有 GitHub Token，强制从 GitHub 加载最新用户数据
+        const githubToken = localStorage.getItem('snake-github-token');
+        if (githubToken) {
+            this.users = this.loadUsers();
+        }
+
         // 检查是否已登录
         if (this.isLoggedIn()) {
             console.log('已自动登录: ' + this.currentUser);
         }
         this.init();
+    }
+
+    // 强制刷新用户数据（从 GitHub）
+    refreshUsers() {
+        this.users = this.loadUsers();
     }
 
     // 初始化 EmailJS
@@ -104,14 +115,24 @@ class AuthSystem {
         const githubToken = localStorage.getItem('snake-github-token');
         const gistId = localStorage.getItem('snake-users-gist-id');
 
+        // 同步版本：先从本地加载
+        const users = localStorage.getItem('snake-users');
+        const localUsers = users ? JSON.parse(users) : {};
+
+        // 如果有 GitHub 配置，尝试异步加载
         if (githubToken && gistId) {
-            // 尝试从 GitHub 加载
-            return this.loadUsersFromGitHub(githubToken, gistId);
+            this.loadUsersFromGitHub(githubToken, gistId).then(cloudUsers => {
+                if (cloudUsers && Object.keys(cloudUsers).length > 0) {
+                    this.users = cloudUsers;
+                    localStorage.setItem('snake-users', JSON.stringify(cloudUsers));
+                    console.log('已从GitHub同步用户数据');
+                }
+            }).catch(() => {
+                console.log('从GitHub加载失败，使用本地数据');
+            });
         }
 
-        // 否则从本地加载
-        const users = localStorage.getItem('snake-users');
-        return users ? JSON.parse(users) : {};
+        return localUsers;
     }
 
     // 从 GitHub 加载用户数据
@@ -131,11 +152,9 @@ class AuthSystem {
                 }
             }
         } catch (e) {
-            console.log('从GitHub加载用户失败，使用本地数据');
+            console.log('从GitHub加载用户失败', e);
         }
-        // 加载失败则用本地
-        const users = localStorage.getItem('snake-users');
-        return users ? JSON.parse(users) : {};
+        return null;
     }
 
     // 保存用户数据到 GitHub
