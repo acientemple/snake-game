@@ -1,4 +1,10 @@
 // 贪吃蛇游戏核心逻辑 - 增强版
+function dbg(msg) {
+    console.log(msg);
+    var d = document.getElementById('auth-debug');
+    if (d) d.innerHTML = msg + '<br>' + d.innerHTML;
+}
+dbg('snake.js loaded');
 
 // 简单的哈希函数
 function simpleHash(str) {
@@ -573,12 +579,12 @@ class AuthSystem {
 
         // 注册
         document.getElementById('register-btn').addEventListener('click', () => {
-            // debug('Register button clicked');
+            dbg('Register clicked');
             const username = document.getElementById('reg-username').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
             const password2 = document.getElementById('reg-password2').value;
-            // debug('Register username: ' + username);
+            dbg('User: ' + username);
 
             if (password !== password2) {
                 document.getElementById('auth-error').textContent = '两次密码不一致';
@@ -586,7 +592,7 @@ class AuthSystem {
             }
 
             const result = this.register(username, password, email);
-            // debug('Register result: ' + JSON.stringify(result));
+            dbg('Result: ' + JSON.stringify(result));
             if (result.success) {
                 document.getElementById('auth-error').style.color = 'green';
                 document.getElementById('auth-error').textContent = '注册成功！请登录';
@@ -1095,10 +1101,9 @@ function initGame() {
 
 // 页面加载完成后初始化认证
 document.addEventListener('DOMContentLoaded', () => {
-    // debug('DOM loaded, creating AuthSystem...');
+    dbg('DOM loaded');
     window.auth = new AuthSystem();
-    // debug('AuthSystem created, users: ' + Object.keys(window.auth.users).join(','));
-    // debug('Auth init complete');
+    dbg('Auth created, users: ' + Object.keys(window.auth.users).join(','));
 });
 
 class SnakeGame {
