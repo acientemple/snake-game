@@ -513,40 +513,15 @@ class AuthSystem {
             });
         });
 
-        // 注册
-        document.getElementById('register-btn').addEventListener('click', () => {
-            const username = document.getElementById('reg-username').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
-            const password = document.getElementById('reg-password').value;
-            const password2 = document.getElementById('reg-password2').value;
-
-            if (password !== password2) {
-                document.getElementById('auth-error').textContent = '两次密码不一致';
-                return;
-            }
-
-            const result = this.register(username, password, email);
-            if (result.success) {
-                document.getElementById('auth-error').textContent = '';
-                alert('注册成功！请登录');
-                document.getElementById('reg-username').value = '';
-                document.getElementById('reg-email').value = '';
-                document.getElementById('reg-password').value = '';
-                document.getElementById('reg-password2').value = '';
-                document.getElementById('register-form').style.display = 'none';
-                document.getElementById('github-sync').style.display = 'none';
-                document.getElementById('login-form').style.display = 'block';
-            } else {
-                document.getElementById('auth-error').textContent = result.message;
-            }
-        });
-
         // 登录
         document.getElementById('login-btn').addEventListener('click', () => {
+            // debug('Login button clicked');
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
+            // debug('Username: ' + username);
 
             const result = this.login(username, password);
+            // debug('Login result: ' + JSON.stringify(result));
             if (result.success) {
                 document.getElementById('auth-error').textContent = '';
                 this.showGame();
@@ -555,9 +530,49 @@ class AuthSystem {
             }
         });
 
+        // 注册
+        document.getElementById('register-btn').addEventListener('click', () => {
+            // debug('Register button clicked');
+            const username = document.getElementById('reg-username').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const password2 = document.getElementById('reg-password2').value;
+            // debug('Register username: ' + username);
+
+            if (password !== password2) {
+                document.getElementById('auth-error').textContent = '两次密码不一致';
+                return;
+            }
+
+            const result = this.register(username, password, email);
+            // debug('Register result: ' + JSON.stringify(result));
+            if (result.success) {
+                document.getElementById('auth-error').style.color = 'green';
+                document.getElementById('auth-error').textContent = '注册成功！请登录';
+                setTimeout(() => {
+                    document.getElementById('reg-username').value = '';
+                    document.getElementById('reg-email').value = '';
+                    document.getElementById('reg-password').value = '';
+                    document.getElementById('reg-password2').value = '';
+                    document.getElementById('register-form').style.display = 'none';
+                    document.getElementById('github-sync').style.display = 'none';
+                    document.getElementById('login-form').style.display = 'block';
+                    document.getElementById('auth-error').textContent = '';
+                }, 1500);
+            } else {
+                document.getElementById('auth-error').style.color = 'red';
+                document.getElementById('auth-error').textContent = result.message;
+            }
+        });
+
         // GitHub 同步
         document.getElementById('sync-btn').addEventListener('click', () => {
             this.syncToGitHub();
+        });
+
+        // GitHub 下载
+        document.getElementById('download-btn').addEventListener('click', () => {
+            this.downloadFromGitHub();
         });
 
         // 检查是否已登录
@@ -840,6 +855,63 @@ class AuthSystem {
             alert('同步失败: ' + error.message);
         }
     }
+
+    // 从 GitHub Gist 下载数据
+    async downloadFromGitHub() {
+        const gistId = localStorage.getItem('snake-gist-id');
+        const token = localStorage.getItem('snake-github-token');
+
+        if (!gistId) {
+            alert('没有找到 GitHub 同步记录，请先进行云同步');
+            return;
+        }
+
+        if (!token) {
+            alert('请先在登录界面输入 GitHub Token');
+            return;
+        }
+
+        try {
+            const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            if (response.ok) {
+                const gist = await response.json();
+                const content = gist.files['snake-game-data.json'].content;
+                const data = JSON.parse(content);
+
+                // 恢复数据
+                if (data.achievements) {
+                    localStorage.setItem('snake-achievements', data.achievements);
+                }
+                if (data.records) {
+                    localStorage.setItem('snake-records', data.records);
+                }
+                if (data.stats) {
+                    localStorage.setItem('snake-stats', data.stats);
+                }
+                if (data.skins) {
+                    localStorage.setItem('snake-skins', data.skins);
+                }
+                if (data.sounds) {
+                    localStorage.setItem('snake-sounds', data.sounds);
+                }
+
+                alert('数据下载成功！请刷新页面查看');
+            } else if (response.status === 404) {
+                alert('Gist 不存在或已被删除');
+            } else {
+                alert('下载失败: ' + response.statusText);
+            }
+        } catch (error) {
+            alert('下载失败: ' + error.message);
+        }
+    }
 }
 
 // 游戏初始化
@@ -860,7 +932,10 @@ function initGame() {
 
 // 页面加载完成后初始化认证
 document.addEventListener('DOMContentLoaded', () => {
+    // debug('DOM loaded, creating AuthSystem...');
     window.auth = new AuthSystem();
+    // debug('AuthSystem created, users: ' + Object.keys(window.auth.users).join(','));
+    // debug('Auth init complete');
 });
 
 class SnakeGame {

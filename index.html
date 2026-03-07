@@ -57,6 +57,7 @@
                         <p id="reset-link" style="background:#fff;padding:10px;word-break:break-all;font-size:12px;border-radius:5px;margin-top:10px;cursor:pointer;border:1px dashed #ccc;" title="点击打开链接" onclick="window.open(this.innerText)"></p>
                     </div>
                     <p style="color:#667eea;font-size:14px;">请打开上述链接重置密码</p>
+                    <button id="use-link-btn" class="auth-btn" style="margin-top:10px;">我已打开链接</button>
                 </div>
                 <div id="forgot-step3" style="display:none;">
                     <h4>重置密码</h4>
@@ -72,6 +73,7 @@
                 <input type="text" id="github-token" placeholder="GitHub Personal Access Token">
                 <p class="hint">创建 Token: GitHub → Settings → Developer settings → Personal access tokens → Generate new token (需要 gist 权限)</p>
                 <button id="sync-btn" class="auth-btn">同步到 GitHub</button>
+                <button id="download-btn" class="auth-btn" style="margin-left:10px;">从 GitHub 下载</button>
             </div>
             <!-- EmailJS 配置说明 -->
             <div id="email-config" style="display:none;margin-top:15px;">
