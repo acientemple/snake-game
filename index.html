@@ -73,6 +73,15 @@
                 <p class="hint">创建 Token: GitHub → Settings → Developer settings → Personal access tokens → Generate new token (需要 gist 权限)</p>
                 <button id="sync-btn" class="auth-btn">同步到 GitHub</button>
             </div>
+            <!-- EmailJS 配置说明 -->
+            <div id="email-config" style="display:none;margin-top:15px;">
+                <hr>
+                <h4>邮件配置（可选）</h4>
+                <p class="hint">要启用邮件发送，请在 snake.js 中配置 EmailJS：<br>
+                1. 注册 <a href="https://www.emailjs.com/" target="_blank">EmailJS</a><br>
+                2. 创建 Email Service 和 Template<br>
+                3. 在代码中替换 EMAILJS_CONFIG 的配置</p>
+            </div>
             <p id="auth-error" class="error"></p>
         </div>
     </div>
@@ -296,6 +305,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script src="snake.js"></script>
 </body>
 </html>

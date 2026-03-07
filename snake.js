@@ -11,12 +11,84 @@ function simpleHash(str) {
     return hash.toString(16);
 }
 
+// EmailJS 配置 - 从 localStorage 加载
+function getEmailJSConfig() {
+    const config = localStorage.getItem('snake-emailjs-config');
+    return config ? JSON.parse(config) : null;
+}
+
+const EMAILJS_CONFIG = getEmailJSConfig() || {
+    publicKey: '',
+    serviceId: '',
+    templateId: ''
+};
+
 // 用户认证系统
 class AuthSystem {
     constructor() {
         this.currentUser = null;
         this.users = this.loadUsers();
+        this.emailEnabled = false; // 设为 true 启用邮件发送
         this.init();
+    }
+
+    // 初始化 EmailJS
+    initEmailJS() {
+        const config = getEmailJSConfig();
+        if (!config || !config.publicKey) {
+            console.warn('EmailJS 未配置');
+            return false;
+        }
+        if (typeof emailjs === 'undefined') {
+            console.warn('EmailJS SDK 未加载');
+            return false;
+        }
+        try {
+            emailjs.init(config.publicKey);
+            this.emailEnabled = true;
+            return true;
+        } catch (e) {
+            console.error('EmailJS 初始化失败:', e);
+            return false;
+        }
+    }
+
+    loadEmailConfig() {
+        const config = getEmailJSConfig();
+        if (config) {
+            document.getElementById('emailjs-public-key').value = config.publicKey || '';
+            document.getElementById('emailjs-service-id').value = config.serviceId || '';
+            document.getElementById('emailjs-template-id').value = config.templateId || '';
+            if (config.publicKey) {
+                document.getElementById('email-config-status').innerHTML = '<span style="color:green;">✓ 已配置 EmailJS</span>';
+            }
+        }
+    }
+
+    // 发送密码重置邮件
+    async sendPasswordResetEmail(email, username, resetLink) {
+        const config = getEmailJSConfig();
+        if (!config || !config.publicKey || typeof emailjs === 'undefined') {
+            // 如果未配置，显示链接
+            document.getElementById('reset-link').textContent = resetLink;
+            return true;
+        }
+
+        try {
+            const response = await emailjs.send(config.serviceId, config.templateId, {
+                to_email: email,
+                to_name: username,
+                reset_link: resetLink,
+                from_name: '贪吃蛇游戏'
+            });
+            console.log('邮件发送成功:', response);
+            return true;
+        } catch (error) {
+            console.error('邮件发送失败:', error);
+            // 失败时显示链接作为备选
+            document.getElementById('reset-link').textContent = resetLink;
+            return false;
+        }
     }
 
     loadUsers() {
@@ -219,6 +291,7 @@ class AuthSystem {
             document.getElementById('login-form').style.display = 'none';
             document.getElementById('register-form').style.display = 'block';
             document.getElementById('github-sync').style.display = 'block';
+            document.getElementById('email-config').style.display = 'block';
         });
 
         document.getElementById('show-login').addEventListener('click', (e) => {
@@ -274,12 +347,21 @@ class AuthSystem {
             localStorage.setItem('snake-reset-code', resetCode);
             localStorage.setItem('snake-reset-user', username);
 
-            // 显示模拟的重置链接
+            // 生成重置链接
             const resetLink = `${window.location.origin}${window.location.pathname}?reset=${resetCode}`;
-            document.getElementById('reset-link').textContent = resetLink;
-            document.getElementById('forgot-step1').style.display = 'none';
-            document.getElementById('forgot-step2').style.display = 'block';
-            document.getElementById('auth-error').textContent = '';
+
+            // 发送邮件
+            document.getElementById('auth-error').textContent = '正在发送邮件...';
+
+            this.sendPasswordResetEmail(email, username, resetLink).then(() => {
+                document.getElementById('forgot-step1').style.display = 'none';
+                document.getElementById('forgot-step2').style.display = 'block';
+                document.getElementById('auth-error').textContent = '';
+            }).catch(() => {
+                document.getElementById('forgot-step1').style.display = 'none';
+                document.getElementById('forgot-step2').style.display = 'block';
+                document.getElementById('auth-error').textContent = '';
+            });
         });
 
         // 忘记密码 - 第二步：使用链接
@@ -580,11 +662,57 @@ class AuthSystem {
                     <h3>数据管理</h3>
                     <button id="clear-all-btn" class="auth-btn" style="background:#e74c3c;">清空所有数据</button>
                 </div>
+                <div class="admin-section">
+                    <h3>EmailJS 邮件配置</h3>
+                    <div style="margin-bottom:10px;">
+                        <input type="text" id="emailjs-public-key" placeholder="Public Key" style="padding:8px;width:200px;margin:5px 0;">
+                        <input type="text" id="emailjs-service-id" placeholder="Service ID" style="padding:8px;width:200px;margin:5px 0;">
+                        <input type="text" id="emailjs-template-id" placeholder="Template ID" style="padding:8px;width:200px;margin:5px 0;">
+                        <button id="save-email-config" class="auth-btn" style="padding:8px 15px;width:auto;margin:0;">保存配置</button>
+                    </div>
+                    <p style="font-size:12px;color:#666;">配置说明：</p>
+                    <ol style="font-size:12px;color:#666;margin-left:20px;">
+                        <li>注册 <a href="https://www.emailjs.com/" target="_blank">EmailJS</a> 账号</li>
+                        <li>创建 Email Service (如 Gmail)</li>
+                        <li>创建 Email Template</li>
+                        <li>在 Template 中使用变量: {{to_name}}, {{reset_link}}</li>
+                        <li>将获取的 ID 填入上方配置</li>
+                    </ol>
+                    <div id="email-config-status" style="margin-top:10px;font-size:12px;"></div>
+                </div>
             </div>
         `;
 
         document.body.appendChild(panel);
         this.loadAdminData();
+        this.loadEmailConfig();
+
+        // 保存邮件配置
+        document.getElementById('save-email-config').addEventListener('click', () => {
+            const publicKey = document.getElementById('emailjs-public-key').value.trim();
+            const serviceId = document.getElementById('emailjs-service-id').value.trim();
+            const templateId = document.getElementById('emailjs-template-id').value.trim();
+
+            if (!publicKey || !serviceId || !templateId) {
+                alert('请填写完整的 EmailJS 配置');
+                return;
+            }
+
+            const config = { publicKey, serviceId, templateId };
+            localStorage.setItem('snake-emailjs-config', JSON.stringify(config));
+
+            // 更新内存中的配置
+            EMAILJS_CONFIG.publicKey = publicKey;
+            EMAILJS_CONFIG.serviceId = serviceId;
+            EMAILJS_CONFIG.templateId = templateId;
+
+            // 初始化 EmailJS
+            if (typeof emailjs !== 'undefined') {
+                emailjs.init(publicKey);
+            }
+
+            document.getElementById('email-config-status').innerHTML = '<span style="color:green;">✓ 配置已保存，邮件功能已启用</span>';
+        });
 
         // 重置用户密码
         document.getElementById('reset-user-pass').addEventListener('click', () => {
