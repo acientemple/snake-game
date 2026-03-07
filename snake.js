@@ -833,7 +833,7 @@ class AuthSystem {
         panel.className = 'modal show';
         panel.innerHTML = `
             <div class="modal-content" style="max-width:600px;">
-                <span class="close" onclick="this.parentElement.remove()">&times;</span>
+                <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
                 <h2>👑 管理员面板</h2>
                 <div class="admin-section">
                     <h3>用户管理</h3>
