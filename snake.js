@@ -32,10 +32,13 @@ const EMAILJS_CONFIG = getEmailJSConfig() || {
 // 用户认证系统
 class AuthSystem {
     constructor() {
+        dbg('Auth constructor start');
         this.currentUser = null;
         this.users = this.loadUsers();
-        this.emailEnabled = false; // 设为 true 启用邮件发送
+        this.emailEnabled = false;
+        dbg('Auth before init');
         this.init();
+        dbg('Auth after init');
     }
 
     // 初始化 EmailJS
@@ -1102,8 +1105,12 @@ function initGame() {
 // 页面加载完成后初始化认证
 document.addEventListener('DOMContentLoaded', () => {
     dbg('DOM loaded');
-    window.auth = new AuthSystem();
-    dbg('Auth created, users: ' + Object.keys(window.auth.users).join(','));
+    try {
+        window.auth = new AuthSystem();
+        dbg('Auth created OK');
+    } catch(e) {
+        dbg('Auth error: ' + e.message);
+    }
 });
 
 class SnakeGame {
