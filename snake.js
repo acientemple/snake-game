@@ -39,52 +39,8 @@ class AuthSystem {
             // 使用共享 Token
             token = localStorage.getItem('snake-shared-github-token');
         }
-        // 如果还是没有，使用临时Token并异步获取真正的共享Token
-        if (!token) {
-            // 临时使用默认Token
-            const encoded = 'Z2hwX3R3THpJSExRQ01jTU9Sa1hNUHhmYlJnM004eG91STMxcFYxeQ==';
-            token = atob(encoded);
-            // 异步更新共享Token
-            this.updateSharedTokenFromGitHub();
-        }
         return token;
     }
-
-    // 从GitHub更新共享Token
-    async updateSharedTokenFromGitHub() {
-        // 临时Token
-        const encoded = 'Z2hwX3R3THpJSExRQ01jTU9Sa1hNUHhmYlJnM004eG91STMxcFYxeQ==';
-        const tempToken = atob(encoded);
-
-        try {
-            const listResponse = await fetch('https://api.github.com/gists', {
-                headers: {
-                    'Authorization': `token ${tempToken}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                }
-            });
-
-            if (listResponse.ok) {
-                const gists = await listResponse.json();
-                const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
-                if (existingGist) {
-                    localStorage.setItem('snake-users-gist-id', existingGist.id);
-                    const gistResponse = await fetch(`https://api.github.com/gists/${existingGist.id}`, {
-                        headers: {
-                            'Authorization': `token ${tempToken}`,
-                            'Accept': 'application/vnd.github.v3+json'
-                        }
-                    });
-
-                    if (gistResponse.ok) {
-                        const gist = await gistResponse.json();
-                        const config = gist.files['snake-config.json']?.content;
-                        if (config) {
-                            const configData = JSON.parse(config);
-                            if (configData.sharedToken) {
-                                localStorage.setItem('snake-shared-github-token', configData.sharedToken);
-                                localStorage.setItem('snake-shared-github-user', configData.sharedUser);
-                                console.log('已从GitHub更新共享Token');
                             }
                         }
                     }
