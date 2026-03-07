@@ -188,7 +188,8 @@
                 </div>
                 <div class="records-column">
                     <h3>我的记录</h3>
-                    <button id="clear-records-btn">清除我的记录</button>
+                    <button id="clear-records-btn" onclick="clearMyRecords()">清除我的记录</button>
+<script>function clearMyRecords(){ if(!window.game){alert('请先登录');return;} window.game.clearRecords(); }</script>
                     <div id="records-list-mine"></div>
                 </div>
             </div>
