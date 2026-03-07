@@ -47,8 +47,17 @@ class AuthSystem {
     }
 
     // 强制刷新用户数据（从 GitHub）
-    refreshUsers() {
-        this.users = this.loadUsers();
+    async refreshUsers() {
+        const githubToken = localStorage.getItem('snake-github-token');
+        if (githubToken) {
+            // 异步从 GitHub 加载
+            const users = await this.loadUsersFromGitHub(githubToken, null);
+            if (users && Object.keys(users).length > 0) {
+                this.users = users;
+                localStorage.setItem('snake-users', JSON.stringify(users));
+                console.log('已刷新GitHub用户数据, 用户数:', Object.keys(users).length);
+            }
+        }
     }
 
     // 初始化 EmailJS
@@ -654,8 +663,10 @@ class AuthSystem {
                     localStorage.setItem('snake-admin', 'true');
                     localStorage.setItem('snake-github-token', token);
 
-                    // 强制从 GitHub 加载最新用户数据
-                    this.users = this.loadUsers();
+                    // 异步从 GitHub 加载最新用户数据
+                    this.refreshUsers().then(() => {
+                        console.log('用户数据已刷新');
+                    });
 
                     document.getElementById('auth-error').textContent = '';
                     this.showGame();
