@@ -531,44 +531,9 @@ class AuthSystem {
             }
         });
 
-        // GitHub OAuth 登录
-        document.getElementById('github-oauth-btn').addEventListener('click', () => {
-            // 注意：需要先在 GitHub 上注册 OAuth App 获取 Client ID
-            // 这里使用 GitHub Device Flow 进行简化演示
-            const clientId = prompt('请输入 GitHub OAuth App Client ID (或直接使用 GitHub Token 登录):');
-            if (!clientId) return;
+        // GitHub OAuth 登录（已移除，此功能整合到管理员登录中）
 
-            const token = prompt('请输入 GitHub Personal Access Token (需要 repo 和 gist 权限):');
-            if (!token) return;
-
-            document.getElementById('auth-error').textContent = '正在验证...';
-
-            fetch('https://api.github.com/user', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                }
-            }).then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    throw new Error('Token 验证失败');
-                }
-            }).then(userData => {
-                this.currentUser = userData.login;
-                this.isAdmin = true;
-                localStorage.setItem('snake-current-user', userData.login);
-                localStorage.setItem('snake-admin', 'true');
-                localStorage.setItem('snake-github-token', token);
-                document.getElementById('auth-error').textContent = '';
-                this.showGame();
-            }).catch(error => {
-                document.getElementById('auth-error').textContent = 'GitHub 登录失败: ' + error.message;
-            });
-        });
-
-        // 登录
+        // 注册
         document.getElementById('login-btn').addEventListener('click', () => {
             // debug('Login button clicked');
             const username = document.getElementById('login-username').value.trim();
