@@ -31,10 +31,21 @@ class AuthSystem {
         this.emailEnabled = false;
     }
 
+    // 获取有效的 GitHub Token（优先用户自己的，备选共享的）
+    getGitHubToken() {
+        // 优先使用用户自己的 Token
+        let token = localStorage.getItem('snake-github-token');
+        if (!token) {
+            // 使用共享 Token
+            token = localStorage.getItem('snake-shared-github-token');
+        }
+        return token;
+    }
+
     // 初始化方法，在 DOM 加载完成后调用
     initAuth() {
-        // 如果有 GitHub Token，强制从 GitHub 加载最新用户数据
-        const githubToken = localStorage.getItem('snake-github-token');
+        // 如果有 GitHub Token（用户自己的或共享的），强制从 GitHub 加载最新用户数据
+        const githubToken = this.getGitHubToken();
         if (githubToken) {
             this.users = this.loadUsers();
         }
@@ -43,12 +54,24 @@ class AuthSystem {
         if (this.isLoggedIn()) {
             console.log('已自动登录: ' + this.currentUser);
         }
+
+        // 显示共享 Token 状态
+        const sharedToken = localStorage.getItem('snake-shared-github-token');
+        const sharedUser = localStorage.getItem('snake-shared-github-user');
+        if (sharedToken && sharedUser) {
+            const statusEl = document.getElementById('shared-token-status');
+            if (statusEl) {
+                statusEl.textContent = '✓ 共享 Token 已设置，当前用户: ' + sharedUser;
+                statusEl.style.color = 'green';
+            }
+        }
+
         this.init();
     }
 
     // 强制刷新用户数据（从 GitHub）
     async refreshUsers() {
-        const githubToken = localStorage.getItem('snake-github-token');
+        const githubToken = this.getGitHubToken();
         if (githubToken) {
             // 异步从 GitHub 加载
             const users = await this.loadUsersFromGitHub(githubToken, null);
@@ -57,6 +80,66 @@ class AuthSystem {
                 localStorage.setItem('snake-users', JSON.stringify(users));
                 console.log('已刷新GitHub用户数据, 用户数:', Object.keys(users).length);
             }
+        }
+    }
+
+    // 从GitHub同步记录到本地（保存后立即调用）
+    async syncRecordsFromGitHub() {
+        const githubToken = this.getGitHubToken();
+        if (!githubToken) {
+            console.log('syncRecordsFromGitHub: 没有GitHub Token');
+            return;
+        }
+
+        console.log('syncRecordsFromGitHub: 开始同步...');
+        try {
+            let gistId = localStorage.getItem('snake-users-gist-id');
+
+            // 如果没有gistId，先查找
+            if (!gistId) {
+                const listResponse = await fetch('https://api.github.com/gists', {
+                    headers: {
+                        'Authorization': `token ${githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                if (listResponse.ok) {
+                    const gists = await listResponse.json();
+                    const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
+                    if (existingGist) {
+                        gistId = existingGist.id;
+                        localStorage.setItem('snake-users-gist-id', gistId);
+                    }
+                }
+            }
+
+            if (!gistId) return;
+
+            const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+                headers: {
+                    'Authorization': `token ${githubToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            if (response.ok) {
+                const gist = await response.json();
+                const records = gist.files['snake-records.json']?.content || '[]';
+                const topRecords = gist.files['snake-top-records.json']?.content || '[]';
+
+                // 更新本地存储
+                localStorage.setItem('snake-records', records);
+                localStorage.setItem('snake-top-records', topRecords);
+
+                console.log('已从GitHub同步记录到本地，记录数:', JSON.parse(records).length);
+
+                // 更新游戏显示
+                if (window.game) {
+                    window.game.displayRecords();
+                }
+            }
+        } catch (e) {
+            console.log('同步记录失败', e);
         }
     }
 
@@ -121,7 +204,7 @@ class AuthSystem {
 
     loadUsers() {
         // 优先从 GitHub 加载（如果已配置）
-        const githubToken = localStorage.getItem('snake-github-token');
+        const githubToken = this.getGitHubToken();
 
         // 同步版本：先从本地加载
         const users = localStorage.getItem('snake-users');
@@ -177,6 +260,21 @@ class AuthSystem {
             if (response.ok) {
                 const gist = await response.json();
                 const content = gist.files['snake-users.json']?.content;
+
+                // 同时加载游戏记录
+                const records = gist.files['snake-records.json']?.content || '[]';
+                const topRecords = gist.files['snake-top-records.json']?.content || '[]';
+
+                // 保存到 localStorage
+                localStorage.setItem('snake-records', records);
+                localStorage.setItem('snake-top-records', topRecords);
+                console.log('从GitHub加载记录:', JSON.parse(records).length, '条');
+
+                // 如果有游戏实例，立即刷新显示
+                if (window.game) {
+                    window.game.displayRecords();
+                }
+
                 if (content) {
                     return JSON.parse(content);
                 }
@@ -253,8 +351,140 @@ class AuthSystem {
         // 保存到本地
         localStorage.setItem('snake-users', JSON.stringify(this.users));
 
-        // 尝试同步到 GitHub
-        this.saveUsersToGitHub();
+        // 获取游戏记录
+        const records = localStorage.getItem('snake-records') || '[]';
+        const topRecords = localStorage.getItem('snake-top-records') || '[]';
+
+        // 尝试同步到 GitHub（同时保存用户和记录）
+        return this.saveDataToGitHub(this.users, records, topRecords);
+    }
+
+    // 统一保存数据到 GitHub
+    async saveDataToGitHub(users, records, topRecords) {
+        const githubToken = this.getGitHubToken();
+        if (!githubToken) {
+            console.log('saveDataToGitHub: 没有GitHub Token，不保存');
+            return;
+        }
+
+        console.log('saveDataToGitHub: 开始保存...');
+        try {
+            // 查找现有 Gist
+            const listResponse = await fetch('https://api.github.com/gists', {
+                headers: {
+                    'Authorization': `token ${githubToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            let existingGistId = null;
+            let cloudUsers = users;
+            let cloudRecords = records;
+            let cloudTopRecords = topRecords;
+
+            if (listResponse.ok) {
+                const gists = await listResponse.json();
+                const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
+                if (existingGist) {
+                    existingGistId = existingGist.id;
+
+                    // 获取现有Gist的内容
+                    const gistResponse = await fetch(`https://api.github.com/gists/${existingGistId}`, {
+                        headers: {
+                            'Authorization': `token ${githubToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    if (gistResponse.ok) {
+                        const gist = await gistResponse.json();
+
+                        // 获取云端的用户数据
+                        const cloudUsersContent = gist.files['snake-users.json']?.content;
+                        if (cloudUsersContent) {
+                            cloudUsers = JSON.parse(cloudUsersContent);
+                            // 合并用户数据（以本地为主，更新用户信息）
+                            Object.assign(cloudUsers, users);
+                        }
+
+                        // 获取云端的记录
+                        const cloudRecordsContent = gist.files['snake-records.json']?.content;
+                        if (cloudRecordsContent) {
+                            const cloudRecordsArray = JSON.parse(cloudRecordsContent);
+                            const localRecordsArray = JSON.parse(records);
+                            // 合并记录（去重）
+                            const allRecords = [...cloudRecordsArray, ...localRecordsArray];
+                            const uniqueRecords = [];
+                            allRecords.forEach(r => {
+                                if (!uniqueRecords.find(ur => ur.score === r.score && ur.date === r.date)) {
+                                    uniqueRecords.push(r);
+                                }
+                            });
+                            uniqueRecords.sort((a, b) => b.score - a.score);
+                            cloudRecords = JSON.stringify(uniqueRecords.slice(0, 50));
+                        }
+
+                        // 获取云端的最高分记录
+                        const cloudTopRecordsContent = gist.files['snake-top-records.json']?.content;
+                        if (cloudTopRecordsContent) {
+                            const cloudTopArray = JSON.parse(cloudTopRecordsContent);
+                            const localTopArray = JSON.parse(topRecords);
+                            const allTop = [...cloudTopArray, ...localTopArray];
+                            const uniqueTop = [];
+                            allTop.forEach(r => {
+                                if (!uniqueTop.find(ur => ur.score === r.score && ur.date === r.date)) {
+                                    uniqueTop.push(r);
+                                }
+                            });
+                            uniqueTop.sort((a, b) => b.score - a.score);
+                            cloudTopRecords = JSON.stringify(uniqueTop);
+                        }
+                    }
+                }
+            }
+
+            const gistData = {
+                description: 'Snake Game Users Data',
+                public: false,
+                files: {
+                    'snake-users.json': {
+                        content: JSON.stringify(cloudUsers, null, 2)
+                    },
+                    'snake-records.json': {
+                        content: cloudRecords
+                    },
+                    'snake-top-records.json': {
+                        content: cloudTopRecords
+                    }
+                }
+            };
+
+            let url = 'https://api.github.com/gists';
+            let method = 'POST';
+
+            if (existingGistId) {
+                url += `/${existingGistId}`;
+                method = 'PATCH';
+            }
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': `token ${githubToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(gistData)
+            });
+
+            if (response.ok) {
+                const gist = await response.json();
+                localStorage.setItem('snake-users-gist-id', gist.id);
+                console.log('用户和游戏记录已保存到GitHub');
+                console.log('保存的记录数:', JSON.parse(cloudRecords).length);
+            }
+        } catch (e) {
+            console.log('保存到GitHub失败', e);
+        }
     }
 
     register(username, password, email = '') {
@@ -484,6 +714,50 @@ class AuthSystem {
             document.getElementById('login-form').style.display = 'block';
         });
 
+        // 设置共享 GitHub Token（供所有玩家使用）
+        const setSharedTokenBtn = document.getElementById('set-shared-token-btn');
+        if (setSharedTokenBtn) {
+            setSharedTokenBtn.addEventListener('click', async () => {
+                const token = document.getElementById('shared-github-token').value.trim();
+                const statusEl = document.getElementById('shared-token-status');
+
+                if (!token) {
+                    statusEl.textContent = '请输入 Token';
+                    statusEl.style.color = 'red';
+                    return;
+                }
+
+                statusEl.textContent = '正在验证 Token...';
+
+                try {
+                    // 验证 Token
+                    const response = await fetch('https://api.github.com/user', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const userData = await response.json();
+                        // 保存为共享 Token
+                        localStorage.setItem('snake-shared-github-token', token);
+                        localStorage.setItem('snake-shared-github-user', userData.login);
+                        statusEl.textContent = '✓ 共享 Token 已设置！当前用户: ' + userData.login + '。请返回用户登录并同步数据来创建云存储。';
+                        statusEl.style.color = 'green';
+                        console.log('共享 Token 已设置，用户:', userData.login);
+                    } else {
+                        statusEl.textContent = '✗ Token 无效或已过期';
+                        statusEl.style.color = 'red';
+                    }
+                } catch (error) {
+                    statusEl.textContent = '✗ 验证失败: ' + error.message;
+                    statusEl.style.color = 'red';
+                }
+            });
+        }
+
         // 忘记密码 - 第一步：发送重置链接
         document.getElementById('forgot-btn').addEventListener('click', () => {
             const username = document.getElementById('forgot-username').value.trim();
@@ -663,10 +937,13 @@ class AuthSystem {
                     localStorage.setItem('snake-admin', 'true');
                     localStorage.setItem('snake-github-token', token);
 
+                    // 同时设置为共享 Token
+                    localStorage.setItem('snake-shared-github-token', token);
+                    localStorage.setItem('snake-shared-github-user', userData.login);
+
                     // 异步从 GitHub 加载最新用户数据
-                    this.refreshUsers().then(() => {
-                        console.log('用户数据已刷新');
-                    });
+                    await this.refreshUsers();
+                    console.log('用户数据已刷新');
 
                     document.getElementById('auth-error').textContent = '';
                     this.showGame();
@@ -682,15 +959,19 @@ class AuthSystem {
 
         // GitHub OAuth 登录（已移除，此功能整合到管理员登录中）
 
-        // 注册
-        document.getElementById('login-btn').addEventListener('click', () => {
-            // debug('Login button clicked');
+        // 登录
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            // 先从GitHub加载数据（如果有Token）
+            const githubToken = this.getGitHubToken();
+            if (githubToken) {
+                console.log('登录时从GitHub加载数据...');
+                await this.refreshUsers();
+            }
+
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
-            // debug('Username: ' + username);
 
             const result = this.login(username, password);
-            // debug('Login result: ' + JSON.stringify(result));
             if (result.success) {
                 document.getElementById('auth-error').textContent = '';
                 this.showGame();
@@ -801,6 +1082,11 @@ class AuthSystem {
 
         // 初始化游戏
         initGame();
+
+        // 立即刷新记录显示（确保显示从GitHub加载的数据）
+        if (game) {
+            game.displayRecords();
+        }
     }
 
     showAdminPanel() {
@@ -2065,11 +2351,19 @@ class SnakeGame {
         this.speedTimer = setTimeout(() => this.gameLoop(), 1000 / this.getCurrentSpeed());
     }
 
-    start() {
+    async start() {
         // 如果游戏正在运行但暂停中，先停止现有游戏再重新开始
         if (this.isRunning) {
             clearInterval(this.gameTimer);
             clearTimeout(this.speedTimer);
+        }
+
+        // 游戏开始前先从GitHub获取最新数据
+        if (window.auth && window.auth.currentUser) {
+            console.log('=== 游戏开始 - 从GitHub加载最新数据 ===');
+            await window.auth.syncRecordsFromGitHub();
+            this.displayRecords();
+            console.log('=== 游戏开始 - 数据加载完成 ===');
         }
 
         // 重置游戏状态
@@ -2190,7 +2484,7 @@ class SnakeGame {
         }
     }
 
-    gameOver(winner = null) {
+    async gameOver(winner = null) {
         this.isRunning = false;
         this.isPaused = false;
 
@@ -2231,6 +2525,23 @@ class SnakeGame {
 
         // 保存记录
         this.saveRecord();
+        console.log('=== 游戏结束 - 保存记录完成 ===');
+
+        // 同步到GitHub（如果有登录用户），保存后立即取回最新数据
+        const auth = window.auth;
+        const currentUser = auth ? auth.currentUser : null;
+        alert('游戏结束 - 同步检查: auth=' + (auth?'有':'无') + ', currentUser=' + currentUser);
+        if (auth && currentUser) {
+            console.log('=== 开始同步到GitHub ===');
+            await auth.saveUsers();
+            console.log('=== 保存到GitHub完成，开始取回数据 ===');
+            await auth.syncRecordsFromGitHub();
+            console.log('=== 从GitHub取回数据完成 ===');
+            this.displayRecords();
+            console.log('=== 显示已刷新 ===');
+        } else {
+            this.displayRecords();
+        }
 
         // 保存玩家名字
         this.savePlayerName(this.playerName);
