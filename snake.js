@@ -2530,7 +2530,6 @@ class SnakeGame {
         // 同步到GitHub（如果有登录用户），保存后立即取回最新数据
         const auth = window.auth;
         const currentUser = auth ? auth.currentUser : null;
-        alert('游戏结束 - 同步检查: auth=' + (auth?'有':'无') + ', currentUser=' + currentUser);
         if (auth && currentUser) {
             console.log('=== 开始同步到GitHub ===');
             await auth.saveUsers();
