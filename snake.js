@@ -1019,8 +1019,11 @@ class AuthSystem {
 
         // 登录
         document.getElementById('login-btn').addEventListener('click', async () => {
+            console.log('登录按钮点击');
+
             // 先从GitHub加载数据（如果有Token）
             const githubToken = this.getGitHubToken();
+            console.log('GitHub Token:', githubToken);
             if (githubToken) {
                 console.log('登录时从GitHub加载数据...');
                 await this.refreshUsers();
@@ -1028,8 +1031,10 @@ class AuthSystem {
 
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
+            console.log('用户名:', username);
 
             const result = this.login(username, password);
+            console.log('登录结果:', result);
             if (result.success) {
                 document.getElementById('auth-error').textContent = '';
                 this.showGame();
