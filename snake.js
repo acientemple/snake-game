@@ -2264,21 +2264,21 @@ class SnakeGame {
         }
 
         const allRecords = this.loadRecords();
-        const topRecords = this.loadTopRecords();
 
-        // 获取当前用户的前三名
+        // 获取当前用户的前三名（保留）
         const myRecords = allRecords.filter(r => r.username === currentUser);
         const myTop3 = myRecords.slice(0, 3);
 
         // 过滤掉当前用户的记录，但保留前三名
         const filteredRecords = allRecords.filter(r => {
             if (r.username !== currentUser) return true;
-            // 如果是当前用户的记录，检查是否在前三名中
-            return myTop3.find(tr => tr.score === r.score && tr.date === r.date);
+            // 检查是否在前三名中
+            return myTop3.some(tr => tr.score === r.score && tr.date === r.date);
         });
 
         this.saveRecords(filteredRecords);
         this.displayRecords();
+        alert('记录已清除（前三名已保留）');
     }
 
     // 初始化记录标签页（保留兼容）
