@@ -113,19 +113,18 @@ class AuthSystem {
     loadUsers() {
         // 优先从 GitHub 加载（如果已配置）
         const githubToken = localStorage.getItem('snake-github-token');
-        const gistId = localStorage.getItem('snake-users-gist-id');
 
         // 同步版本：先从本地加载
         const users = localStorage.getItem('snake-users');
         const localUsers = users ? JSON.parse(users) : {};
 
-        // 如果有 GitHub 配置，尝试异步加载
-        if (githubToken && gistId) {
-            this.loadUsersFromGitHub(githubToken, gistId).then(cloudUsers => {
+        // 如果有 GitHub Token，尝试从 GitHub 异步加载
+        if (githubToken) {
+            this.loadUsersFromGitHub(githubToken, null).then(cloudUsers => {
                 if (cloudUsers && Object.keys(cloudUsers).length > 0) {
                     this.users = cloudUsers;
                     localStorage.setItem('snake-users', JSON.stringify(cloudUsers));
-                    console.log('已从GitHub同步用户数据');
+                    console.log('已从GitHub同步用户数据, 用户数:', Object.keys(cloudUsers).length);
                 }
             }).catch(() => {
                 console.log('从GitHub加载失败，使用本地数据');
