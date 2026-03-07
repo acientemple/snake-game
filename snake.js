@@ -100,12 +100,96 @@ class AuthSystem {
     }
 
     loadUsers() {
+        // 优先从 GitHub 加载（如果已配置）
+        const githubToken = localStorage.getItem('snake-github-token');
+        const gistId = localStorage.getItem('snake-users-gist-id');
+
+        if (githubToken && gistId) {
+            // 尝试从 GitHub 加载
+            return this.loadUsersFromGitHub(githubToken, gistId);
+        }
+
+        // 否则从本地加载
         const users = localStorage.getItem('snake-users');
         return users ? JSON.parse(users) : {};
     }
 
+    // 从 GitHub 加载用户数据
+    async loadUsersFromGitHub(token, gistId) {
+        try {
+            const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            if (response.ok) {
+                const gist = await response.json();
+                const content = gist.files['snake-users.json']?.content;
+                if (content) {
+                    return JSON.parse(content);
+                }
+            }
+        } catch (e) {
+            console.log('从GitHub加载用户失败，使用本地数据');
+        }
+        // 加载失败则用本地
+        const users = localStorage.getItem('snake-users');
+        return users ? JSON.parse(users) : {};
+    }
+
+    // 保存用户数据到 GitHub
+    async saveUsersToGitHub() {
+        const token = localStorage.getItem('snake-github-token');
+        let gistId = localStorage.getItem('snake-users-gist-id');
+
+        if (!token) return false;
+
+        const gistData = {
+            description: 'Snake Game Users Data',
+            public: false,
+            files: {
+                'snake-users.json': {
+                    content: JSON.stringify(this.users, null, 2)
+                }
+            }
+        };
+
+        try {
+            let url = 'https://api.github.com/gists';
+            let method = 'POST';
+
+            if (gistId) {
+                url += `/${gistId}`;
+                method = 'PATCH';
+            }
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(gistData)
+            });
+
+            if (response.ok) {
+                const gist = await response.json();
+                localStorage.setItem('snake-users-gist-id', gist.id);
+                return true;
+            }
+        } catch (e) {
+            console.log('保存到GitHub失败', e);
+        }
+        return false;
+    }
+
     saveUsers() {
+        // 保存到本地
         localStorage.setItem('snake-users', JSON.stringify(this.users));
+
+        // 尝试同步到 GitHub
+        this.saveUsersToGitHub();
     }
 
     register(username, password, email = '') {
@@ -513,6 +597,10 @@ class AuthSystem {
                     localStorage.setItem('snake-current-user', userData.login);
                     localStorage.setItem('snake-admin', 'true');
                     localStorage.setItem('snake-github-token', token);
+
+                    // 强制从 GitHub 加载最新用户数据
+                    this.users = this.loadUsers();
+
                     document.getElementById('auth-error').textContent = '';
                     this.showGame();
                 } else if (response.status === 401) {
