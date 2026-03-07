@@ -43,11 +43,13 @@ class AuthSystem {
     }
 
     // 初始化方法，在 DOM 加载完成后调用
-    initAuth() {
+    async initAuth() {
         // 如果有 GitHub Token（用户自己的或共享的），强制从 GitHub 加载最新用户数据
         const githubToken = this.getGitHubToken();
         if (githubToken) {
             this.users = this.loadUsers();
+            // 页面加载时也尝试从 GitHub 加载最新用户数据
+            await this.refreshUsers();
         }
 
         // 检查是否已登录
