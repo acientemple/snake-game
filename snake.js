@@ -291,16 +291,23 @@ class AuthSystem {
         // 忘记密码 - 第三步：确认重置
         document.getElementById('confirm-reset-btn').addEventListener('click', () => {
             const newPassword = document.getElementById('new-password-input').value;
+            const confirmPassword = document.getElementById('new-password-confirm').value;
             const resetCode = localStorage.getItem('snake-reset-code');
             const resetUser = localStorage.getItem('snake-reset-user');
 
             if (!resetCode || !resetUser) {
-                document.getElementById('auth-error').textContent = '重置链接已失效';
+                alert('重置链接已失效，请重新获取');
+                window.location.href = window.location.pathname;
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                alert('两次输入的密码不一致');
                 return;
             }
 
             if (newPassword.length < 3) {
-                document.getElementById('auth-error').textContent = '密码至少3位';
+                alert('密码至少3位');
                 return;
             }
 
@@ -313,10 +320,13 @@ class AuthSystem {
             localStorage.removeItem('snake-reset-user');
 
             alert('密码重置成功！请使用新密码登录');
+            // 清理URL参数
+            window.history.pushState({}, '', window.location.pathname);
             // 重置表单
             document.getElementById('forgot-username').value = '';
             document.getElementById('forgot-email').value = '';
             document.getElementById('new-password-input').value = '';
+            document.getElementById('new-password-confirm').value = '';
             document.getElementById('forgot-step1').style.display = 'block';
             document.getElementById('forgot-step2').style.display = 'none';
             document.getElementById('forgot-step3').style.display = 'none';
@@ -330,11 +340,14 @@ class AuthSystem {
             const code = urlParams.get('reset');
             const storedCode = localStorage.getItem('snake-reset-code');
             if (code === storedCode) {
-                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('auth-panel').classList.remove('show');
                 document.getElementById('forgot-form').style.display = 'block';
                 document.getElementById('forgot-step1').style.display = 'none';
                 document.getElementById('forgot-step2').style.display = 'none';
                 document.getElementById('forgot-step3').style.display = 'block';
+            } else {
+                alert('无效的重置链接');
+                window.history.pushState({}, '', window.location.pathname);
             }
         }
 
