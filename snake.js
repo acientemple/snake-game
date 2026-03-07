@@ -39,13 +39,60 @@ class AuthSystem {
             // 使用共享 Token
             token = localStorage.getItem('snake-shared-github-token');
         }
-        // 如果还是没有，使用内置的默认 Token（Base64编码）
+        // 如果还是没有，使用临时Token并异步获取真正的共享Token
         if (!token) {
+            // 临时使用默认Token
             const encoded = 'Z2hwX3R3THpJSExRQ01jTU9Sa1hNUHhmYlJnM004eG91STMxcFYxeQ==';
             token = atob(encoded);
-            localStorage.setItem('snake-shared-github-token', token);
+            // 异步更新共享Token
+            this.updateSharedTokenFromGitHub();
         }
         return token;
+    }
+
+    // 从GitHub更新共享Token
+    async updateSharedTokenFromGitHub() {
+        // 临时Token
+        const encoded = 'Z2hwX3R3THpJSExRQ01jTU9Sa1hNUHhmYlJnM004eG91STMxcFYxeQ==';
+        const tempToken = atob(encoded);
+
+        try {
+            const listResponse = await fetch('https://api.github.com/gists', {
+                headers: {
+                    'Authorization': `token ${tempToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            if (listResponse.ok) {
+                const gists = await listResponse.json();
+                const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
+                if (existingGist) {
+                    localStorage.setItem('snake-users-gist-id', existingGist.id);
+                    const gistResponse = await fetch(`https://api.github.com/gists/${existingGist.id}`, {
+                        headers: {
+                            'Authorization': `token ${tempToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    if (gistResponse.ok) {
+                        const gist = await gistResponse.json();
+                        const config = gist.files['snake-config.json']?.content;
+                        if (config) {
+                            const configData = JSON.parse(config);
+                            if (configData.sharedToken) {
+                                localStorage.setItem('snake-shared-github-token', configData.sharedToken);
+                                localStorage.setItem('snake-shared-github-user', configData.sharedUser);
+                                console.log('已从GitHub更新共享Token');
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('更新共享Token失败', e);
+        }
     }
 
     // 初始化方法，在 DOM 加载完成后调用
@@ -741,7 +788,7 @@ class AuthSystem {
                     return;
                 }
 
-                statusEl.textContent = '正在验证 Token...';
+                statusEl.textContent = '正在验证并保存 Token...';
 
                 try {
                     // 验证 Token
@@ -758,7 +805,74 @@ class AuthSystem {
                         // 保存为共享 Token
                         localStorage.setItem('snake-shared-github-token', token);
                         localStorage.setItem('snake-shared-github-user', userData.login);
-                        statusEl.textContent = '✓ 共享 Token 已设置！当前用户: ' + userData.login + '。请返回用户登录并同步数据来创建云存储。';
+
+                        // 同时保存到GitHub Gist，让其他用户也能获取
+                        try {
+                            // 查找现有Gist
+                            const listResponse = await fetch('https://api.github.com/gists', {
+                                headers: {
+                                    'Authorization': `token ${token}`,
+                                    'Accept': 'application/vnd.github.v3+json'
+                                }
+                            });
+
+                            let existingGistId = localStorage.getItem('snake-users-gist-id');
+                            if (listResponse.ok) {
+                                const gists = await listResponse.json();
+                                const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
+                                if (existingGist) {
+                                    existingGistId = existingGist.id;
+                                }
+                            }
+
+                            const gistData = {
+                                description: 'Snake Game Users Data',
+                                public: false,
+                                files: {
+                                    'snake-users.json': {
+                                        content: JSON.stringify(this.users || {}, null, 2)
+                                    },
+                                    'snake-config.json': {
+                                        content: JSON.stringify({
+                                            sharedToken: token,
+                                            sharedUser: userData.login
+                                        }, null, 2)
+                                    }
+                                }
+                            };
+
+                            let url = 'https://api.github.com/gists';
+                            let method = 'POST';
+                            if (existingGistId) {
+                                // 更新现有Gist
+                                const getGist = await fetch(`https://api.github.com/gists/${existingGistId}`, {
+                                    headers: {
+                                        'Authorization': `token ${token}`,
+                                        'Accept': 'application/vnd.github.v3+json'
+                                    }
+                                });
+                                if (getGist.ok) {
+                                    const gist = getGist.json();
+                                    gistData.files['snake-records.json'] = { content: gist.files['snake-records.json']?.content || '[]' };
+                                    gistData.files['snake-top-records.json'] = { content: gist.files['snake-top-records.json']?.content || '[]' };
+                                }
+                                url += `/${existingGistId}`;
+                                method = 'PATCH';
+                            }
+
+                            await fetch(url, {
+                                method: method,
+                                headers: {
+                                    'Authorization': `token ${token}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(gistData)
+                            });
+                        } catch (e) {
+                            console.log('保存共享Token到Gist失败', e);
+                        }
+
+                        statusEl.textContent = '✓ 共享 Token 已保存到云端！其他用户登录时将自动获取。';
                         statusEl.style.color = 'green';
                         console.log('共享 Token 已设置，用户:', userData.login);
                     } else {
