@@ -1,10 +1,4 @@
 // 贪吃蛇游戏核心逻辑 - 增强版
-function dbg(msg) {
-    console.log(msg);
-    var d = document.getElementById('auth-debug');
-    if (d) d.innerHTML = msg + '<br>' + d.innerHTML;
-}
-dbg('snake.js loaded');
 
 // 简单的哈希函数
 function simpleHash(str) {
@@ -32,18 +26,14 @@ const EMAILJS_CONFIG = getEmailJSConfig() || {
 // 用户认证系统
 class AuthSystem {
     constructor() {
-        dbg('Auth constructor start');
         this.currentUser = null;
         this.users = this.loadUsers();
         this.emailEnabled = false;
-        // 不在这里调用 init()，等 DOM 加载完成后再调用
     }
 
     // 初始化方法，在 DOM 加载完成后调用
     initAuth() {
-        dbg('Auth initAuth start');
         this.init();
-        dbg('Auth initAuth done');
     }
 
     // 初始化 EmailJS
@@ -552,12 +542,10 @@ class AuthSystem {
 
         // 注册
         document.getElementById('register-btn').addEventListener('click', () => {
-            dbg('Register clicked');
             const username = document.getElementById('reg-username').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
             const password2 = document.getElementById('reg-password2').value;
-            dbg('User: ' + username);
 
             if (password !== password2) {
                 document.getElementById('auth-error').textContent = '两次密码不一致';
@@ -565,7 +553,6 @@ class AuthSystem {
             }
 
             const result = this.register(username, password, email);
-            dbg('Result: ' + JSON.stringify(result));
             if (result.success) {
                 document.getElementById('auth-error').style.color = 'green';
                 document.getElementById('auth-error').textContent = '注册成功！请登录';
@@ -1074,16 +1061,8 @@ function initGame() {
 
 // 页面加载完成后初始化认证
 document.addEventListener('DOMContentLoaded', () => {
-    dbg('DOM loaded');
-    try {
-        dbg('Creating AuthSystem...');
-        window.auth = new AuthSystem();
-        dbg('Auth created, calling initAuth...');
-        window.auth.initAuth();
-        dbg('Auth init done, users: ' + Object.keys(window.auth.users).join(','));
-    } catch(e) {
-        dbg('Auth error: ' + e.message + ' at ' + e.stack);
-    }
+    window.auth = new AuthSystem();
+    window.auth.initAuth();
 });
 
 class SnakeGame {
