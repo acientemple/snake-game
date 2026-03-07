@@ -577,10 +577,11 @@ function initGame() {
     const ctx = canvas.getContext('2d');
     game = new SnakeGame(canvas, ctx);
 
-    game.displayRecords();
+    game.displayRecords('mine');
     game.updatePlayerNamesDropdown();
     game.handleModeChange(document.getElementById('game-mode').value);
     game.updateModeUI(document.getElementById('game-mode').value);
+    game.initRecordTabs();
     game.draw();
 }
 
@@ -1594,7 +1595,9 @@ class SnakeGame {
 
     saveRecord() {
         const records = this.loadRecords();
+        const currentUser = window.auth ? window.auth.currentUser : null;
         const record = {
+            username: currentUser || this.playerName || '匿名',
             playerName: this.isTwoPlayerMode ? (this.p1Score >= this.p2Score ? 'P1' : 'P2') : this.playerName,
             score: this.isTwoPlayerMode ? Math.max(this.p1Score, this.p2Score) : this.score,
             mode: document.getElementById('game-mode').value,
@@ -1604,17 +1607,25 @@ class SnakeGame {
 
         records.push(record);
         records.sort((a, b) => b.score - a.score);
-        if (records.length > 10) {
-            records.splice(10);
+        if (records.length > 50) {
+            records.splice(50);
         }
 
         this.saveRecords(records);
-        this.displayRecords();
+        this.displayRecords('mine');
     }
 
     loadRecords() {
         const records = localStorage.getItem('snake-records');
         return records ? JSON.parse(records) : [];
+    }
+
+    // 获取当前用户的记录
+    getUserRecords() {
+        const allRecords = this.loadRecords();
+        const currentUser = window.auth ? window.auth.currentUser : null;
+        if (!currentUser) return allRecords;
+        return allRecords.filter(r => r.username === currentUser);
     }
 
     saveRecords(records) {
@@ -1648,9 +1659,16 @@ class SnakeGame {
         });
     }
 
-    displayRecords() {
+    displayRecords(tab = 'mine') {
         const recordsList = document.getElementById('records-list');
-        const records = this.loadRecords();
+        let records;
+
+        if (tab === 'all') {
+            records = this.loadRecords();
+        } else {
+            records = this.getUserRecords();
+        }
+
         recordsList.innerHTML = '';
 
         if (records.length === 0) {
@@ -1671,17 +1689,43 @@ class SnakeGame {
                 'battle': '对战'
             }[record.mode] || '经典';
 
+            const username = record.username || record.playerName || '匿名';
+
             recordItem.innerHTML = `
-                <strong>${record.playerName}</strong><br>
-                分数: ${record.score} | 模式: ${modeName} | 时间: ${record.time}s | ${record.date}
+                <strong>${username}</strong> - <span style="color:#667eea;">${modeName}</span><br>
+                分数: ${record.score} | 时间: ${record.time}s | ${record.date}
             `;
             recordsList.appendChild(recordItem);
         });
     }
 
     clearRecords() {
-        this.saveRecords([]);
-        this.displayRecords();
+        // 只清除当前用户的记录
+        const currentUser = window.auth ? window.auth.currentUser : null;
+        if (!currentUser) {
+            alert('请先登录才能清除记录');
+            return;
+        }
+
+        if (confirm('确定要清除你的所有游戏记录吗？')) {
+            const allRecords = this.loadRecords();
+            const filteredRecords = allRecords.filter(r => r.username !== currentUser);
+            this.saveRecords(filteredRecords);
+            this.displayRecords('mine');
+        }
+    }
+
+    // 初始化记录标签页
+    initRecordTabs() {
+        const self = this;
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const tab = this.dataset.tab;
+                self.displayRecords(tab);
+            });
+        });
     }
 
     // 成就系统
@@ -1698,12 +1742,16 @@ class SnakeGame {
             games100: {name: '传奇人物', desc: '完成100局游戏', icon: '🏅', unlocked: false}
         };
 
-        const saved = localStorage.getItem('snake-achievements');
+        const currentUser = window.auth ? window.auth.currentUser : null;
+        const storageKey = currentUser ? `snake-achievements-${currentUser}` : 'snake-achievements';
+        const saved = localStorage.getItem(storageKey);
         return saved ? JSON.parse(saved) : defaultAchievements;
     }
 
     saveAchievements() {
-        localStorage.setItem('snake-achievements', JSON.stringify(this.achievements));
+        const currentUser = window.auth ? window.auth.currentUser : null;
+        const storageKey = currentUser ? `snake-achievements-${currentUser}` : 'snake-achievements';
+        localStorage.setItem(storageKey, JSON.stringify(this.achievements));
     }
 
     showAchievementNotification(achievement) {
@@ -1806,12 +1854,16 @@ class SnakeGame {
     }
 
     loadStats() {
-        const saved = localStorage.getItem('snake-stats');
+        const currentUser = window.auth ? window.auth.currentUser : null;
+        const storageKey = currentUser ? `snake-stats-${currentUser}` : 'snake-stats';
+        const saved = localStorage.getItem(storageKey);
         return saved ? JSON.parse(saved) : {gamesPlayed: 0, score100: false, score500: false, score1000: false, speed10: false};
     }
 
     saveStats() {
-        localStorage.setItem('snake-stats', JSON.stringify(this.stats));
+        const currentUser = window.auth ? window.auth.currentUser : null;
+        const storageKey = currentUser ? `snake-stats-${currentUser}` : 'snake-stats';
+        localStorage.setItem(storageKey, JSON.stringify(this.stats));
     }
 
     showAchievements() {

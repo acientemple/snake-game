@@ -316,6 +316,33 @@ body {
     font-size: 18px;
 }
 
+.records-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    justify-content: center;
+}
+
+.tab-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    background: #ddd;
+    color: #333;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.tab-btn:hover {
+    background: #ccc;
+}
+
+.tab-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
 #records-list {
     max-height: 150px;
     overflow-y: auto;
