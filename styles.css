@@ -33,6 +33,24 @@ body {
     margin-bottom: 10px;
 }
 
+.help-link {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #27ae60;
+    color: white;
+    text-decoration: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+}
+
+.help-link:hover {
+    background-color: #219a52;
+    transform: scale(1.05);
+}
+
 .player-info {
     margin-top: 10px;
 }
