@@ -1,4 +1,594 @@
-// 贪吃蛇游戏核心逻辑
+// 贪吃蛇游戏核心逻辑 - 增强版
+
+// 简单的哈希函数
+function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return hash.toString(16);
+}
+
+// 用户认证系统
+class AuthSystem {
+    constructor() {
+        this.currentUser = null;
+        this.users = this.loadUsers();
+        this.init();
+    }
+
+    loadUsers() {
+        const users = localStorage.getItem('snake-users');
+        return users ? JSON.parse(users) : {};
+    }
+
+    saveUsers() {
+        localStorage.setItem('snake-users', JSON.stringify(this.users));
+    }
+
+    register(username, password, email = '') {
+        if (!username || !password) {
+            return { success: false, message: '用户名和密码不能为空' };
+        }
+        if (this.users[username]) {
+            return { success: false, message: '用户名已存在' };
+        }
+        if (password.length < 3) {
+            return { success: false, message: '密码至少3位' };
+        }
+        // 检查邮箱是否已被使用
+        if (email) {
+            for (const u in this.users) {
+                if (this.users[u].email === email) {
+                    return { success: false, message: '该邮箱已被使用' };
+                }
+            }
+        }
+        this.users[username] = {
+            password: simpleHash(password),
+            email: email,
+            created: new Date().toISOString(),
+            data: {}
+        };
+        this.saveUsers();
+        return { success: true, message: '注册成功' };
+    }
+
+    // 忘记密码 - 通过邮箱重置
+    resetPassword(username, email, newPassword) {
+        const user = this.users[username];
+        if (!user) {
+            return { success: false, message: '用户不存在' };
+        }
+        if (user.email !== email) {
+            return { success: false, message: '用户名与邮箱不匹配' };
+        }
+        if (newPassword.length < 3) {
+            return { success: false, message: '密码至少3位' };
+        }
+        user.password = simpleHash(newPassword);
+        this.saveUsers();
+        return { success: true, message: '密码重置成功' };
+    }
+
+    // 管理员重置用户密码
+    adminResetPassword(username, newPassword) {
+        if (!this.isAdmin) {
+            return { success: false, message: '无权限' };
+        }
+        if (!this.users[username]) {
+            return { success: false, message: '用户不存在' };
+        }
+        if (newPassword.length < 3) {
+            return { success: false, message: '密码至少3位' };
+        }
+        this.users[username].password = simpleHash(newPassword);
+        this.saveUsers();
+        return { success: true, message: '密码已重置' };
+    }
+
+    // 管理员删除用户
+    adminDeleteUser(username) {
+        if (!this.isAdmin) {
+            return { success: false, message: '无权限' };
+        }
+        if (!this.users[username]) {
+            return { success: false, message: '用户不存在' };
+        }
+        delete this.users[username];
+        this.saveUsers();
+        return { success: true, message: '用户已删除' };
+    }
+
+    // 管理员查看用户数据
+    adminGetUserData(username) {
+        if (!this.isAdmin) {
+            return null;
+        }
+        return this.users[username] || null;
+    }
+
+    login(username, password) {
+        const user = this.users[username];
+        if (!user) {
+            return { success: false, message: '用户不存在' };
+        }
+        if (user.password !== simpleHash(password)) {
+            return { success: false, message: '密码错误' };
+        }
+        this.currentUser = username;
+        localStorage.setItem('snake-current-user', username);
+        return { success: true, message: '登录成功' };
+    }
+
+    logout() {
+        this.currentUser = null;
+        this.isAdmin = false;
+        localStorage.removeItem('snake-current-user');
+        localStorage.removeItem('snake-admin');
+    }
+
+    isLoggedIn() {
+        const username = localStorage.getItem('snake-current-user');
+        const isAdmin = localStorage.getItem('snake-admin') === 'true';
+        if (username && (this.users[username] || isAdmin)) {
+            this.currentUser = username;
+            this.isAdmin = isAdmin;
+            return true;
+        }
+        return false;
+    }
+
+    saveUserData(key, value) {
+        if (!this.currentUser) return;
+        this.users[this.currentUser].data[key] = value;
+        this.saveUsers();
+    }
+
+    getUserData(key) {
+        if (!this.currentUser) return null;
+        return this.users[this.currentUser].data[key];
+    }
+
+    init() {
+        // 切换登录/注册表单
+        document.getElementById('show-register').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+            document.getElementById('github-sync').style.display = 'block';
+        });
+
+        document.getElementById('show-login').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('github-sync').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+        });
+
+        // 开发者入口切换
+        document.getElementById('show-admin').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('admin-form').style.display = 'block';
+        });
+
+        document.getElementById('show-user-login').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('admin-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+        });
+
+        // 忘记密码
+        document.getElementById('show-forgot').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('forgot-form').style.display = 'block';
+        });
+
+        document.getElementById('show-user-login2').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('forgot-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+        });
+
+        document.getElementById('forgot-btn').addEventListener('click', () => {
+            const username = document.getElementById('forgot-username').value.trim();
+            const email = document.getElementById('forgot-email').value.trim();
+            const newPassword = document.getElementById('forgot-password').value;
+
+            const result = this.resetPassword(username, email, newPassword);
+            if (result.success) {
+                alert('密码重置成功！请使用新密码登录');
+                document.getElementById('forgot-username').value = '';
+                document.getElementById('forgot-email').value = '';
+                document.getElementById('forgot-password').value = '';
+                document.getElementById('forgot-form').style.display = 'none';
+                document.getElementById('login-form').style.display = 'block';
+            } else {
+                document.getElementById('auth-error').textContent = result.message;
+            }
+        });
+
+        // 开发者登录 - 使用 GitHub API 验证
+        document.getElementById('admin-login-btn').addEventListener('click', async () => {
+            const username = document.getElementById('admin-username').value.trim();
+            const password = document.getElementById('admin-password').value;
+
+            if (!username || !password) {
+                document.getElementById('auth-error').textContent = '请输入 GitHub 用户名和密码';
+                return;
+            }
+
+            document.getElementById('auth-error').textContent = '正在验证...';
+
+            try {
+                // 使用 GitHub API 验证用户
+                const response = await fetch(`https://api.github.com/users/${username}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${password}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    // 开发者登录成功，标记为 admin
+                    this.currentUser = username;
+                    this.isAdmin = true;
+                    localStorage.setItem('snake-current-user', username);
+                    localStorage.setItem('snake-admin', 'true');
+                    document.getElementById('auth-error').textContent = '';
+                    this.showGame();
+                } else if (response.status === 401) {
+                    document.getElementById('auth-error').textContent = 'GitHub 认证失败，请检查密码是否正确';
+                } else if (response.status === 404) {
+                    document.getElementById('auth-error').textContent = 'GitHub 用户不存在';
+                } else {
+                    document.getElementById('auth-error').textContent = '验证失败: ' + response.statusText;
+                }
+            } catch (error) {
+                document.getElementById('auth-error').textContent = '验证失败: ' + error.message;
+            }
+        });
+
+        // GitHub OAuth 登录
+        document.getElementById('github-oauth-btn').addEventListener('click', () => {
+            // 注意：需要先在 GitHub 上注册 OAuth App 获取 Client ID
+            // 这里使用 GitHub Device Flow 进行简化演示
+            const clientId = prompt('请输入 GitHub OAuth App Client ID (或直接使用 GitHub Token 登录):');
+            if (!clientId) return;
+
+            const token = prompt('请输入 GitHub Personal Access Token (需要 repo 和 gist 权限):');
+            if (!token) return;
+
+            document.getElementById('auth-error').textContent = '正在验证...';
+
+            fetch('https://api.github.com/user', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Token 验证失败');
+                }
+            }).then(userData => {
+                this.currentUser = userData.login;
+                this.isAdmin = true;
+                localStorage.setItem('snake-current-user', userData.login);
+                localStorage.setItem('snake-admin', 'true');
+                localStorage.setItem('snake-github-token', token);
+                document.getElementById('auth-error').textContent = '';
+                this.showGame();
+            }).catch(error => {
+                document.getElementById('auth-error').textContent = 'GitHub 登录失败: ' + error.message;
+            });
+        });
+
+        // 注册
+        document.getElementById('register-btn').addEventListener('click', () => {
+            const username = document.getElementById('reg-username').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const password2 = document.getElementById('reg-password2').value;
+
+            if (password !== password2) {
+                document.getElementById('auth-error').textContent = '两次密码不一致';
+                return;
+            }
+
+            const result = this.register(username, password, email);
+            if (result.success) {
+                document.getElementById('auth-error').textContent = '';
+                alert('注册成功！请登录');
+                document.getElementById('reg-username').value = '';
+                document.getElementById('reg-email').value = '';
+                document.getElementById('reg-password').value = '';
+                document.getElementById('reg-password2').value = '';
+                document.getElementById('register-form').style.display = 'none';
+                document.getElementById('github-sync').style.display = 'none';
+                document.getElementById('login-form').style.display = 'block';
+            } else {
+                document.getElementById('auth-error').textContent = result.message;
+            }
+        });
+
+        // 登录
+        document.getElementById('login-btn').addEventListener('click', () => {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            const result = this.login(username, password);
+            if (result.success) {
+                document.getElementById('auth-error').textContent = '';
+                this.showGame();
+            } else {
+                document.getElementById('auth-error').textContent = result.message;
+            }
+        });
+
+        // GitHub 同步
+        document.getElementById('sync-btn').addEventListener('click', () => {
+            this.syncToGitHub();
+        });
+
+        // 检查是否已登录
+        if (this.isLoggedIn()) {
+            this.showGame();
+        }
+    }
+
+    showGame() {
+        document.getElementById('auth-panel').classList.remove('show');
+        document.getElementById('game-container').style.display = 'block';
+        document.getElementById('game-container').classList.add('show');
+
+        // 自动设置玩家姓名为用户名
+        const playerNameInput = document.getElementById('player-name');
+        if (playerNameInput) {
+            playerNameInput.value = this.currentUser;
+        }
+
+        // 显示用户信息
+        const header = document.querySelector('.game-header');
+        const userInfo = document.createElement('div');
+        userInfo.className = 'user-info';
+        const adminBadge = this.isAdmin ? ' <span style="color:#e74c3c;">[管理员]</span>' : '';
+        userInfo.innerHTML = `
+            <span>欢迎, ${this.currentUser}${adminBadge}</span>
+            <button class="logout-btn" id="logout-btn">退出</button>
+        `;
+        header.insertBefore(userInfo, header.firstChild);
+
+        // 开发者模式下显示管理面板按钮
+        if (this.isAdmin) {
+            this.showAdminPanel();
+        }
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            this.logout();
+            location.reload();
+        });
+
+        // 初始化游戏
+        initGame();
+    }
+
+    showAdminPanel() {
+        // 添加管理员按钮到控制栏
+        const controls = document.querySelector('.game-controls');
+        const adminBtn = document.createElement('button');
+        adminBtn.id = 'admin-panel-btn';
+        adminBtn.textContent = '👑 管理';
+        adminBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+        controls.appendChild(adminBtn);
+
+        // 点击显示管理面板
+        adminBtn.addEventListener('click', () => {
+            this.toggleAdminPanel();
+        });
+    }
+
+    toggleAdminPanel() {
+        let panel = document.getElementById('admin-panel');
+        if (panel) {
+            panel.remove();
+            return;
+        }
+
+        const self = this;
+
+        // 创建管理面板
+        panel = document.createElement('div');
+        panel.id = 'admin-panel';
+        panel.className = 'modal show';
+        panel.innerHTML = `
+            <div class="modal-content" style="max-width:600px;">
+                <span class="close" onclick="this.parentElement.remove()">&times;</span>
+                <h2>👑 管理员面板</h2>
+                <div class="admin-section">
+                    <h3>用户管理</h3>
+                    <div style="margin-bottom:10px;">
+                        <input type="text" id="target-username" placeholder="用户名" style="padding:8px;width:150px;">
+                        <input type="text" id="new-password" placeholder="新密码" style="padding:8px;width:120px;">
+                        <button id="reset-user-pass" class="auth-btn" style="padding:8px 15px;width:auto;margin:0;">重置密码</button>
+                    </div>
+                    <div style="margin-bottom:10px;">
+                        <input type="text" id="view-username" placeholder="查看用户名" style="padding:8px;width:150px;">
+                        <button id="view-user-data" class="auth-btn" style="padding:8px 15px;width:auto;margin:0;">查看数据</button>
+                    </div>
+                    <div id="user-data-view" style="display:none;background:#fff;padding:10px;border-radius:5px;max-height:200px;overflow-y:auto;"></div>
+                    <div id="user-list"></div>
+                </div>
+                <div class="admin-section">
+                    <h3>全局统计</h3>
+                    <div id="global-stats"></div>
+                </div>
+                <div class="admin-section">
+                    <h3>数据管理</h3>
+                    <button id="clear-all-btn" class="auth-btn" style="background:#e74c3c;">清空所有数据</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(panel);
+        this.loadAdminData();
+
+        // 重置用户密码
+        document.getElementById('reset-user-pass').addEventListener('click', () => {
+            const username = document.getElementById('target-username').value.trim();
+            const newPassword = document.getElementById('new-password').value;
+            if (!username || !newPassword) {
+                alert('请输入用户名和新密码');
+                return;
+            }
+            const result = this.adminResetPassword(username, newPassword);
+            alert(result.message);
+            if (result.success) {
+                document.getElementById('target-username').value = '';
+                document.getElementById('new-password').value = '';
+                self.loadAdminData();
+            }
+        });
+
+        // 查看用户数据
+        document.getElementById('view-user-data').addEventListener('click', () => {
+            const username = document.getElementById('view-username').value.trim();
+            if (!username) {
+                alert('请输入用户名');
+                return;
+            }
+            const userData = this.adminGetUserData(username);
+            const dataView = document.getElementById('user-data-view');
+            if (userData) {
+                dataView.style.display = 'block';
+                dataView.innerHTML = `
+                    <p><strong>用户名:</strong> ${username}</p>
+                    <p><strong>邮箱:</strong> ${userData.email || '未设置'}</p>
+                    <p><strong>注册时间:</strong> ${userData.created || '未知'}</p>
+                    <p><strong>游戏数据:</strong></p>
+                    <pre style="background:#f5f5f5;padding:10px;overflow-x:auto;font-size:12px;">${JSON.stringify(userData.data, null, 2)}</pre>
+                `;
+            } else {
+                dataView.style.display = 'block';
+                dataView.innerHTML = '<p style="color:red;">用户不存在</p>';
+            }
+        });
+
+        // 清空所有数据
+        document.getElementById('clear-all-btn').addEventListener('click', () => {
+            if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                localStorage.clear();
+                alert('数据已清空');
+                location.reload();
+            }
+        });
+    }
+
+    loadAdminData() {
+        // 显示用户列表
+        const userList = document.getElementById('user-list');
+        const users = Object.keys(this.users);
+        if (users.length === 0) {
+            userList.innerHTML = '<p>暂无注册用户</p>';
+        } else {
+            let html = '<table style="width:100%;border-collapse:collapse;"><tr><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">用户名</th><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">邮箱</th><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">注册时间</th></tr>';
+            users.forEach(u => {
+                const user = this.users[u];
+                html += `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${u}</td><td style="padding:8px;border-bottom:1px solid #eee;">${user.email || '-'}</td><td style="padding:8px;border-bottom:1px solid #eee;">${user.created ? user.created.substring(0,10) : '-'}</td></tr>`;
+            });
+            html += '</table>';
+            userList.innerHTML = html;
+        }
+
+        // 显示全局统计
+        const stats = document.getElementById('global-stats');
+        stats.innerHTML = `
+            <p>总用户数: ${users.length}</p>
+            <p>存储键数: ${localStorage.length}</p>
+        `;
+    }
+
+    async syncToGitHub() {
+        const token = document.getElementById('github-token').value.trim();
+        if (!token) {
+            alert('请输入 GitHub Token');
+            return;
+        }
+
+        const username = this.currentUser;
+        const userData = this.users[username];
+
+        try {
+            // 创建或更新 Gist
+            const gistData = {
+                description: 'Snake Game User Data',
+                public: false,
+                files: {
+                    'snake-game-data.json': {
+                        content: JSON.stringify({
+                            username: username,
+                            data: userData.data,
+                            achievements: localStorage.getItem('snake-achievements'),
+                            records: localStorage.getItem('snake-records'),
+                            stats: localStorage.getItem('snake-stats'),
+                            skins: localStorage.getItem('snake-skins'),
+                            sounds: localStorage.getItem('snake-sounds')
+                        }, null, 2)
+                    }
+                }
+            };
+
+            const response = await fetch('https://api.github.com/gists', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(gistData)
+            });
+
+            if (response.ok) {
+                const gist = await response.json();
+                localStorage.setItem('snake-gist-id', gist.id);
+                localStorage.setItem('snake-github-token', token);
+                alert('同步成功！Gist ID: ' + gist.id);
+            } else {
+                alert('同步失败: ' + response.statusText);
+            }
+        } catch (error) {
+            alert('同步失败: ' + error.message);
+        }
+    }
+}
+
+// 游戏初始化
+let game;
+
+function initGame() {
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    game = new SnakeGame(canvas, ctx);
+
+    game.displayRecords();
+    game.updatePlayerNamesDropdown();
+    game.handleModeChange(document.getElementById('game-mode').value);
+    game.updateModeUI(document.getElementById('game-mode').value);
+    game.draw();
+}
+
+// 页面加载完成后初始化认证
+document.addEventListener('DOMContentLoaded', () => {
+    window.auth = new AuthSystem();
+});
+
 class SnakeGame {
     constructor(canvas, ctx) {
         this.canvas = canvas;
@@ -10,12 +600,51 @@ class SnakeGame {
         this.score = 0;
         this.gameTime = 0;
         this.speed = 5;
+        this.baseSpeed = 5;
         this.isRunning = false;
         this.isPaused = false;
         this.timeRemaining = this.gameTime;
         this.playerName = '';
         this.gameTimer = null;
         this.speedTimer = null;
+
+        // 双人模式
+        this.isTwoPlayerMode = false;
+        this.snake2 = null;
+        this.direction2 = {x: -1, y: 0};
+        this.p2Name = 'P2';
+        this.p2Score = 0;
+
+        // 道具系统
+        this.powerups = [];
+        this.activeEffects = {
+            speedUp: false,
+            speedDown: false,
+            invincible: false
+        };
+        this.invincibleUses = 0;
+        this.ghostUses = 0;
+
+        // 连击系统
+        this.combo = 0;
+        this.lastFoodTime = 0;
+
+        // 无尽模式
+        this.foodsEaten = 0;
+        this.isEndlessMode = false;
+
+        // 成就系统
+        this.achievements = this.loadAchievements();
+        this.stats = this.loadStats();
+
+        // 皮肤设置
+        this.skinSettings = this.loadSkinSettings();
+
+        // 音效设置
+        this.soundSettings = this.loadSoundSettings();
+
+        // 音频上下文
+        this.audioContext = null;
 
         // 绑定事件监听器
         this.bindEvents();
@@ -36,25 +665,75 @@ class SnakeGame {
 
             if (!this.isRunning || this.isPaused) return;
 
-            switch(e.key) {
-                case 'ArrowUp':
-                    e.preventDefault();
-                    if (this.direction.y === 0) this.direction = {x: 0, y: -1};
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    if (this.direction.y === 0) this.direction = {x: 0, y: 1};
-                    break;
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    if (this.direction.x === 0) this.direction = {x: -1, y: 0};
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    if (this.direction.x === 0) this.direction = {x: 1, y: 0};
-                    break;
+            if (this.isTwoPlayerMode) {
+                // P1 控制 (WASD)
+                switch(e.key.toLowerCase()) {
+                    case 'w':
+                        if (this.direction.y === 0) this.direction = {x: 0, y: -1};
+                        break;
+                    case 's':
+                        if (this.direction.y === 0) this.direction = {x: 0, y: 1};
+                        break;
+                    case 'a':
+                        if (this.direction.x === 0) this.direction = {x: -1, y: 0};
+                        break;
+                    case 'd':
+                        if (this.direction.x === 0) this.direction = {x: 1, y: 0};
+                        break;
+                }
+
+                // P2 控制 (方向键)
+                switch(e.key) {
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        if (this.direction2.y === 0) this.direction2 = {x: 0, y: -1};
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        if (this.direction2.y === 0) this.direction2 = {x: 0, y: 1};
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        if (this.direction2.x === 0) this.direction2 = {x: -1, y: 0};
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        if (this.direction2.x === 0) this.direction2 = {x: 1, y: 0};
+                        break;
+                }
+            } else {
+                // 单人模式
+                switch(e.key) {
+                    case 'ArrowUp':
+                    case 'w':
+                    case 'W':
+                        e.preventDefault();
+                        if (this.direction.y === 0) this.direction = {x: 0, y: -1};
+                        break;
+                    case 'ArrowDown':
+                    case 's':
+                    case 'S':
+                        e.preventDefault();
+                        if (this.direction.y === 0) this.direction = {x: 0, y: 1};
+                        break;
+                    case 'ArrowLeft':
+                    case 'a':
+                    case 'A':
+                        e.preventDefault();
+                        if (this.direction.x === 0) this.direction = {x: -1, y: 0};
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                    case 'D':
+                        e.preventDefault();
+                        if (this.direction.x === 0) this.direction = {x: 1, y: 0};
+                        break;
+                }
+            }
+
+            // 通用快捷键
+            switch(e.key.toLowerCase()) {
                 case 'f':
-                case 'F':
                     this.toggleFullscreen();
                     break;
             }
@@ -64,53 +743,461 @@ class SnakeGame {
         document.getElementById('start-btn').addEventListener('click', () => this.start());
         document.getElementById('pause-btn').addEventListener('click', () => this.togglePause());
         document.getElementById('fullscreen-btn').addEventListener('click', () => this.toggleFullscreen());
-    document.getElementById('clear-records-btn').addEventListener('click', () => this.clearRecords());
+        document.getElementById('clear-records-btn').addEventListener('click', () => this.clearRecords());
+        document.getElementById('achievements-btn').addEventListener('click', () => this.showAchievements());
+        document.getElementById('skins-btn').addEventListener('click', () => this.showSkins());
+        document.getElementById('sound-btn').addEventListener('click', () => this.showSoundSettings());
 
         // 速度控制
         document.getElementById('game-speed').addEventListener('input', (e) => {
             this.speed = parseInt(e.target.value);
+            this.baseSpeed = this.speed;
             document.getElementById('speed-value').textContent = this.speed;
+            document.getElementById('current-speed').textContent = this.getCurrentSpeed();
         });
 
-        // 全屏变化事件（处理 ESC 键退出全屏）
+        // 游戏模式控制
+        document.getElementById('game-mode').addEventListener('change', (e) => {
+            this.handleModeChange(e.target.value);
+        });
+
+        // 皮肤保存
+        document.getElementById('save-skins-btn').addEventListener('click', () => this.saveSkins());
+        document.getElementById('save-sound-btn').addEventListener('click', () => this.saveSoundSettings());
+
+        // 全屏变化事件
         document.addEventListener('fullscreenchange', () => {
             const container = document.querySelector('.game-container');
             if (!document.fullscreenElement) {
                 container.classList.remove('fullscreen-mode');
             }
         });
+
+        // 模态框关闭
+        document.querySelectorAll('.modal .close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', () => {
+                document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('show'));
+            });
+        });
+
+        // 点击模态框外部关闭
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                }
+            });
+        });
+    }
+
+    handleModeChange(mode) {
+        const timeLimitContainer = document.getElementById('time-limit-container');
+        const classicTimeContainer = document.getElementById('classic-time-container');
+        const powerupsContainer = document.getElementById('powerups-container');
+
+        switch(mode) {
+            case 'timed':
+                timeLimitContainer.style.display = 'flex';
+                classicTimeContainer.style.display = 'none';
+                powerupsContainer.style.display = 'flex';
+                break;
+            case 'endless':
+                timeLimitContainer.style.display = 'none';
+                classicTimeContainer.style.display = 'none';
+                powerupsContainer.style.display = 'none';
+                break;
+            case 'battle':
+                timeLimitContainer.style.display = 'none';
+                classicTimeContainer.style.display = 'none';
+                powerupsContainer.style.display = 'none';
+                break;
+            default: // classic
+                timeLimitContainer.style.display = 'none';
+                classicTimeContainer.style.display = 'flex';
+                powerupsContainer.style.display = 'flex';
+        }
+
+        // 更新 UI
+        this.updateModeUI(mode);
+    }
+
+    updateModeUI(mode) {
+        const timeStat = document.getElementById('time-stat');
+        const comboStat = document.getElementById('combo-stat');
+        const p2ScoreStat = document.getElementById('p2-score-stat');
+
+        switch(mode) {
+            case 'timed':
+                timeStat.style.display = 'block';
+                comboStat.style.display = 'block';
+                p2ScoreStat.style.display = 'none';
+                break;
+            case 'endless':
+                timeStat.style.display = 'none';
+                comboStat.style.display = 'block';
+                p2ScoreStat.style.display = 'none';
+                break;
+            case 'battle':
+                timeStat.style.display = 'none';
+                comboStat.style.display = 'none';
+                p2ScoreStat.style.display = 'block';
+                break;
+            default:
+                timeStat.style.display = 'block';
+                comboStat.style.display = 'block';
+                p2ScoreStat.style.display = 'none';
+        }
+    }
+
+    initAudio() {
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    playSound(type) {
+        if (!this.soundSettings.enabled) return;
+
+        this.initAudio();
+
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+
+        switch(type) {
+            case 'eat':
+                oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(1200, this.audioContext.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.1);
+                break;
+            case 'powerup':
+                oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(600, this.audioContext.currentTime + 0.15);
+                oscillator.frequency.exponentialRampToValueAtTime(800, this.audioContext.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.3);
+                break;
+            case 'gameover':
+                oscillator.frequency.setValueAtTime(300, this.audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(100, this.audioContext.currentTime + 0.5);
+                gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.5);
+                break;
+            case 'achievement':
+                oscillator.frequency.setValueAtTime(523, this.audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(659, this.audioContext.currentTime + 0.1);
+                oscillator.frequency.setValueAtTime(784, this.audioContext.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.3);
+                break;
+        }
     }
 
     generateFood() {
         const x = Math.floor(Math.random() * (this.canvas.width / this.gridSize));
         const y = Math.floor(Math.random() * (this.canvas.height / this.gridSize));
-        return {x, y};
+        return {x, y, type: 'normal'};
+    }
+
+    generatePowerup() {
+        // 道具类型：金色食物、炸弹、各种速度道具、无敌、穿身
+        const types = ['gold', 'bomb', 'car', 'train', 'plane', 'snail', 'koala', 'turtle', 'invincible', 'ghost'];
+        const weights = [20, 12, 6, 6, 6, 6, 6, 6, 6, 6]; // 权重
+
+        const totalWeight = weights.reduce((a, b) => a + b, 0);
+        let random = Math.random() * totalWeight;
+
+        let type = types[0];
+        for (let i = 0; i < types.length; i++) {
+            random -= weights[i];
+            if (random <= 0) {
+                type = types[i];
+                break;
+            }
+        }
+
+        const x = Math.floor(Math.random() * (this.canvas.width / this.gridSize));
+        const y = Math.floor(Math.random() * (this.canvas.height / this.gridSize));
+
+        return {x, y, type};
+    }
+
+    applyPowerup(powerup) {
+        if (!this.soundSettings.enabled || this.soundSettings.powerupSound) {
+            this.playSound('powerup');
+        }
+
+        switch(powerup.type) {
+            case 'gold':
+                this.score += 50;
+                this.combo++;
+                this.showPowerupNotification('★ 金色食物 +50分!', true);
+                break;
+            case 'bomb':
+                this.score = Math.max(0, this.score - 20);
+                if (this.snake.length > 3) {
+                    this.snake.pop();
+                    this.snake.pop();
+                }
+                this.combo = 0;
+                this.showPowerupNotification('💣 炸弹! -20分', false);
+                break;
+            // 加速道具
+            case 'car': // 汽车 +1
+                this.speed = Math.min(10, this.baseSpeed + 1);
+                this.baseSpeed = this.speed;
+                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                this.showPowerupNotification('🚗 汽车! 速度+1', true);
+                break;
+            case 'train': // 高铁 +2
+                this.speed = Math.min(10, this.baseSpeed + 2);
+                this.baseSpeed = this.speed;
+                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                this.showPowerupNotification('🚄 高铁! 速度+2', true);
+                break;
+            case 'plane': // 飞机 +3
+                this.speed = Math.min(10, this.baseSpeed + 3);
+                this.baseSpeed = this.speed;
+                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                this.showPowerupNotification('✈️ 飞机! 速度+3', true);
+                break;
+            // 减速道具
+            case 'snail': // 蜗牛 -3
+                this.speed = Math.max(1, this.baseSpeed - 3);
+                this.baseSpeed = this.speed;
+                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                this.showPowerupNotification('🐌 蜗牛! 速度-3', false);
+                break;
+            case 'koala': // 考拉 -2
+                this.speed = Math.max(1, this.baseSpeed - 2);
+                this.baseSpeed = this.speed;
+                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                this.showPowerupNotification('🐨 考拉! 速度-2', false);
+                break;
+            case 'turtle': // 乌龟 -1
+                this.speed = Math.max(1, this.baseSpeed - 1);
+                this.baseSpeed = this.speed;
+                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                this.showPowerupNotification('🐢 乌龟! 速度-1', false);
+                break;
+            case 'speedDown':
+                this.activeEffects.speedDown = true;
+                this.speed = Math.max(1, this.baseSpeed - 3);
+                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                setTimeout(() => {
+                    this.activeEffects.speedDown = false;
+                    this.speed = this.getCurrentSpeed();
+                    document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                }, 5000);
+                break;
+            case 'invincible':
+                this.invincibleUses++;
+                this.showPowerupNotification('🛡️ 无敌! 可穿墙一次', true);
+                break;
+            case 'ghost':
+                this.ghostUses++;
+                this.showPowerupNotification('👻 幽灵! 可穿过自身一次', true);
+                break;
+        }
+
+        this.checkPowerupAchievements();
+    }
+
+    getCurrentSpeed() {
+        return this.speed;
     }
 
     draw() {
-        // 清空画布
-        this.ctx.fillStyle = '#ecf0f1';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // 清空画布 - 根据背景样式
+        switch(this.skinSettings.bgStyle) {
+            case 'solid':
+                this.ctx.fillStyle = '#ecf0f1';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                break;
+            case 'gradient':
+                const gradient = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
+                gradient.addColorStop(0, '#a8edea');
+                gradient.addColorStop(1, '#fed6e3');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                break;
+            default: // grid
+                this.ctx.fillStyle = '#ecf0f1';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                // 绘制网格
+                this.ctx.strokeStyle = '#bdc3c7';
+                this.ctx.lineWidth = 0.5;
+                for (let i = 0; i <= this.canvas.width; i += this.gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(i, 0);
+                    this.ctx.lineTo(i, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                for (let i = 0; i <= this.canvas.height; i += this.gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, i);
+                    this.ctx.lineTo(this.canvas.width, i);
+                    this.ctx.stroke();
+                }
+        }
 
-        // 绘制网格
-        this.ctx.strokeStyle = '#bdc3c7';
-        this.ctx.lineWidth = 0.5;
-        for (let i = 0; i <= this.canvas.width; i += this.gridSize) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(i, 0);
-            this.ctx.lineTo(i, this.canvas.height);
-            this.ctx.stroke();
-        }
-        for (let i = 0; i <= this.canvas.height; i += this.gridSize) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, i);
-            this.ctx.lineTo(this.canvas.width, i);
-            this.ctx.stroke();
-        }
+        // 绘制食物
+        this.drawFood(this.food);
+
+        // 绘制道具
+        this.powerups.forEach(powerup => {
+            this.drawPowerup(powerup);
+        });
 
         // 绘制蛇
-        this.snake.forEach((segment, index) => {
-            this.ctx.fillStyle = index === 0 ? '#27ae60' : '#2ecc71';
+        if (this.invincibleUses > 0) {
+            // 无敌状态 - 绘制发光效果
+            this.ctx.shadowBlur = 15;
+            this.ctx.shadowColor = '#ffd700';
+        }
+        if (this.ghostUses > 0) {
+            // 幽灵状态 - 绘制半透明效果
+            this.ctx.globalAlpha = 0.6;
+        }
+        this.drawSnake(this.snake, this.skinSettings.snakeColor);
+        this.ctx.shadowBlur = 0;
+        this.ctx.globalAlpha = 1;
+
+        // 绘制状态提示
+        let statusText = '';
+        if (this.invincibleUses > 0) statusText += `🛡️${this.invincibleUses} `;
+        if (this.ghostUses > 0) statusText += `👻${this.ghostUses}`;
+        if (statusText) {
+            this.ctx.fillStyle = '#333';
+            this.ctx.font = 'bold 14px Arial';
+            this.ctx.textAlign = 'left';
+            this.ctx.fillText(statusText, 10, 20);
+        }
+
+        // 双人模式 - 绘制 P2 蛇
+        if (this.isTwoPlayerMode && this.snake2) {
+            this.drawSnake(this.snake2, 'blue');
+        }
+    }
+
+    drawFood(food) {
+        const centerX = food.x * this.gridSize + this.gridSize / 2;
+        const centerY = food.y * this.gridSize + this.gridSize / 2;
+
+        switch(this.skinSettings.foodStyle) {
+            case 'star':
+                this.ctx.fillStyle = '#f1c40f';
+                this.ctx.font = `${this.gridSize}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('★', centerX, centerY);
+                break;
+            case 'heart':
+                this.ctx.fillStyle = '#e91e63';
+                this.ctx.font = `${this.gridSize}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('♥', centerX, centerY);
+                break;
+            default: // circle
+                this.ctx.fillStyle = food.type === 'gold' ? '#f1c40f' : '#e74c3c';
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, this.gridSize / 2 - 2, 0, Math.PI * 2);
+                this.ctx.fill();
+        }
+    }
+
+    drawPowerup(powerup) {
+        const centerX = powerup.x * this.gridSize + this.gridSize / 2;
+        const centerY = powerup.y * this.gridSize + this.gridSize / 2;
+
+        let color, icon;
+        switch(powerup.type) {
+            case 'gold':
+                color = '#f1c40f';
+                icon = '★';
+                break;
+            case 'bomb':
+                color = '#2c3e50';
+                icon = '💣';
+                break;
+            // 加速道具
+            case 'car':
+                color = '#3498db';
+                icon = '🚗';
+                break;
+            case 'train':
+                color = '#e74c3c';
+                icon = '🚄';
+                break;
+            case 'plane':
+                color = '#9b59b6';
+                icon = '✈️';
+                break;
+            // 减速道具
+            case 'snail':
+                color = '#8B4513';
+                icon = '🐌';
+                break;
+            case 'koala':
+                color = '#7f8c8d';
+                icon = '🐨';
+                break;
+            case 'turtle':
+                color = '#27ae60';
+                icon = '🐢';
+                break;
+            case 'invincible':
+                color = '#e74c3c';
+                icon = '🛡️';
+                break;
+            case 'ghost':
+                color = '#8e44ad';
+                icon = '👻';
+                break;
+        }
+
+        // 绘制背景圆
+        this.ctx.fillStyle = color;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, this.gridSize / 2 - 2, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // 绘制图标
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = `${this.gridSize * 0.7}px Arial`;
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(icon, centerX, centerY);
+    }
+
+    drawSnake(snake, colorType) {
+        snake.forEach((segment, index) => {
+            let fillStyle;
+
+            if (colorType === 'rainbow') {
+                const hue = (index * 30) % 360;
+                fillStyle = `hsl(${hue}, 70%, 50%)`;
+            } else if (colorType === 'blue') {
+                fillStyle = index === 0 ? '#2980b9' : '#3498db';
+            } else if (colorType === 'red') {
+                fillStyle = index === 0 ? '#c0392b' : '#e74c3c';
+            } else { // green (default)
+                fillStyle = index === 0 ? '#27ae60' : '#2ecc71';
+            }
+
+            this.ctx.fillStyle = fillStyle;
             this.ctx.fillRect(
                 segment.x * this.gridSize,
                 segment.y * this.gridSize,
@@ -118,53 +1205,197 @@ class SnakeGame {
                 this.gridSize - 2
             );
         });
-
-        // 绘制食物
-        this.ctx.fillStyle = '#e74c3c';
-        this.ctx.beginPath();
-        this.ctx.arc(
-            this.food.x * this.gridSize + this.gridSize/2,
-            this.food.y * this.gridSize + this.gridSize/2,
-            this.gridSize/2 - 2,
-            0,
-            Math.PI * 2
-        );
-        this.ctx.fill();
     }
 
     move() {
         if (!this.isRunning || this.isPaused) return;
 
-        // 移动蛇头
+        // 移动蛇
+        if (this.isTwoPlayerMode) {
+            this.moveSnake2();
+        } else {
+            this.moveSnake1();
+        }
+    }
+
+    moveSnake1() {
         const head = {...this.snake[0]};
         head.x += this.direction.x;
         head.y += this.direction.y;
 
-        // 检查边界碰撞
-        if (head.x < 0 || head.x >= this.canvas.width / this.gridSize ||
-            head.y < 0 || head.y >= this.canvas.height / this.gridSize) {
-            this.gameOver();
-            return;
-        }
-
-        // 检查自身碰撞
-        for (let i = 0; i < this.snake.length; i++) {
-            if (head.x === this.snake[i].x && head.y === this.snake[i].y) {
+        // 无敌效果 - 穿墙
+        let passedWall = false;
+        if (this.invincibleUses > 0) {
+            if (head.x < 0) { head.x = Math.floor(this.canvas.width / this.gridSize) - 1; passedWall = true; }
+            if (head.x >= Math.floor(this.canvas.width / this.gridSize)) { head.x = 0; passedWall = true; }
+            if (head.y < 0) { head.y = Math.floor(this.canvas.height / this.gridSize) - 1; passedWall = true; }
+            if (head.y >= Math.floor(this.canvas.height / this.gridSize)) { head.y = 0; passedWall = true; }
+            if (passedWall) this.invincibleUses--;
+        } else {
+            // 检查边界碰撞
+            if (head.x < 0 || head.x >= this.canvas.width / this.gridSize ||
+                head.y < 0 || head.y >= this.canvas.height / this.gridSize) {
                 this.gameOver();
                 return;
             }
         }
 
-        // 检查食物碰撞
-        if (head.x === this.food.x && head.y === this.food.y) {
-            this.score += 10 + this.speed * 2;
-            document.getElementById('score').textContent = this.score;
-            this.food = this.generateFood();
-        } else {
-            this.snake.pop(); // 移除尾部
+        // 检查自身碰撞
+        let passedSelf = false;
+        for (let i = 0; i < this.snake.length; i++) {
+            if (head.x === this.snake[i].x && head.y === this.snake[i].y) {
+                if (this.ghostUses > 0) {
+                    passedSelf = true;
+                    this.ghostUses--;
+                } else {
+                    this.gameOver();
+                    return;
+                }
+            }
         }
 
-        this.snake.unshift(head); // 添加新头部
+        // 检查食物碰撞
+        let ateFood = false;
+        if (head.x === this.food.x && head.y === this.food.y) {
+            this.handleFoodCollision();
+            ateFood = true;
+        }
+
+        // 检查道具碰撞
+        const powerupIndex = this.powerups.findIndex(p => p.x === head.x && p.y === head.y);
+        if (powerupIndex !== -1) {
+            this.applyPowerup(this.powerups[powerupIndex]);
+            this.powerups.splice(powerupIndex, 1);
+            ateFood = true;
+        }
+
+        if (!ateFood) {
+            this.snake.pop();
+        }
+
+        this.snake.unshift(head);
+    }
+
+    moveSnake2() {
+        // 移动 P1
+        const head1 = {...this.snake[0]};
+        head1.x += this.direction.x;
+        head1.y += this.direction.y;
+
+        // 移动 P2
+        const head2 = {...this.snake2[0]};
+        head2.x += this.direction2.x;
+        head2.y += this.direction2.y;
+
+        // 检查 P1 边界碰撞
+        if (head1.x < 0 || head1.x >= this.canvas.width / this.gridSize ||
+            head1.y < 0 || head1.y >= this.canvas.height / this.gridSize) {
+            this.gameOver('P2');
+            return;
+        }
+
+        // 检查 P2 边界碰撞
+        if (head2.x < 0 || head2.x >= this.canvas.width / this.gridSize ||
+            head2.y < 0 || head2.y >= this.canvas.height / this.gridSize) {
+            this.gameOver('P1');
+            return;
+        }
+
+        // 检查 P1 自身碰撞
+        for (let i = 0; i < this.snake.length; i++) {
+            if (head1.x === this.snake[i].x && head1.y === this.snake[i].y) {
+                this.gameOver('P2');
+                return;
+            }
+        }
+
+        // 检查 P2 自身碰撞
+        for (let i = 0; i < this.snake2.length; i++) {
+            if (head2.x === this.snake2[i].x && head2.y === this.snake2[i].y) {
+                this.gameOver('P1');
+                return;
+            }
+        }
+
+        // 检查 P1 和 P2 碰撞
+        if (head1.x === head2.x && head1.y === head2.y) {
+            // 平局
+            this.gameOver('tie');
+            return;
+        }
+
+        // 检查 P1 和 P2 身体碰撞
+        for (let i = 0; i < this.snake.length; i++) {
+            if (head2.x === this.snake[i].x && head2.y === this.snake[i].y) {
+                this.gameOver('P1');
+                return;
+            }
+        }
+        for (let i = 0; i < this.snake2.length; i++) {
+            if (head1.x === this.snake2[i].x && head1.y === this.snake2[i].y) {
+                this.gameOver('P2');
+                return;
+            }
+        }
+
+        // 检查食物
+        let ateFood1 = false, ateFood2 = false;
+
+        if (head1.x === this.food.x && head1.y === this.food.y) {
+            this.p1Score += 10;
+            document.getElementById('score').textContent = this.p1Score;
+            this.food = this.generateFood();
+            ateFood1 = true;
+        }
+
+        if (head2.x === this.food.x && head2.y === this.food.y) {
+            this.p2Score += 10;
+            document.getElementById('p2-score').textContent = this.p2Score;
+            this.food = this.generateFood();
+            ateFood2 = true;
+        }
+
+        if (!ateFood1) this.snake.pop();
+        if (!ateFood2) this.snake2.pop();
+
+        this.snake.unshift(head1);
+        this.snake2.unshift(head2);
+    }
+
+    handleFoodCollision() {
+        this.score += 10 + this.speed * 2;
+        this.combo++;
+        this.foodsEaten++;
+
+        document.getElementById('score').textContent = this.score;
+        document.getElementById('combo-count').textContent = this.combo;
+
+        if (!this.soundSettings.enabled || this.soundSettings.eatSound) {
+            this.playSound('eat');
+        }
+
+        this.food = this.generateFood();
+
+        // 无尽模式 - 每吃5个加速
+        if (this.isEndlessMode && this.foodsEaten % 5 === 0) {
+            this.baseSpeed = Math.min(10, this.baseSpeed + 1);
+            this.speed = this.baseSpeed;
+            document.getElementById('current-speed').textContent = this.speed;
+            document.getElementById('speed-value').textContent = this.speed;
+            document.getElementById('game-speed').value = this.speed;
+            // 显示加速提示
+            this.showSpeedNotification(this.speed);
+        }
+
+        // 生成道具 (20% 概率)
+        if (document.getElementById('enable-powerups')?.checked && Math.random() < 0.2) {
+            this.powerups.push(this.generatePowerup());
+            if (this.powerups.length > 3) {
+                this.powerups.shift();
+            }
+        }
+
+        this.checkFoodAchievements();
     }
 
     update() {
@@ -176,7 +1407,7 @@ class SnakeGame {
         if (!this.isRunning || this.isPaused) return;
 
         this.update();
-        this.speedTimer = setTimeout(() => this.gameLoop(), 1000 / this.speed);
+        this.speedTimer = setTimeout(() => this.gameLoop(), 1000 / this.getCurrentSpeed());
     }
 
     start() {
@@ -187,27 +1418,28 @@ class SnakeGame {
         }
 
         // 重置游戏状态
-        this.snake = [{x: 10, y: 10}];
-        this.direction = {x: 1, y: 0};
-        this.food = this.generateFood();
-        this.score = 0;
-        this.gameTime = parseInt(document.getElementById('game-time').value) || 0;
-        this.timeRemaining = this.gameTime;
+        const mode = document.getElementById('game-mode').value;
+
+        if (mode === 'battle') {
+            this.initTwoPlayerMode();
+        } else {
+            this.initSinglePlayerMode(mode);
+        }
+
         this.isRunning = true;
         this.isPaused = false;
         this.playerName = document.getElementById('player-name').value || '匿名玩家';
 
         // 更新UI
         document.getElementById('start-btn').textContent = '重新开始';
-        document.getElementById('score').textContent = '0';
         document.getElementById('pause-btn').disabled = false;
-        document.getElementById('game-time').disabled = true;
         document.getElementById('game-speed').disabled = true;
+        document.getElementById('game-mode').disabled = true;
 
         // 开始游戏循环
         this.gameLoop();
 
-        // 开始计时器
+        // 开始计时器 (限时模式)
         if (this.gameTime > 0) {
             this.gameTimer = setInterval(() => {
                 this.timeRemaining--;
@@ -220,13 +1452,68 @@ class SnakeGame {
         }
     }
 
+    initSinglePlayerMode(mode) {
+        this.snake = [{x: 10, y: 10}];
+        this.direction = {x: 1, y: 0};
+        this.food = this.generateFood();
+        this.score = 0;
+        this.combo = 0;
+        this.powerups = [];
+        this.activeEffects = {speedUp: false, speedDown: false, invincible: false};
+        this.invincibleUses = 0;
+        this.ghostUses = 0;
+        this.foodsEaten = 0;
+        this.isTwoPlayerMode = false;
+        this.snake2 = null;
+
+        switch(mode) {
+            case 'timed':
+                this.gameTime = parseInt(document.getElementById('time-limit').value) || 60;
+                this.timeRemaining = this.gameTime;
+                this.isEndlessMode = false;
+                break;
+            case 'endless':
+                this.gameTime = 0;
+                this.timeRemaining = 0;
+                this.isEndlessMode = true;
+                break;
+            default: // classic
+                this.gameTime = parseInt(document.getElementById('game-time').value) || 0;
+                this.timeRemaining = this.gameTime;
+                this.isEndlessMode = false;
+        }
+
+        this.speed = parseInt(document.getElementById('game-speed').value);
+        this.baseSpeed = this.speed;
+
+        document.getElementById('score').textContent = '0';
+        document.getElementById('combo-count').textContent = '0';
+        document.getElementById('time-remaining').textContent = this.timeRemaining;
+        document.getElementById('current-speed').textContent = this.speed;
+    }
+
+    initTwoPlayerMode() {
+        this.isTwoPlayerMode = true;
+        this.snake = [{x: 5, y: 12}];
+        this.snake2 = [{x: 34, y: 12}];
+        this.direction = {x: 1, y: 0};
+        this.direction2 = {x: -1, y: 0};
+        this.food = this.generateFood();
+        this.p1Score = 0;
+        this.p2Score = 0;
+        this.powerups = [];
+        this.gameTime = 0;
+
+        document.getElementById('score').textContent = '0';
+        document.getElementById('p2-score').textContent = '0';
+    }
+
     pause() {
         this.isPaused = !this.isPaused;
         if (this.isPaused) {
             document.getElementById('pause-btn').textContent = '继续';
         } else {
             document.getElementById('pause-btn').textContent = '暂停';
-            // 恢复游戏循环
             this.gameLoop();
         }
     }
@@ -248,7 +1535,7 @@ class SnakeGame {
         }
     }
 
-    gameOver() {
+    gameOver(winner = null) {
         this.isRunning = false;
         this.isPaused = false;
 
@@ -256,8 +1543,36 @@ class SnakeGame {
         clearInterval(this.gameTimer);
         clearTimeout(this.speedTimer);
 
+        // 播放音效
+        if (!this.soundSettings.enabled || this.soundSettings.gameoverSound) {
+            this.playSound('gameover');
+        }
+
+        // 更新统计
+        this.stats.gamesPlayed++;
+        if (this.score >= 100) this.stats.score100 = true;
+        if (this.score >= 500) this.stats.score500 = true;
+        if (this.score >= 1000) this.stats.score1000 = true;
+        if (this.speed >= 10) this.stats.speed10 = true;
+        this.saveStats();
+
+        // 检查成就
+        this.checkGameOverAchievements();
+
         // 显示游戏结束
-        alert(`游戏结束！\n玩家: ${this.playerName}\n最终分数: ${this.score}\n用时: ${this.gameTime - this.timeRemaining}秒`);
+        if (this.isTwoPlayerMode) {
+            let message = '';
+            if (winner === 'P1') {
+                message = `🎉 P1 获胜！\nP1 分数: ${this.p1Score}\nP2 分数: ${this.p2Score}`;
+            } else if (winner === 'P2') {
+                message = `🎉 P2 获胜！\nP1 分数: ${this.p1Score}\nP2 分数: ${this.p2Score}`;
+            } else {
+                message = `🤝 平局！\nP1 分数: ${this.p1Score}\nP2 分数: ${this.p2Score}`;
+            }
+            console.log(message);
+        } else {
+            console.log(`游戏结束！玩家: ${this.playerName}, 分数: ${this.score}`);
+        }
 
         // 保存记录
         this.saveRecord();
@@ -268,33 +1583,32 @@ class SnakeGame {
         // 重置UI
         document.getElementById('start-btn').textContent = '开始游戏';
         document.getElementById('pause-btn').disabled = true;
-        document.getElementById('game-time').disabled = false;
+        document.getElementById('pause-btn').textContent = '暂停';
+        const gameTimeEl = document.getElementById('game-time');
+        if (gameTimeEl) gameTimeEl.disabled = false;
         document.getElementById('game-speed').disabled = false;
+        document.getElementById('game-mode').disabled = false;
         document.getElementById('time-remaining').textContent = this.gameTime;
+        document.getElementById('current-speed').textContent = this.baseSpeed;
     }
 
     saveRecord() {
-        console.log('正在保存游戏记录...');
         const records = this.loadRecords();
         const record = {
-            playerName: this.playerName,
-            score: this.score,
+            playerName: this.isTwoPlayerMode ? (this.p1Score >= this.p2Score ? 'P1' : 'P2') : this.playerName,
+            score: this.isTwoPlayerMode ? Math.max(this.p1Score, this.p2Score) : this.score,
+            mode: document.getElementById('game-mode').value,
             time: this.gameTime - this.timeRemaining,
             date: new Date().toLocaleString('zh-CN')
         };
 
-        // 添加当前记录
         records.push(record);
-
-        // 排序并截取前10条记录
         records.sort((a, b) => b.score - a.score);
         if (records.length > 10) {
             records.splice(10);
         }
 
-        // 保存记录
         this.saveRecords(records);
-        console.log('记录已保存到localStorage');
         this.displayRecords();
     }
 
@@ -310,10 +1624,9 @@ class SnakeGame {
     savePlayerName(name) {
         if (!name || name === '匿名玩家') return;
         let names = this.loadPlayerNames();
-        // 如果名字不存在，则添加
         if (!names.includes(name)) {
-            names.unshift(name); // 添加到列表开头
-            if (names.length > 10) names.pop(); // 最多保存10个
+            names.unshift(name);
+            if (names.length > 10) names.pop();
             localStorage.setItem('snake-player-names', JSON.stringify(names));
             this.updatePlayerNamesDropdown();
         }
@@ -351,9 +1664,16 @@ class SnakeGame {
             recordItem.className = 'record-item';
             if (index === 0) recordItem.classList.add('highlight');
 
+            const modeName = {
+                'classic': '经典',
+                'timed': '限时',
+                'endless': '无尽',
+                'battle': '对战'
+            }[record.mode] || '经典';
+
             recordItem.innerHTML = `
                 <strong>${record.playerName}</strong><br>
-                分数: ${record.score} | 时间: ${record.time}s | ${record.date}
+                分数: ${record.score} | 模式: ${modeName} | 时间: ${record.time}s | ${record.date}
             `;
             recordsList.appendChild(recordItem);
         });
@@ -362,19 +1682,223 @@ class SnakeGame {
     clearRecords() {
         this.saveRecords([]);
         this.displayRecords();
-        console.log('记录已清除');
+    }
+
+    // 成就系统
+    loadAchievements() {
+        const defaultAchievements = {
+            firstFood: {name: '初试身手', desc: '首次吃到食物', icon: '🍎', unlocked: false},
+            combo10: {name: '连击达人', desc: '连续吃10个食物', icon: '🔥', unlocked: false},
+            score100: {name: '初露头角', desc: '突破100分', icon: '⭐', unlocked: false},
+            score500: {name: '高分选手', desc: '突破500分', icon: '🌟', unlocked: false},
+            score1000: {name: '大神级别', desc: '突破1000分', icon: '👑', unlocked: false},
+            speed10: {name: '速度之王', desc: '速度达到10级', icon: '⚡', unlocked: false},
+            games10: {name: '小试牛刀', desc: '完成10局游戏', icon: '🎮', unlocked: false},
+            games50: {name: '资深玩家', desc: '完成50局游戏', icon: '🏆', unlocked: false},
+            games100: {name: '传奇人物', desc: '完成100局游戏', icon: '🏅', unlocked: false}
+        };
+
+        const saved = localStorage.getItem('snake-achievements');
+        return saved ? JSON.parse(saved) : defaultAchievements;
+    }
+
+    saveAchievements() {
+        localStorage.setItem('snake-achievements', JSON.stringify(this.achievements));
+    }
+
+    showAchievementNotification(achievement) {
+        const notification = document.getElementById('achievement-notification');
+        notification.textContent = `🏆 ${achievement.name} - ${achievement.desc}`;
+        notification.classList.remove('show');
+        // 重新触发动画
+        void notification.offsetWidth;
+        notification.classList.add('show');
+    }
+
+    showSpeedNotification(speed) {
+        const notification = document.getElementById('achievement-notification');
+        notification.textContent = `⚡ 速度提升! 当前速度: ${speed}`;
+        notification.classList.remove('show', 'speed');
+        void notification.offsetWidth;
+        notification.classList.add('show', 'speed');
+    }
+
+    showPowerupNotification(text, isGood) {
+        const notification = document.getElementById('achievement-notification');
+        notification.textContent = text;
+        notification.classList.remove('show', 'speed');
+        if (!isGood) {
+            notification.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+            notification.style.color = 'white';
+        } else {
+            notification.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffed4a 100%)';
+            notification.style.color = '#333';
+        }
+        void notification.offsetWidth;
+        notification.classList.add('show');
+    }
+
+    checkFoodAchievements() {
+        // 首次吃到食物
+        if (!this.achievements.firstFood.unlocked) {
+            this.achievements.firstFood.unlocked = true;
+            this.playSound('achievement');
+            this.showAchievementNotification(this.achievements.firstFood);
+        }
+
+        // 连击10个
+        if (!this.achievements.combo10.unlocked && this.combo >= 10) {
+            this.achievements.combo10.unlocked = true;
+            this.playSound('achievement');
+            this.showAchievementNotification(this.achievements.combo10);
+        }
+
+        // 分数成就
+        if (!this.achievements.score100.unlocked && this.score >= 100) {
+            this.achievements.score100.unlocked = true;
+            this.playSound('achievement');
+            this.showAchievementNotification(this.achievements.score100);
+        }
+        if (!this.achievements.score500.unlocked && this.score >= 500) {
+            this.achievements.score500.unlocked = true;
+            this.playSound('achievement');
+            this.showAchievementNotification(this.achievements.score500);
+        }
+        if (!this.achievements.score1000.unlocked && this.score >= 1000) {
+            this.achievements.score1000.unlocked = true;
+            this.playSound('achievement');
+            this.showAchievementNotification(this.achievements.score1000);
+        }
+
+        this.saveAchievements();
+    }
+
+    checkPowerupAchievements() {
+        // 可以添加道具相关成就
+    }
+
+    checkGameOverAchievements() {
+        // 速度10级
+        if (!this.achievements.speed10.unlocked && this.speed >= 10) {
+            this.achievements.speed10.unlocked = true;
+            this.playSound('achievement');
+            this.showAchievementNotification(this.achievements.speed10);
+        }
+
+        // 游戏局数
+        if (!this.achievements.games10.unlocked && this.stats.gamesPlayed >= 10) {
+            this.achievements.games10.unlocked = true;
+            this.playSound('achievement');
+            this.showAchievementNotification(this.achievements.games10);
+        }
+        if (!this.achievements.games50.unlocked && this.stats.gamesPlayed >= 50) {
+            this.achievements.games50.unlocked = true;
+            this.playSound('achievement');
+            this.showAchievementNotification(this.achievements.games50);
+        }
+        if (!this.achievements.games100.unlocked && this.stats.gamesPlayed >= 100) {
+            this.achievements.games100.unlocked = true;
+            this.playSound('achievement');
+            this.showAchievementNotification(this.achievements.games100);
+        }
+
+        this.saveAchievements();
+    }
+
+    loadStats() {
+        const saved = localStorage.getItem('snake-stats');
+        return saved ? JSON.parse(saved) : {gamesPlayed: 0, score100: false, score500: false, score1000: false, speed10: false};
+    }
+
+    saveStats() {
+        localStorage.setItem('snake-stats', JSON.stringify(this.stats));
+    }
+
+    showAchievements() {
+        const panel = document.getElementById('achievements-panel');
+        const list = document.getElementById('achievements-list');
+
+        list.innerHTML = '';
+        Object.values(this.achievements).forEach(achievement => {
+            const card = document.createElement('div');
+            card.className = `achievement-card ${achievement.unlocked ? 'unlocked' : 'locked'}`;
+            card.innerHTML = `
+                <div class="achievement-icon">${achievement.icon}</div>
+                <div class="achievement-name">${achievement.name}</div>
+                <div class="achievement-desc">${achievement.desc}</div>
+                <div class="achievement-status ${achievement.unlocked ? 'unlocked' : 'locked'}">
+                    ${achievement.unlocked ? '✓ 已解锁' : '🔒 未解锁'}
+                </div>
+            `;
+            list.appendChild(card);
+        });
+
+        panel.classList.add('show');
+    }
+
+    // 皮肤系统
+    loadSkinSettings() {
+        const saved = localStorage.getItem('snake-skins');
+        return saved ? JSON.parse(saved) : {
+            snakeColor: 'green',
+            foodStyle: 'circle',
+            bgStyle: 'grid'
+        };
+    }
+
+    saveSkins() {
+        const snakeColor = document.querySelector('input[name="snake-color"]:checked').value;
+        const foodStyle = document.querySelector('input[name="food-style"]:checked').value;
+        const bgStyle = document.querySelector('input[name="bg-style"]:checked').value;
+
+        this.skinSettings = {snakeColor, foodStyle, bgStyle};
+        localStorage.setItem('snake-skins', JSON.stringify(this.skinSettings));
+
+        document.getElementById('skins-panel').classList.remove('show');
+        this.draw();
+    }
+
+    showSkins() {
+        // 设置当前选中
+        document.querySelector(`input[name="snake-color"][value="${this.skinSettings.snakeColor}"]`).checked = true;
+        document.querySelector(`input[name="food-style"][value="${this.skinSettings.foodStyle}"]`).checked = true;
+        document.querySelector(`input[name="bg-style"][value="${this.skinSettings.bgStyle}"]`).checked = true;
+
+        document.getElementById('skins-panel').classList.add('show');
+    }
+
+    // 音效系统
+    loadSoundSettings() {
+        const saved = localStorage.getItem('snake-sounds');
+        return saved ? JSON.parse(saved) : {
+            enabled: true,
+            bgmEnabled: false,
+            eatSound: true,
+            powerupSound: true,
+            gameoverSound: true
+        };
+    }
+
+    saveSoundSettings() {
+        this.soundSettings = {
+            enabled: document.getElementById('sound-enabled').checked,
+            bgmEnabled: document.getElementById('bgm-enabled').checked,
+            eatSound: document.getElementById('eat-sound').checked,
+            powerupSound: document.getElementById('powerup-sound').checked,
+            gameoverSound: document.getElementById('gameover-sound').checked
+        };
+        localStorage.setItem('snake-sounds', JSON.stringify(this.soundSettings));
+
+        document.getElementById('sound-panel').classList.remove('show');
+    }
+
+    showSoundSettings() {
+        document.getElementById('sound-enabled').checked = this.soundSettings.enabled;
+        document.getElementById('bgm-enabled').checked = this.soundSettings.bgmEnabled;
+        document.getElementById('eat-sound').checked = this.soundSettings.eatSound;
+        document.getElementById('powerup-sound').checked = this.soundSettings.powerupSound;
+        document.getElementById('gameover-sound').checked = this.soundSettings.gameoverSound;
+
+        document.getElementById('sound-panel').classList.add('show');
     }
 }
-
-// 初始化游戏
-document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('game-canvas');
-    const ctx = canvas.getContext('2d');
-    const game = new SnakeGame(canvas, ctx);
-
-    // 初始显示记录
-    game.displayRecords();
-
-    // 初始化玩家名字下拉列表
-    game.updatePlayerNamesDropdown();
-});

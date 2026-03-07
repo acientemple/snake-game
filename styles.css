@@ -169,6 +169,7 @@ body {
     justify-content: center;
     gap: 12px;
     margin-bottom: 15px;
+    flex-wrap: wrap;
 }
 
 .game-controls button {
@@ -219,6 +220,19 @@ body {
     font-size: 16px;
 }
 
+.setting-item select {
+    padding: 6px 10px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.setting-item select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
 .setting-item input[type="number"] {
     padding: 6px 10px;
     border: 2px solid #ddd;
@@ -234,6 +248,12 @@ body {
 
 .setting-item input[type="range"] {
     width: 100px;
+    cursor: pointer;
+}
+
+.setting-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
     cursor: pointer;
 }
 
@@ -262,6 +282,7 @@ body {
     justify-content: center;
     gap: 30px;
     margin-bottom: 15px;
+    flex-wrap: wrap;
 }
 
 .stat-item {
@@ -317,6 +338,517 @@ body {
     color: #2c3e50;
 }
 
+/* 模态框样式 */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal.show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    font-size: 24px;
+}
+
+.modal-content .close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.modal-content .close:hover {
+    color: #333;
+}
+
+/* 成就系统样式 */
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.achievement-card {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.achievement-card.unlocked {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+.achievement-card.locked {
+    opacity: 0.6;
+}
+
+.achievement-card:hover {
+    transform: scale(1.02);
+}
+
+.achievement-icon {
+    font-size: 36px;
+    margin-bottom: 10px;
+}
+
+.achievement-name {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 5px;
+    font-size: 16px;
+}
+
+.achievement-desc {
+    font-size: 13px;
+    color: #666;
+}
+
+.achievement-status {
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.achievement-status.unlocked {
+    color: #27ae60;
+}
+
+.achievement-status.locked {
+    color: #999;
+}
+
+/* 皮肤系统样式 */
+.skin-section {
+    margin-bottom: 25px;
+}
+
+.skin-section h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.skin-options {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.skin-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 8px;
+    transition: background-color 0.3s;
+}
+
+.skin-option:hover {
+    background-color: #f0f0f0;
+}
+
+.skin-option input {
+    display: none;
+}
+
+.skin-option input:checked + .skin-preview {
+    border: 3px solid #667eea;
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+}
+
+.skin-preview {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid #ddd;
+}
+
+.green-preview {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+}
+
+.blue-preview {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+.red-preview {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.rainbow-preview {
+    background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+}
+
+.food-circle-preview {
+    background: radial-gradient(circle, #e74c3c 50%, #c0392b 100%);
+    border-radius: 50%;
+}
+
+.food-star-preview {
+    color: #f1c40f;
+    font-size: 30px;
+    text-shadow: 0 0 10px #f1c40f;
+}
+
+.food-heart-preview {
+    color: #e91e63;
+    font-size: 30px;
+    text-shadow: 0 0 10px #e91e63;
+}
+
+.bg-grid-preview {
+    background: linear-gradient(#bdc3c7 1px, transparent 1px),
+                linear-gradient(90deg, #bdc3c7 1px, transparent 1px),
+                #ecf0f1;
+    background-size: 10px 10px;
+}
+
+.bg-solid-preview {
+    background-color: #ecf0f1;
+}
+
+.bg-gradient-preview {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+}
+
+/* 音效设置样式 */
+.sound-section {
+    margin-bottom: 20px;
+}
+
+.sound-option {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.sound-option:hover {
+    background-color: #f0f0f0;
+}
+
+.sound-option input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.sound-option span {
+    font-size: 16px;
+    color: #2c3e50;
+}
+
+.save-btn {
+    width: 100%;
+    padding: 15px;
+    margin-top: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* 道具显示 */
+.powerup-indicator {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.powerup-badge {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+}
+
+.powerup-badge.speed-up {
+    background-color: #f39c12;
+}
+
+.powerup-badge.speed-down {
+    background-color: #9b59b6;
+}
+
+.powerup-badge.invincible {
+    background-color: #e74c3c;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* 游戏结束弹窗样式 */
+.game-over-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.game-over-modal.show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.game-over-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    color: white;
+    min-width: 300px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.game-over-content h2 {
+    font-size: 36px;
+    margin-bottom: 20px;
+}
+
+.game-over-content p {
+    font-size: 18px;
+    margin: 10px 0;
+}
+
+.game-over-content .score-display {
+    font-size: 48px;
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+.new-record {
+    color: #ffd700;
+    font-size: 24px;
+    animation: bounce 0.5s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* 成就/速度提示动画 */
+.achievement-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%);
+    color: #333;
+    padding: 15px 30px;
+    border-radius: 30px;
+    font-size: 18px;
+    font-weight: bold;
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
+    z-index: 2000;
+    animation: flashAchievement 2s ease-in-out forwards;
+    display: none;
+}
+
+.achievement-notification.speed {
+    background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%);
+    color: white;
+    box-shadow: 0 4px 20px rgba(243, 156, 18, 0.5);
+}
+
+.achievement-notification.show {
+    display: block;
+}
+
+@keyframes flashAchievement {
+    0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+}
+
+/* 登录/注册面板 */
+.auth-content {
+    max-width: 400px;
+    text-align: center;
+}
+
+.auth-content h2 {
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.auth-content input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.auth-content input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.auth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.auth-content p {
+    margin-top: 15px;
+    color: #666;
+}
+
+.auth-content a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.auth-content hr {
+    margin: 20px 0;
+    border: none;
+    border-top: 1px solid #ddd;
+}
+
+.auth-content .hint {
+    font-size: 12px;
+    color: #999;
+    margin: 5px 0;
+}
+
+.auth-content .error {
+    color: #e74c3c;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+#game-container.show {
+    display: block;
+}
+
+/* 用户信息显示 */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.user-info span {
+    color: #667eea;
+    font-weight: bold;
+}
+
+.logout-btn {
+    padding: 5px 10px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* 管理员面板 */
+.admin-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.admin-section h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.admin-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.admin-section li {
+    padding: 8px;
+    margin: 5px 0;
+    background: white;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
 /* 响应式调整 */
 @media (max-width: 600px) {
     .game-settings {
@@ -337,5 +869,18 @@ body {
 
     .stat-item {
         width: 80%;
+    }
+
+    .achievements-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .skin-options {
+        gap: 10px;
+    }
+
+    .skin-preview {
+        width: 40px;
+        height: 40px;
     }
 }
