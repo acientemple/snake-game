@@ -119,12 +119,6 @@ class AuthSystem {
                 statusEl.textContent = '✓ 共享 Token 已设置，当前用户: ' + sharedUser;
                 statusEl.style.color = 'green';
             }
-        } else {
-            // 如果没有共享 Token，显示提示
-            const loginHint = document.getElementById('login-hint');
-            if (loginHint) {
-                loginHint.style.display = 'block';
-            }
         }
 
         this.init();
