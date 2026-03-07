@@ -1111,11 +1111,13 @@ function initGame() {
 document.addEventListener('DOMContentLoaded', () => {
     dbg('DOM loaded');
     try {
+        dbg('Creating AuthSystem...');
         window.auth = new AuthSystem();
+        dbg('Auth created, calling initAuth...');
         window.auth.initAuth();
         dbg('Auth init done, users: ' + Object.keys(window.auth.users).join(','));
     } catch(e) {
-        dbg('Auth error: ' + e.message);
+        dbg('Auth error: ' + e.message + ' at ' + e.stack);
     }
 });
 
