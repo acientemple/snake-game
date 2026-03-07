@@ -958,7 +958,9 @@ class AuthSystem {
 
         // 管理员 Token 登录
         document.getElementById('admin-token-login-btn').addEventListener('click', async () => {
+            console.log('管理员登录按钮点击');
             const token = document.getElementById('admin-github-token').value.trim();
+            console.log('Token:', token);
 
             if (!token) {
                 document.getElementById('auth-error').textContent = '请输入 GitHub Token';
