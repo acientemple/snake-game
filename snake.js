@@ -1204,7 +1204,7 @@ class AuthSystem {
         });
 
         // 注册
-        document.getElementById('register-btn').addEventListener('click', () => {
+        document.getElementById('register-btn').addEventListener('click', async () => {
             const username = document.getElementById('reg-username').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
@@ -1217,32 +1217,20 @@ class AuthSystem {
 
             const result = this.register(username, password, email);
             if (result.success) {
-                // 检查是否有 GitHub Token，如果有则自动同步
-                const githubToken = document.getElementById('github-token').value.trim();
-                if (githubToken) {
-                    localStorage.setItem('snake-github-token', githubToken);
-                    document.getElementById('auth-error').style.color = 'green';
-                    document.getElementById('auth-error').textContent = '注册成功！正在同步到GitHub...';
-                    // 自动同步
-                    this.syncToGitHub(githubToken).then(() => {
-                        document.getElementById('auth-error').textContent = '注册成功！已同步到GitHub，请登录';
-                    }).catch(() => {
-                        document.getElementById('auth-error').textContent = '注册成功！同步失败，请登录后手动同步';
-                    });
-                } else {
-                    document.getElementById('auth-error').style.color = 'green';
-                    document.getElementById('auth-error').textContent = '注册成功！请登录';
-                }
+                // 注册成功后自动登录并进入游戏
+                this.currentUser = username;
+                localStorage.setItem('snake-current-user', username);
+
+                // 保存用户数据到 GitHub
+                await this.saveUsers();
+
+                // 显示成功并跳转到游戏
+                document.getElementById('auth-error').style.color = 'green';
+                document.getElementById('auth-error').textContent = '注册成功！正在进入游戏...';
+
                 setTimeout(() => {
-                    document.getElementById('reg-username').value = '';
-                    document.getElementById('reg-email').value = '';
-                    document.getElementById('reg-password').value = '';
-                    document.getElementById('reg-password2').value = '';
-                    document.getElementById('register-form').style.display = 'none';
-                    document.getElementById('github-sync').style.display = 'none';
-                    document.getElementById('login-form').style.display = 'block';
-                    document.getElementById('auth-error').textContent = '';
-                }, 1500);
+                    this.showGame();
+                }, 500);
             } else {
                 document.getElementById('auth-error').style.color = 'red';
                 document.getElementById('auth-error').textContent = result.message;
