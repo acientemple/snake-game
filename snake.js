@@ -1282,32 +1282,47 @@ class AuthSystem {
             playerNameInput.value = this.currentUser;
         }
 
+        // 移除已存在的用户信息（防止重复添加）
+        const existingUserInfo = document.querySelector('.user-info');
+        if (existingUserInfo) {
+            existingUserInfo.remove();
+        }
+
         // 显示用户信息
         const header = document.querySelector('.game-header');
-        const userInfo = document.createElement('div');
-        userInfo.className = 'user-info';
-        const adminBadge = this.isAdmin ? ' <span style="color:#e74c3c;">[管理员]</span>' : '';
-        userInfo.innerHTML = `
-            <span>欢迎, ${this.currentUser}${adminBadge}</span>
-            <button class="change-pass-btn" id="change-pass-btn">修改密码</button>
-            <button class="logout-btn" id="logout-btn">退出</button>
-        `;
-        header.insertBefore(userInfo, header.firstChild);
+        if (header) {
+            const userInfo = document.createElement('div');
+            userInfo.className = 'user-info';
+            const adminBadge = this.isAdmin ? ' <span style="color:#e74c3c;">[管理员]</span>' : '';
+            userInfo.innerHTML = `
+                <span>欢迎, ${this.currentUser}${adminBadge}</span>
+                <button class="change-pass-btn" id="change-pass-btn">修改密码</button>
+                <button class="logout-btn" id="logout-btn">退出</button>
+            `;
+            header.insertBefore(userInfo, header.firstChild);
 
-        // 修改密码按钮
-        document.getElementById('change-pass-btn').addEventListener('click', () => {
-            this.showChangePasswordDialog();
-        });
+            // 修改密码按钮
+            const changePassBtn = document.getElementById('change-pass-btn');
+            if (changePassBtn) {
+                changePassBtn.addEventListener('click', () => {
+                    this.showChangePasswordDialog();
+                });
+            }
+
+            // 退出按钮
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    this.logout();
+                    location.reload();
+                });
+            }
+        }
 
         // 开发者模式下显示管理面板按钮
         if (this.isAdmin) {
             this.showAdminPanel();
         }
-
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            this.logout();
-            location.reload();
-        });
 
         // 登录后自动从 GitHub 加载最新数据
         this.loadFromGitHubOnLogin();
