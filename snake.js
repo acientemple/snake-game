@@ -1017,54 +1017,45 @@ class AuthSystem {
             }
         }
 
-        // 开发者登录 - 使用 GitHub API 验证
-        document.getElementById('admin-login-btn').addEventListener('click', async () => {
+        // 管理员登录 - 使用本地账号验证
+        document.getElementById('admin-login-btn').addEventListener('click', () => {
             const username = document.getElementById('admin-username').value.trim();
             const password = document.getElementById('admin-password').value;
 
             if (!username || !password) {
-                document.getElementById('auth-error').textContent = '请输入 GitHub 用户名和密码';
+                document.getElementById('auth-error').textContent = '请输入用户名和密码';
                 return;
             }
 
-            document.getElementById('auth-error').textContent = '正在验证...';
+            // 验证管理员账号
+            const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
+            const user = users[username];
 
-            try {
-                // 使用 GitHub API 验证用户
-                const response = await fetch(`https://api.github.com/users/${username}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${password}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-
-                if (response.ok) {
-                    const userData = await response.json();
-                    // 开发者登录成功，标记为 admin
-                    this.currentUser = username;
-                    this.isAdmin = true;
-                    localStorage.setItem('snake-current-user', username);
-                    localStorage.setItem('snake-admin', 'true');
-                    document.getElementById('auth-error').textContent = '';
-                    this.showGame();
-                } else if (response.status === 401) {
-                    document.getElementById('auth-error').innerHTML = 'GitHub 已停止密码认证，请使用 <a href="#" onclick="document.getElementById(\'admin-form\').style.display=\'none\';document.getElementById(\'login-form\').style.display=\'block\';">普通用户登录</a> 或使用 Token 登录';
-                } else if (response.status === 404) {
-                    document.getElementById('auth-error').textContent = 'GitHub 用户不存在';
-                } else {
-                    document.getElementById('auth-error').textContent = '验证失败: ' + response.statusText;
-                }
-            } catch (error) {
-                document.getElementById('auth-error').textContent = '验证失败: ' + error.message;
+            if (!user) {
+                document.getElementById('auth-error').textContent = '管理员账号不存在';
+                return;
             }
-        });
 
-        // 管理员 Token 登录
-        document.getElementById('admin-token-login-btn').addEventListener('click', async () => {
-            console.log('管理员登录按钮点击');
-            const token = document.getElementById('admin-github-token').value.trim();
-            console.log('Token:', token);
+            if (user.password !== simpleHash(password)) {
+                document.getElementById('auth-error').textContent = '密码错误';
+                return;
+            }
+
+            // 检查是否是管理员
+            const isAdmin = user.isAdmin || (user.data && user.data.isAdmin);
+            if (!isAdmin) {
+                document.getElementById('auth-error').textContent = '您不是管理员';
+                return;
+            }
+
+            // 登录成功
+            this.currentUser = username;
+            this.isAdmin = true;
+            localStorage.setItem('snake-current-user', username);
+            localStorage.setItem('snake-admin', 'true');
+            document.getElementById('auth-error').textContent = '';
+            this.showGame();
+        });
 
             if (!token) {
                 document.getElementById('auth-error').textContent = '请输入 GitHub Token';
