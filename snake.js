@@ -1186,6 +1186,11 @@ class AuthSystem {
             console.log('登录结果:', result);
             if (result.success) {
                 document.getElementById('auth-error').textContent = '';
+
+                // 登录成功后先获取Token并同步数据
+                await this.fetchSharedTokenConfig();
+
+                // 显示游戏界面
                 this.showGame();
             } else {
                 document.getElementById('auth-error').textContent = result.message;
