@@ -60,6 +60,15 @@ class AuthSystem {
                         if (decoded.startsWith('ghp_')) {
                             token = decoded;
                             console.log('Token Base64 解码成功');
+                        } else if (decoded.includes('"sharedToken"')) {
+                            // 如果解码后是 JSON 格式，解析它
+                            try {
+                                const innerConfig = JSON.parse(decoded);
+                                if (innerConfig.sharedToken && innerConfig.sharedToken.startsWith('ghp_')) {
+                                    token = innerConfig.sharedToken;
+                                    console.log('Token 双重解码成功');
+                                }
+                            } catch(e) {}
                         }
                     } catch(e) {
                         console.log('Token 不是 Base64 编码，使用原始值');
