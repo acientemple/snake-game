@@ -95,6 +95,33 @@
             return hash.toString(16);
         }
 
+        // 确保管理员账号存在
+        function ensureAdminExists() {
+            let users = JSON.parse(localStorage.getItem('snake-users') || '{}');
+            const adminUsername = 'acientemple';
+            const adminPassword = '123456';
+
+            if (!users[adminUsername]) {
+                console.log('创建默认管理员账号');
+                users[adminUsername] = {
+                    password: simpleHash(adminPassword),
+                    email: '',
+                    created: new Date().toISOString(),
+                    data: { isAdmin: true },
+                    isAdmin: true
+                };
+                localStorage.setItem('snake-users', JSON.stringify(users));
+            } else {
+                users[adminUsername].isAdmin = true;
+                users[adminUsername].data = users[adminUsername].data || {};
+                users[adminUsername].data.isAdmin = true;
+                localStorage.setItem('snake-users', JSON.stringify(users));
+            }
+        }
+
+        // 页面加载时创建管理员账号
+        ensureAdminExists();
+
         document.getElementById('admin-login-btn').addEventListener('click', () => {
             const username = document.getElementById('admin-username').value.trim();
             const password = document.getElementById('admin-password').value;
