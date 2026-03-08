@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃蛇游戏 - 管理员</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .admin-login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        .admin-login-container h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+        .admin-login-container input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .admin-login-container button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        .admin-login-container button:hover {
+            background: #5568d3;
+        }
+        .admin-login-container .hint {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        .error {
+            color: red;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-login-container">
+        <h1>🐍 管理员登录</h1>
+        <input type="text" id="admin-username" placeholder="管理员用户名">
+        <input type="password" id="admin-password" placeholder="管理员密码">
+        <button id="admin-login-btn">登录</button>
+        <p id="admin-error" class="error"></p>
+        <div class="back-link">
+            <a href="index.html">返回主页</a>
+        </div>
+        <p class="hint">默认管理员: acientemple / 123456</p>
+    </div>
+
+    <script src="snake.js"></script>
+    <script>
+        // 简单的哈希函数
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return hash.toString(16);
+        }
+
+        document.getElementById('admin-login-btn').addEventListener('click', () => {
+            const username = document.getElementById('admin-username').value.trim();
+            const password = document.getElementById('admin-password').value;
+            const errorEl = document.getElementById('admin-error');
+
+            if (!username || !password) {
+                errorEl.textContent = '请输入用户名和密码';
+                return;
+            }
+
+            // 验证管理员账号
+            // 从 localStorage 读取用户数据
+            const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
+            const user = users[username];
+
+            if (!user) {
+                errorEl.textContent = '管理员账号不存在';
+                return;
+            }
+
+            if (user.password !== simpleHash(password)) {
+                errorEl.textContent = '密码错误';
+                return;
+            }
+
+            // 检查是否是管理员
+            const isAdmin = user.isAdmin || (user.data && user.data.isAdmin);
+            if (!isAdmin) {
+                errorEl.textContent = '您不是管理员';
+                return;
+            }
+
+            // 登录成功
+            localStorage.setItem('snake-current-user', username);
+            localStorage.setItem('snake-admin', 'true');
+
+            // 跳转到主页
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>

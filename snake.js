@@ -36,10 +36,83 @@ class AuthSystem {
         // 优先使用用户自己的 Token
         let token = localStorage.getItem('snake-github-token');
         if (!token) {
-            // 使用共享 Token
+            // 使用共享 Token（从 localStorage）
             token = localStorage.getItem('snake-shared-github-token');
         }
         return token;
+    }
+
+    // 从 GitHub Gist 获取共享 Token 配置
+    async fetchSharedTokenConfig() {
+        // 如果已经有有效的本地 Token，不需要从 GitHub 获取
+        if (this.getGitHubToken()) return;
+
+        console.log('尝试从 GitHub 获取共享 Token 配置...');
+
+        // 尝试使用已知的 gist ID 或搜索
+        const gistId = localStorage.getItem('snake-users-gist-id');
+        const searchToken = localStorage.getItem('snake-github-token') ||
+                           localStorage.getItem('snake-shared-github-token');
+
+        // 如果没有任何 token，无法访问 GitHub
+        if (!searchToken) {
+            console.log('没有可用 Token，无法从 GitHub 获取配置');
+            return;
+        }
+
+        try {
+            let targetGistId = gistId;
+
+            // 如果没有 gistId，尝试查找
+            if (!targetGistId) {
+                const listResponse = await fetch('https://api.github.com/gists', {
+                    headers: {
+                        'Authorization': `token ${searchToken}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (listResponse.ok) {
+                    const gists = await listResponse.json();
+                    const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
+                    if (existingGist) {
+                        targetGistId = existingGist.id;
+                        localStorage.setItem('snake-users-gist-id', targetGistId);
+                    }
+                }
+            }
+
+            if (!targetGistId) {
+                console.log('未找到 Gist');
+                return;
+            }
+
+            // 获取 Gist 内容
+            const gistResponse = await fetch(`https://api.github.com/gists/${targetGistId}`, {
+                headers: {
+                    'Authorization': `token ${searchToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            if (gistResponse.ok) {
+                const gist = await gistResponse.json();
+                const configContent = gist.files['snake-config.json']?.content;
+
+                if (configContent) {
+                    const config = JSON.parse(configContent);
+                    if (config.sharedToken) {
+                        console.log('从 GitHub 获取到共享 Token');
+                        localStorage.setItem('snake-shared-github-token', config.sharedToken);
+                        if (config.sharedUser) {
+                            localStorage.setItem('snake-shared-github-user', config.sharedUser);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('从 GitHub 获取共享 Token 失败:', e.message);
+        }
     }
 
     // 初始化方法，在 DOM 加载完成后调用
@@ -66,6 +139,9 @@ class AuthSystem {
             this.users[adminUsername].data = this.users[adminUsername].data || {};
             this.users[adminUsername].data.isAdmin = true;
         }
+
+        // 先尝试从 GitHub 获取共享 Token 配置
+        await this.fetchSharedTokenConfig();
 
         // 如果有 GitHub Token（用户自己的或共享的），强制从 GitHub 加载最新用户数据
         const githubToken = this.getGitHubToken();
