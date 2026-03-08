@@ -22,6 +22,11 @@
                 <p>还没有账号？<a href="#" id="show-register">注册</a></p>
                 <p><a href="#" id="show-admin">管理员入口</a></p>
                 <p><a href="#" id="show-forgot" style="font-size:12px;color:#666;">忘记密码？</a></p>
+                <!-- 首次登录时需要输入Token（仅首次） -->
+                <div id="login-token-section" style="margin-top:10px;padding-top:10px;border-top:1px solid #eee;">
+                    <input type="text" id="github-token" placeholder="GitHub Token（首次登录必需）" style="width:100%;padding:8px;margin-bottom:5px;">
+                    <p class="hint" style="font-size:11px;color:#888;">如无法连接云端，请联系管理员获取Token</p>
+                </div>
                 <!-- 隐藏的按钮元素，用于JS事件绑定 -->
                 <button id="confirm-change-pass" style="display:none;"></button>
             </div>

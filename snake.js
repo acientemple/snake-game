@@ -1187,8 +1187,22 @@ class AuthSystem {
             if (result.success) {
                 document.getElementById('auth-error').textContent = '';
 
-                // 登录成功后先获取Token并同步数据
+                // 登录成功后先获取Token
                 await this.fetchSharedTokenConfig();
+
+                // 检查是否有Token
+                const token = this.getGitHubToken();
+                console.log('登录后Token:', token ? '有' : '无');
+
+                // 如果有Token，立即从GitHub加载数据
+                if (token) {
+                    console.log('开始从GitHub加载数据...');
+                    await this.loadFromGitHubOnLogin();
+                    // 刷新记录显示
+                    if (window.game) {
+                        window.game.displayRecords();
+                    }
+                }
 
                 // 显示游戏界面
                 this.showGame();
@@ -1246,6 +1260,15 @@ class AuthSystem {
 
                 // 保存用户数据到 GitHub
                 await this.saveUsers();
+
+                // 重新从 GitHub 同步最新数据
+                const token = this.getGitHubToken();
+                if (token) {
+                    await this.syncRecordsFromGitHub();
+                    if (window.game) {
+                        window.game.displayRecords();
+                    }
+                }
 
                 // 显示成功并跳转到游戏
                 document.getElementById('auth-error').style.color = 'green';
