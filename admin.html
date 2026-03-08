@@ -63,6 +63,11 @@
             text-align: center;
             margin-top: 10px;
         }
+        .success {
+            color: green;
+            text-align: center;
+            margin-top: 10px;
+        }
         .back-link {
             text-align: center;
             margin-top: 20px;
@@ -127,6 +132,12 @@
         .btn:hover {
             background: #5568d3;
         }
+        .btn-success {
+            background: #2ecc71;
+        }
+        .btn-success:hover {
+            background: #27ae60;
+        }
         .user-list, .record-list {
             max-height: 300px;
             overflow-y: auto;
@@ -142,6 +153,15 @@
             justify-content: space-between;
             align-items: center;
         }
+        .status-bar {
+            background: #e8f5e9;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -150,6 +170,8 @@
         <h1>🐍 管理员登录</h1>
         <input type="text" id="admin-username" placeholder="管理员用户名">
         <input type="password" id="admin-password" placeholder="管理员密码">
+        <input type="text" id="github-token" placeholder="GitHub Token (用于同步数据)">
+        <p class="hint" style="font-size:12px;">Token用于从GitHub同步数据，需要gist权限</p>
         <button id="admin-login-btn">登录</button>
         <p id="login-error" class="error"></p>
         <div class="back-link">
@@ -165,6 +187,12 @@
             <button class="logout-btn" id="logout-btn">退出登录</button>
         </div>
 
+        <!-- GitHub 状态 -->
+        <div class="status-bar" id="github-status">
+            <span id="token-status">等待加载...</span>
+            <button class="btn" id="sync-btn">从 GitHub 同步</button>
+        </div>
+
         <!-- 用户管理 -->
         <div class="admin-section">
             <h2>👥 用户列表</h2>
@@ -177,6 +205,12 @@
             <h2>📊 游戏记录</h2>
             <button class="btn" id="refresh-records-btn">刷新记录</button>
             <div class="record-list" id="record-list"></div>
+        </div>
+
+        <!-- 数据管理 -->
+        <div class="admin-section">
+            <h2>💾 数据管理</h2>
+            <button class="btn btn-success" id="export-btn">导出数据</button>
         </div>
     </div>
 
@@ -217,6 +251,56 @@
             }
         }
 
+        // 从 GitHub 加载配置和数据
+        async function loadFromGitHub(token) {
+            try {
+                // 先查找 Gist
+                let gistId = localStorage.getItem('snake-users-gist-id');
+
+                if (!gistId) {
+                    const listResponse = await fetch('https://api.github.com/gists', {
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
+                    if (listResponse.ok) {
+                        const gists = await listResponse.json();
+                        const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
+                        if (existingGist) {
+                            gistId = existingGist.id;
+                            localStorage.setItem('snake-users-gist-id', gistId);
+                        }
+                    }
+                }
+
+                if (!gistId) {
+                    return { config: null, users: null, records: null };
+                }
+
+                // 获取 Gist 内容
+                const gistResponse = await fetch(`https://api.github.com/gists/${gistId}`, {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (gistResponse.ok) {
+                    const gist = await gistResponse.json();
+                    return {
+                        config: gist.files['snake-config.json'] ? JSON.parse(gist.files['snake-config.json'].content) : null,
+                        users: gist.files['snake-users.json'] ? JSON.parse(gist.files['snake-users.json'].content) : {},
+                        records: gist.files['snake-records.json'] ? JSON.parse(gist.files['snake-records.json'].content) : []
+                    };
+                }
+            } catch (e) {
+                console.error('从GitHub加载失败:', e);
+            }
+            return { config: null, users: null, records: null };
+        }
+
         // 根据 URL 参数决定显示哪个页面
         const urlParams = new URLSearchParams(window.location.search);
         const page = urlParams.get('page');
@@ -250,9 +334,10 @@
             }
 
             // 登录按钮点击事件
-            document.getElementById('admin-login-btn').addEventListener('click', function() {
+            document.getElementById('admin-login-btn').addEventListener('click', async function() {
                 const username = document.getElementById('admin-username').value.trim();
                 const password = document.getElementById('admin-password').value;
+                const token = document.getElementById('github-token').value.trim();
                 const errorEl = document.getElementById('login-error');
 
                 if (!username || !password) {
@@ -279,6 +364,28 @@
                     return;
                 }
 
+                // 如果提供了 Token，保存并尝试从 GitHub 同步
+                if (token) {
+                    localStorage.setItem('snake-github-token', token);
+                    localStorage.setItem('snake-shared-github-token', token);
+
+                    // 验证 Token
+                    try {
+                        const response = await fetch('https://api.github.com/user', {
+                            headers: {
+                                'Authorization': `token ${token}`,
+                                'Accept': 'application/vnd.github.v3+json'
+                            }
+                        });
+                        if (response.ok) {
+                            const userData = await response.json();
+                            localStorage.setItem('snake-shared-github-user', userData.login);
+                        }
+                    } catch(e) {
+                        console.log('Token验证失败', e);
+                    }
+                }
+
                 localStorage.setItem('snake-current-user', username);
                 localStorage.setItem('snake-admin', 'true');
                 window.location.href = 'admin.html?page=manage';
@@ -286,12 +393,31 @@
         }
 
         // 初始化管理面板
-        function initAdminPanel() {
+        async function initAdminPanel() {
+            const tokenStatusEl = document.getElementById('token-status');
+
+            // 显示 Token 状态
+            const savedToken = localStorage.getItem('snake-github-token');
+            const savedUser = localStorage.getItem('snake-shared-github-user');
+            if (savedToken && savedUser) {
+                tokenStatusEl.textContent = `✓ 已连接 GitHub，用户: ${savedUser}`;
+                tokenStatusEl.className = 'success';
+            } else {
+                tokenStatusEl.textContent = '⚠ 请输入 GitHub Token 登录以同步数据';
+                tokenStatusEl.className = 'error';
+            }
+
             // 加载用户列表
             function loadUsers() {
                 const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
                 const userList = document.getElementById('user-list');
                 userList.innerHTML = '';
+
+                const userCount = Object.keys(users).length;
+                if (userCount === 0) {
+                    userList.innerHTML = '<p style="padding:10px;color:#666;">暂无用户数据</p>';
+                    return;
+                }
 
                 Object.keys(users).forEach(username => {
                     const user = users[username];
@@ -315,6 +441,11 @@
                 const recordList = document.getElementById('record-list');
                 recordList.innerHTML = '';
 
+                if (records.length === 0) {
+                    recordList.innerHTML = '<p style="padding:10px;color:#666;">暂无游戏记录</p>';
+                    return;
+                }
+
                 records.sort((a, b) => b.score - a.score);
 
                 records.slice(0, 50).forEach((record, index) => {
@@ -333,6 +464,51 @@
                 });
             }
 
+            // 从 GitHub 同步数据
+            document.getElementById('sync-btn').addEventListener('click', async function() {
+                const token = localStorage.getItem('snake-github-token');
+                if (!token) {
+                    alert('请先登录并输入 GitHub Token');
+                    return;
+                }
+
+                const btn = this;
+                btn.textContent = '同步中...';
+                btn.disabled = true;
+
+                const data = await loadFromGitHub(token);
+
+                if (data.users) {
+                    localStorage.setItem('snake-users', JSON.stringify(data.users));
+                    loadUsers();
+                }
+                if (data.records) {
+                    localStorage.setItem('snake-records', JSON.stringify(data.records));
+                    loadRecords();
+                }
+
+                btn.textContent = '从 GitHub 同步';
+                btn.disabled = false;
+                alert('同步完成！');
+            });
+
+            // 导出数据
+            document.getElementById('export-btn').addEventListener('click', function() {
+                const data = {
+                    users: localStorage.getItem('snake-users'),
+                    records: localStorage.getItem('snake-records'),
+                    topRecords: localStorage.getItem('snake-top-records'),
+                    exportTime: new Date().toISOString()
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'snake-game-backup.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+
             // 退出登录
             document.getElementById('logout-btn').addEventListener('click', function() {
                 localStorage.removeItem('snake-current-user');
@@ -343,6 +519,18 @@
             // 初始化按钮事件
             document.getElementById('refresh-users-btn').addEventListener('click', loadUsers);
             document.getElementById('refresh-records-btn').addEventListener('click', loadRecords);
+
+            // 自动从 GitHub 同步数据
+            const token = localStorage.getItem('snake-github-token');
+            if (token) {
+                const data = await loadFromGitHub(token);
+                if (data.users) {
+                    localStorage.setItem('snake-users', JSON.stringify(data.users));
+                }
+                if (data.records) {
+                    localStorage.setItem('snake-records', JSON.stringify(data.records));
+                }
+            }
 
             // 加载数据
             loadUsers();
