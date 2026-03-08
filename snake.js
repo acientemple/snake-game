@@ -52,19 +52,24 @@ class AuthSystem {
             if (response.ok) {
                 const config = await response.json();
                 if (config.sharedToken) {
-                    // Base64 解码
+                    let token = config.sharedToken;
+                    // 尝试 Base64 解码
                     try {
-                        const token = atob(config.sharedToken);
-                        localStorage.setItem('snake-shared-github-token', token);
-                        if (config.sharedUser) {
-                            localStorage.setItem('snake-shared-github-user', config.sharedUser);
+                        const decoded = atob(config.sharedToken);
+                        // 验证解码后是否像 Token（以 ghp_ 开头）
+                        if (decoded.startsWith('ghp_')) {
+                            token = decoded;
+                            console.log('Token Base64 解码成功');
                         }
-                        console.log('从公开链接获取 Token 成功');
-                        return true;
                     } catch(e) {
-                        console.log('Token 解码失败');
+                        console.log('Token 不是 Base64 编码，使用原始值');
                     }
-                }
+                    localStorage.setItem('snake-shared-github-token', token);
+                    if (config.sharedUser) {
+                        localStorage.setItem('snake-shared-github-user', config.sharedUser);
+                    }
+                    console.log('从公开链接获取 Token 成功');
+                    return true;
             }
         } catch(e) {
             console.log('从公开链接获取 Token 失败:', e.message);
