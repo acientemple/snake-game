@@ -2816,11 +2816,20 @@ class SnakeGame {
         const auth = window.auth;
         const currentUser = auth ? auth.currentUser : null;
         if (auth && currentUser) {
-            console.log('=== 开始同步到GitHub ===');
+            const token = auth.getGitHubToken();
+            console.log('=== 开始同步到GitHub ===, Token:', token ? '有' : '无');
+            if (!token) {
+                console.log('没有Token，无法同步');
+                this.displayRecords();
+                return;
+            }
             await auth.saveUsers();
             console.log('=== 保存到GitHub完成，开始取回数据 ===');
             await auth.syncRecordsFromGitHub();
             console.log('=== 从GitHub取回数据完成 ===');
+            // 重新从本地加载记录确保显示最新数据
+            const localRecords = localStorage.getItem('snake-records');
+            console.log('本地记录数:', localRecords ? JSON.parse(localRecords).length : 0);
             this.displayRecords();
             console.log('=== 显示已刷新 ===');
         } else {
