@@ -44,9 +44,6 @@ class AuthSystem {
 
     // 从 GitHub Gist 获取共享 Token 配置
     async fetchSharedTokenConfig() {
-        // 如果已经有有效的本地 Token，不需要从 GitHub 获取
-        if (this.getGitHubToken()) return;
-
         console.log('尝试从 GitHub 获取共享 Token 配置...');
 
         // 尝试使用已知的 gist ID 或搜索
