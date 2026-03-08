@@ -1126,57 +1126,6 @@ class AuthSystem {
             this.showGame();
         });
 
-            if (!token) {
-                document.getElementById('auth-error').textContent = '请输入 GitHub Token';
-                return;
-            }
-
-            document.getElementById('auth-error').textContent = '正在验证...';
-
-            try {
-                // 使用 GitHub API 验证 Token
-                const response = await fetch('https://api.github.com/user', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-
-                if (response.ok) {
-                    const userData = await response.json();
-                    // 管理员登录成功
-                    this.currentUser = userData.login;
-                    this.isAdmin = true;
-                    localStorage.setItem('snake-current-user', userData.login);
-                    localStorage.setItem('snake-admin', 'true');
-                    localStorage.setItem('snake-github-token', token);
-
-                    // 同时设置为共享 Token
-                    localStorage.setItem('snake-shared-github-token', token);
-                    localStorage.setItem('snake-shared-github-user', userData.login);
-
-                    // 保存到 GitHub
-                    await this.saveSharedTokenToGitHub(token, userData.login);
-
-                    // 异步从 GitHub 加载最新用户数据
-                    await this.refreshUsers();
-                    console.log('用户数据已刷新');
-
-                    document.getElementById('auth-error').textContent = '';
-                    this.showGame();
-                } else if (response.status === 401) {
-                    document.getElementById('auth-error').textContent = 'Token 无效或已过期';
-                } else {
-                    document.getElementById('auth-error').textContent = '验证失败: ' + response.statusText;
-                }
-            } catch (error) {
-                document.getElementById('auth-error').textContent = '验证失败: ' + error.message;
-            }
-        });
-
-        // GitHub OAuth 登录（已移除，此功能整合到管理员登录中）
-
         // 登录
         document.getElementById('login-btn').addEventListener('click', async () => {
             console.log('登录按钮点击');
