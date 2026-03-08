@@ -44,7 +44,7 @@ class AuthSystem {
 
     // 从公开链接获取 Token（管理员可配置）
     async fetchTokenFromPublicURL() {
-        const publicConfigUrl = 'https://raw.githubusercontent.com/acientemple/snake-game/master/token-config.json';
+        const publicConfigUrl = 'https://acientemple.github.io/snake-game/token-config.json';
         console.log('尝试从公开链接获取 Token...');
 
         try {
