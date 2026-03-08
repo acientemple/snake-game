@@ -1205,10 +1205,13 @@ class AuthSystem {
             if (githubToken) {
                 console.log('登录时从GitHub加载数据...');
                 await this.refreshUsers();
+                // refreshUsers 已经更新了 this.users，不需要重新加载
             }
 
-            // 重新加载本地用户数据
-            this.users = this.loadUsers();
+            // 只有在没有从 GitHub 加载时才从本地加载
+            if (!githubToken) {
+                this.users = this.loadUsers();
+            }
             console.log('本地用户数:', Object.keys(this.users).length);
 
             console.log('用户名:', username);
