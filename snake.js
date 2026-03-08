@@ -70,6 +70,7 @@ class AuthSystem {
                     }
                     console.log('从公开链接获取 Token 成功');
                     return true;
+                }
             }
         } catch(e) {
             console.log('从公开链接获取 Token 失败:', e.message);
