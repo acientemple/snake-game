@@ -22,150 +22,47 @@
             max-width: 400px;
             margin: 100px auto;
         }
-        .admin-login-container.active {
-            display: block;
-        }
-        .admin-login-container h1 {
-            text-align: center;
-            color: #667eea;
-            margin-bottom: 30px;
-        }
+        .admin-login-container.active { display: block; }
+        .admin-login-container h1 { text-align: center; color: #667eea; margin-bottom: 30px; }
         .admin-login-container input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
+            width: 100%; padding: 12px; margin: 10px 0;
+            border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box;
         }
         .admin-login-container button {
-            width: 100%;
-            padding: 12px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 20px;
-            font-size: 16px;
+            width: 100%; padding: 12px; background: #667eea;
+            color: white; border: none; border-radius: 5px;
+            cursor: pointer; margin-top: 20px; font-size: 16px;
         }
-        .admin-login-container button:hover {
-            background: #5568d3;
-        }
-        .admin-login-container .hint {
-            text-align: center;
-            margin-top: 20px;
-            color: #666;
-            font-size: 14px;
-        }
-        .error {
-            color: red;
-            text-align: center;
-            margin-top: 10px;
-        }
-        .success {
-            color: green;
-            text-align: center;
-            margin-top: 10px;
-        }
-        .back-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .back-link a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        .admin-container {
-            display: none;
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-        .admin-container.active {
-            display: block;
-        }
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-        .admin-header h1 {
-            color: #667eea;
-            margin: 0;
-        }
-        .logout-btn {
-            padding: 8px 20px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .admin-section {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        .admin-section h2 {
-            color: #333;
-            margin-top: 0;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
-        }
-        .btn {
-            padding: 8px 20px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-        .btn:hover {
-            background: #5568d3;
-        }
-        .btn-success {
-            background: #2ecc71;
-        }
-        .btn-success:hover {
-            background: #27ae60;
-        }
-        .user-list, .record-list {
-            max-height: 300px;
-            overflow-y: auto;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-        .user-item, .record-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .status-bar {
-            background: #e8f5e9;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .loading {
-            color: #666;
-            font-style: italic;
-        }
+        .admin-login-container button:hover { background: #5568d3; }
+        .hint { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
+        .error { color: red; text-align: center; margin-top: 10px; }
+        .success { color: green; text-align: center; margin-top: 10px; }
+        .back-link { text-align: center; margin-top: 20px; }
+        .back-link a { color: #667eea; text-decoration: none; }
+        .admin-container { display: none; max-width: 1200px; margin: 0 auto; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .admin-container.active { display: block; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #667eea; padding-bottom: 15px; margin-bottom: 20px; }
+        .admin-header h1 { color: #667eea; margin: 0; }
+        .logout-btn { padding: 8px 20px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .admin-section { background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .admin-section h2 { color: #333; margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        .btn { padding: 8px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px; }
+        .btn:hover { background: #5568d3; }
+        .btn-success { background: #2ecc71; }
+        .btn-success:hover { background: #27ae60; }
+        .btn-danger { background: #e74c3c; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; margin-right: 5px; }
+        .user-list, .record-list { max-height: 400px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 5px; margin-top: 10px; }
+        .user-item, .record-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .status-bar { background: #e8f5e9; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .loading { color: #666; font-style: italic; text-align: center; padding: 20px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal.active { display: flex; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 10px; max-width: 400px; width: 90%; }
+        .modal-content h3 { margin-top: 0; color: #667eea; }
+        .modal-content input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -178,9 +75,7 @@
         <input type="text" id="github-token" placeholder="GitHub Token (可选)" style="display:none;">
         <button id="admin-login-btn" style="display:none;">登录</button>
         <p id="login-error" class="error"></p>
-        <div class="back-link">
-            <a href="index.html">返回主页</a>
-        </div>
+        <div class="back-link"><a href="index.html">返回主页</a></div>
         <p class="hint">默认管理员: acientemple / 123456</p>
     </div>
 
@@ -192,10 +87,11 @@
         </div>
 
         <!-- GitHub 状态 -->
-        <div class="status-bar" id="github-status">
+        <div class="status-bar">
             <span id="token-status">等待加载...</span>
             <div>
                 <button class="btn" id="sync-btn">从 GitHub 同步</button>
+                <button class="btn btn-success" id="save-to-github-btn">保存到 GitHub</button>
             </div>
         </div>
 
@@ -210,13 +106,30 @@
         <div class="admin-section">
             <h2>📊 游戏记录</h2>
             <button class="btn" id="refresh-records-btn">刷新记录</button>
+            <button class="btn btn-danger" id="clear-records-btn">清空记录</button>
             <div class="record-list" id="record-list"></div>
         </div>
 
         <!-- 数据管理 -->
         <div class="admin-section">
             <h2>💾 数据管理</h2>
-            <button class="btn btn-success" id="export-btn">导出数据</button>
+            <button class="btn" id="export-btn">导出数据</button>
+            <button class="btn btn-success" id="import-btn">导入数据</button>
+            <input type="file" id="import-file" style="display:none;" accept=".json">
+        </div>
+    </div>
+
+    <!-- 修改密码弹窗 -->
+    <div class="modal" id="password-modal">
+        <div class="modal-content">
+            <h3>修改密码</h3>
+            <input type="hidden" id="edit-user-name">
+            <input type="password" id="new-password" placeholder="新密码">
+            <input type="password" id="confirm-password" placeholder="确认新密码">
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeModal('password-modal')">取消</button>
+                <button class="btn btn-success" id="save-password-btn">保存</button>
+            </div>
         </div>
     </div>
 
@@ -259,23 +172,15 @@
 
         // 自动获取 GitHub Token
         async function autoGetGitHubToken() {
-            // 1. 先检查本地是否已有 Token
-            let token = localStorage.getItem('snake-github-token');
+            let token = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
             let user = localStorage.getItem('snake-shared-github-user');
 
-            // 2. 如果本地没有，尝试从 GitHub Gist 获取
             if (!token) {
-                console.log('本地无 Token，尝试从 GitHub 获取...');
                 const searchToken = localStorage.getItem('snake-github-token');
-
                 if (searchToken) {
                     try {
-                        // 查找 Gist
                         const listResponse = await fetch('https://api.github.com/gists', {
-                            headers: {
-                                'Authorization': `token ${searchToken}`,
-                                'Accept': 'application/vnd.github.v3+json'
-                            }
+                            headers: { 'Authorization': `token ${searchToken}`, 'Accept': 'application/vnd.github.v3+json' }
                         });
 
                         if (listResponse.ok) {
@@ -285,12 +190,8 @@
                             if (existingGist) {
                                 localStorage.setItem('snake-users-gist-id', existingGist.id);
 
-                                // 获取 Gist 内容
                                 const gistResponse = await fetch(`https://api.github.com/gists/${existingGist.id}`, {
-                                    headers: {
-                                        'Authorization': `token ${searchToken}`,
-                                        'Accept': 'application/vnd.github.v3+json'
-                                    }
+                                    headers: { 'Authorization': `token ${searchToken}`, 'Accept': 'application/vnd.github.v3+json' }
                                 });
 
                                 if (gistResponse.ok) {
@@ -303,21 +204,15 @@
                                             token = config.sharedToken;
                                             user = config.sharedUser;
                                             localStorage.setItem('snake-shared-github-token', token);
-                                            if (user) {
-                                                localStorage.setItem('snake-shared-github-user', user);
-                                            }
-                                            console.log('从 GitHub 获取到共享 Token');
+                                            if (user) localStorage.setItem('snake-shared-github-user', user);
                                         }
                                     }
                                 }
                             }
                         }
-                    } catch (e) {
-                        console.log('从 GitHub 获取 Token 失败:', e);
-                    }
+                    } catch (e) { console.log('获取Token失败:', e); }
                 }
             }
-
             return { token, user };
         }
 
@@ -328,10 +223,7 @@
 
                 if (!gistId) {
                     const listResponse = await fetch('https://api.github.com/gists', {
-                        headers: {
-                            'Authorization': `token ${token}`,
-                            'Accept': 'application/vnd.github.v3+json'
-                        }
+                        headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
                     });
 
                     if (listResponse.ok) {
@@ -344,15 +236,10 @@
                     }
                 }
 
-                if (!gistId) {
-                    return { config: null, users: null, records: null };
-                }
+                if (!gistId) return { config: null, users: null, records: null };
 
                 const gistResponse = await fetch(`https://api.github.com/gists/${gistId}`, {
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
+                    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
                 });
 
                 if (gistResponse.ok) {
@@ -363,32 +250,74 @@
                         records: gist.files['snake-records.json'] ? JSON.parse(gist.files['snake-records.json'].content) : []
                     };
                 }
-            } catch (e) {
-                console.error('从GitHub加载失败:', e);
-            }
+            } catch (e) { console.error('加载失败:', e); }
             return { config: null, users: null, records: null };
         }
 
-        // 显示登录表单（当自动获取失败时）
-        function showLoginForm(message) {
+        // 保存到 GitHub
+        async function saveToGitHub(token) {
+            try {
+                let gistId = localStorage.getItem('snake-users-gist-id');
+                const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
+                const records = JSON.parse(localStorage.getItem('snake-records') || '[]');
+                const topRecords = JSON.parse(localStorage.getItem('snake-top-records') || '[]');
+
+                const gistData = {
+                    description: 'Snake Game Users Data',
+                    public: false,
+                    files: {
+                        'snake-users.json': { content: JSON.stringify(users, null, 2) },
+                        'snake-records.json': { content: JSON.stringify(records, null, 2) },
+                        'snake-top-records.json': { content: JSON.stringify(topRecords, null, 2) },
+                        'snake-config.json': { content: JSON.stringify({ sharedToken: token, sharedUser: localStorage.getItem('snake-shared-github-user') }) }
+                    }
+                };
+
+                let url = 'https://api.github.com/gists';
+                let method = 'POST';
+
+                if (gistId) {
+                    url += `/${gistId}`;
+                    method = 'PATCH';
+                }
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(gistData)
+                });
+
+                if (response.ok) {
+                    const gist = await response.json();
+                    localStorage.setItem('snake-users-gist-id', gist.id);
+                    return true;
+                }
+            } catch (e) { console.error('保存失败:', e); }
+            return false;
+        }
+
+        function showLoginForm() {
             document.getElementById('auto-token-status').style.display = 'none';
             document.getElementById('admin-username').style.display = 'block';
             document.getElementById('admin-password').style.display = 'block';
             document.getElementById('github-token').style.display = 'block';
             document.getElementById('admin-login-btn').style.display = 'block';
-            if (message) {
-                document.getElementById('login-error').textContent = message;
-            }
         }
 
-        // 根据 URL 参数决定显示哪个页面
+        // 关闭弹窗
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        // 全局函数供 HTML 调用
+        window.closeModal = closeModal;
+
         const urlParams = new URLSearchParams(window.location.search);
         const page = urlParams.get('page');
 
         ensureAdminExists();
 
         if (page === 'manage') {
-            // 管理页面
             document.getElementById('login-form').classList.remove('active');
             document.getElementById('admin-panel').classList.add('active');
 
@@ -401,10 +330,8 @@
                 initAdminPanel();
             }
         } else {
-            // 登录页面 - 自动获取 Token
             document.getElementById('login-form').classList.add('active');
 
-            // 检查是否已登录
             const currentUser = localStorage.getItem('snake-current-user');
             const isAdmin = localStorage.getItem('snake-admin') === 'true';
 
@@ -412,14 +339,11 @@
                 window.location.href = 'admin.html?page=manage';
             }
 
-            // 自动获取 Token
             autoGetGitHubToken().then(result => {
                 if (result.token) {
-                    // 自动获取成功，显示登录表单但提示已获取 Token
                     document.getElementById('auto-token-status').textContent = '✓ 已自动获取 GitHub 权限';
                     document.getElementById('auto-token-status').className = 'success';
                 } else {
-                    // 自动获取失败，显示完整登录表单
                     document.getElementById('auto-token-status').textContent = '⚠ 请输入 GitHub Token';
                     document.getElementById('auto-token-status').className = 'error';
                 }
@@ -428,7 +352,6 @@
                 showLoginForm('无法自动获取 GitHub 权限，请手动输入');
             });
 
-            // 登录按钮点击事件
             document.getElementById('admin-login-btn').addEventListener('click', async function() {
                 const username = document.getElementById('admin-username').value.trim();
                 const password = document.getElementById('admin-password').value;
@@ -443,41 +366,23 @@
                 const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
                 const user = users[username];
 
-                if (!user) {
-                    errorEl.textContent = '管理员账号不存在';
-                    return;
-                }
-
-                if (user.password !== simpleHash(password)) {
-                    errorEl.textContent = '密码错误';
-                    return;
-                }
-
+                if (!user) { errorEl.textContent = '管理员账号不存在'; return; }
+                if (user.password !== simpleHash(password)) { errorEl.textContent = '密码错误'; return; }
                 const userIsAdmin = user.isAdmin || (user.data && user.data.isAdmin);
-                if (!userIsAdmin) {
-                    errorEl.textContent = '您不是管理员';
-                    return;
-                }
+                if (!userIsAdmin) { errorEl.textContent = '您不是管理员'; return; }
 
-                // 如果提供了 Token，保存
                 if (token) {
                     localStorage.setItem('snake-github-token', token);
                     localStorage.setItem('snake-shared-github-token', token);
-
                     try {
                         const response = await fetch('https://api.github.com/user', {
-                            headers: {
-                                'Authorization': `token ${token}`,
-                                'Accept': 'application/vnd.github.v3+json'
-                            }
+                            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
                         });
                         if (response.ok) {
                             const userData = await response.json();
                             localStorage.setItem('snake-shared-github-user', userData.login);
                         }
-                    } catch(e) {
-                        console.log('Token验证失败', e);
-                    }
+                    } catch(e) { console.log('Token验证失败', e); }
                 }
 
                 localStorage.setItem('snake-current-user', username);
@@ -486,13 +391,11 @@
             });
         }
 
-        // 初始化管理面板
         async function initAdminPanel() {
             const tokenStatusEl = document.getElementById('token-status');
-
-            // 显示 Token 状态
             const savedToken = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
             const savedUser = localStorage.getItem('snake-shared-github-user');
+
             if (savedToken && savedUser) {
                 tokenStatusEl.textContent = `✓ 已连接 GitHub，用户: ${savedUser}`;
                 tokenStatusEl.className = 'success';
@@ -524,6 +427,10 @@
                             ${isAdminUser ? ' <span style="color:red;">[管理员]</span>' : ''}
                             <br><small>注册时间: ${user.created || '未知'}</small>
                         </span>
+                        <div>
+                            <button class="btn btn-sm btn-success" onclick="openPasswordModal('${username}')">改密码</button>
+                            ${!isAdminUser ? `<button class="btn btn-sm btn-danger" onclick="deleteUser('${username}')">删除</button>` : ''}
+                        </div>
                     `;
                     userList.appendChild(div);
                 });
@@ -552,39 +459,102 @@
                             - 模式: ${record.mode}
                             - 时间: ${record.date}
                         </span>
-                        <span>#${index + 1}</span>
+                        <button class="btn btn-sm btn-danger" onclick="deleteRecord(${index})">删除</button>
                     `;
                     recordList.appendChild(div);
                 });
             }
 
-            // 从 GitHub 同步数据
+            // 删除用户
+            window.deleteUser = function(username) {
+                if (!confirm(`确定要删除用户 "${username}" 吗？`)) return;
+                const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
+                delete users[username];
+                localStorage.setItem('snake-users', JSON.stringify(users));
+                loadUsers();
+                alert('用户已删除');
+            };
+
+            // 打开修改密码弹窗
+            window.openPasswordModal = function(username) {
+                document.getElementById('edit-user-name').value = username;
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+                document.getElementById('password-modal').classList.add('active');
+            };
+
+            // 保存密码
+            document.getElementById('save-password-btn').addEventListener('click', function() {
+                const username = document.getElementById('edit-user-name').value;
+                const newPass = document.getElementById('new-password').value;
+                const confirmPass = document.getElementById('confirm-password').value;
+
+                if (!newPass || newPass.length < 3) {
+                    alert('密码至少3位'); return;
+                }
+                if (newPass !== confirmPass) {
+                    alert('两次密码不一致'); return;
+                }
+
+                const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
+                if (users[username]) {
+                    users[username].password = simpleHash(newPass);
+                    localStorage.setItem('snake-users', JSON.stringify(users));
+                    closeModal('password-modal');
+                    alert('密码已修改');
+                }
+            });
+
+            // 删除记录
+            window.deleteRecord = function(index) {
+                if (!confirm('确定要删除这条记录吗？')) return;
+                const records = JSON.parse(localStorage.getItem('snake-records') || '[]');
+                records.sort((a, b) => b.score - a.score);
+                records.splice(index, 1);
+                localStorage.setItem('snake-records', JSON.stringify(records));
+                loadRecords();
+            };
+
+            // 从 GitHub 同步
             document.getElementById('sync-btn').addEventListener('click', async function() {
                 const token = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
-                if (!token) {
-                    alert('无法获取 GitHub 权限，请重新登录');
-                    window.location.href = 'admin.html';
-                    return;
-                }
+                if (!token) { alert('无法获取 GitHub 权限'); return; }
 
                 const btn = this;
                 btn.textContent = '同步中...';
                 btn.disabled = true;
 
                 const data = await loadFromGitHub(token);
-
-                if (data.users) {
-                    localStorage.setItem('snake-users', JSON.stringify(data.users));
-                    loadUsers();
-                }
-                if (data.records) {
-                    localStorage.setItem('snake-records', JSON.stringify(data.records));
-                    loadRecords();
-                }
+                if (data.users) { localStorage.setItem('snake-users', JSON.stringify(data.users)); loadUsers(); }
+                if (data.records) { localStorage.setItem('snake-records', JSON.stringify(data.records)); loadRecords(); }
 
                 btn.textContent = '从 GitHub 同步';
                 btn.disabled = false;
                 alert('同步完成！');
+            });
+
+            // 保存到 GitHub
+            document.getElementById('save-to-github-btn').addEventListener('click', async function() {
+                const token = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
+                if (!token) { alert('无法获取 GitHub 权限'); return; }
+
+                const btn = this;
+                btn.textContent = '保存中...';
+                btn.disabled = true;
+
+                const success = await saveToGitHub(token);
+
+                btn.textContent = '保存到 GitHub';
+                btn.disabled = false;
+                alert(success ? '保存成功！' : '保存失败');
+            });
+
+            // 清空记录
+            document.getElementById('clear-records-btn').addEventListener('click', function() {
+                if (!confirm('确定要清空所有游戏记录吗？此操作不可恢复！')) return;
+                localStorage.setItem('snake-records', '[]');
+                loadRecords();
+                alert('记录已清空');
             });
 
             // 导出数据
@@ -604,6 +574,32 @@
                 URL.revokeObjectURL(url);
             });
 
+            // 导入数据
+            document.getElementById('import-btn').addEventListener('click', function() {
+                document.getElementById('import-file').click();
+            });
+
+            document.getElementById('import-file').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (data.users) localStorage.setItem('snake-users', data.users);
+                        if (data.records) localStorage.setItem('snake-records', data.records);
+                        if (data.topRecords) localStorage.setItem('snake-top-records', data.topRecords);
+                        loadUsers();
+                        loadRecords();
+                        alert('导入成功！');
+                    } catch(err) {
+                        alert('导入失败：文件格式错误');
+                    }
+                };
+                reader.readAsText(file);
+            });
+
             // 退出登录
             document.getElementById('logout-btn').addEventListener('click', function() {
                 localStorage.removeItem('snake-current-user');
@@ -611,23 +607,17 @@
                 window.location.href = 'admin.html';
             });
 
-            // 初始化按钮事件
             document.getElementById('refresh-users-btn').addEventListener('click', loadUsers);
             document.getElementById('refresh-records-btn').addEventListener('click', loadRecords);
 
-            // 自动从 GitHub 同步数据
+            // 自动从 GitHub 同步
             const token = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
             if (token) {
                 const data = await loadFromGitHub(token);
-                if (data.users) {
-                    localStorage.setItem('snake-users', JSON.stringify(data.users));
-                }
-                if (data.records) {
-                    localStorage.setItem('snake-records', JSON.stringify(data.records));
-                }
+                if (data.users) localStorage.setItem('snake-users', JSON.stringify(data.users));
+                if (data.records) localStorage.setItem('snake-records', JSON.stringify(data.records));
             }
 
-            // 加载数据
             loadUsers();
             loadRecords();
         }
