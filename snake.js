@@ -44,10 +44,32 @@ class AuthSystem {
 
     // 初始化方法，在 DOM 加载完成后调用
     async initAuth() {
+        // 加载本地用户数据
+        this.users = this.loadUsers();
+
+        // 创建默认管理员账号（如果不存在）
+        const adminUsername = 'acientemple';
+        const adminPassword = '123456';
+        if (!this.users[adminUsername]) {
+            console.log('创建默认管理员账号');
+            this.users[adminUsername] = {
+                password: simpleHash(adminPassword),
+                email: '',
+                created: new Date().toISOString(),
+                data: { isAdmin: true },
+                isAdmin: true
+            };
+            this.saveUsers();
+        } else {
+            // 确保管理员有 isAdmin 标记
+            this.users[adminUsername].isAdmin = true;
+            this.users[adminUsername].data = this.users[adminUsername].data || {};
+            this.users[adminUsername].data.isAdmin = true;
+        }
+
         // 如果有 GitHub Token（用户自己的或共享的），强制从 GitHub 加载最新用户数据
         const githubToken = this.getGitHubToken();
         if (githubToken) {
-            this.users = this.loadUsers();
             // 页面加载时也尝试从 GitHub 加载最新用户数据
             await this.refreshUsers();
         }
@@ -732,6 +754,12 @@ class AuthSystem {
         }
         this.currentUser = username;
         localStorage.setItem('snake-current-user', username);
+
+        // 检查是否是管理员
+        const isAdmin = user.isAdmin || (user.data && user.data.isAdmin);
+        this.isAdmin = isAdmin;
+        localStorage.setItem('snake-admin', isAdmin ? 'true' : 'false');
+
         return { success: true, message: '登录成功' };
     }
 
