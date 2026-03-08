@@ -42,6 +42,36 @@ class AuthSystem {
         return token;
     }
 
+    // 从公开链接获取 Token（管理员可配置）
+    async fetchTokenFromPublicURL() {
+        const publicConfigUrl = 'https://raw.githubusercontent.com/acientemple/snake-game/master/token-config.json';
+        console.log('尝试从公开链接获取 Token...');
+
+        try {
+            const response = await fetch(publicConfigUrl);
+            if (response.ok) {
+                const config = await response.json();
+                if (config.sharedToken) {
+                    // Base64 解码
+                    try {
+                        const token = atob(config.sharedToken);
+                        localStorage.setItem('snake-shared-github-token', token);
+                        if (config.sharedUser) {
+                            localStorage.setItem('snake-shared-github-user', config.sharedUser);
+                        }
+                        console.log('从公开链接获取 Token 成功');
+                        return true;
+                    } catch(e) {
+                        console.log('Token 解码失败');
+                    }
+                }
+            }
+        } catch(e) {
+            console.log('从公开链接获取 Token 失败:', e.message);
+        }
+        return false;
+    }
+
     // 从 GitHub Gist 获取共享 Token 配置
     async fetchSharedTokenConfig() {
         console.log('尝试从 GitHub 获取共享 Token 配置...');
@@ -100,7 +130,13 @@ class AuthSystem {
                     const config = JSON.parse(configContent);
                     if (config.sharedToken) {
                         console.log('从 GitHub 获取到共享 Token');
-                        localStorage.setItem('snake-shared-github-token', config.sharedToken);
+                        // Token 使用 Base64 编码，读取后需要解码
+                        try {
+                            localStorage.setItem('snake-shared-github-token', atob(config.sharedToken));
+                        } catch(e) {
+                            // 如果解码失败，直接使用原始值（兼容旧版本）
+                            localStorage.setItem('snake-shared-github-token', config.sharedToken);
+                        }
                         if (config.sharedUser) {
                             localStorage.setItem('snake-shared-github-user', config.sharedUser);
                         }
@@ -137,7 +173,10 @@ class AuthSystem {
             this.users[adminUsername].data.isAdmin = true;
         }
 
-        // 先尝试从 GitHub 获取共享 Token 配置
+        // 先尝试从公开链接获取 Token（不需要认证）
+        await this.fetchTokenFromPublicURL();
+
+        // 如果公开链接没有获取到，尝试从私有 Gist 获取
         await this.fetchSharedTokenConfig();
 
         // 如果有 GitHub Token（用户自己的或共享的），强制从 GitHub 加载最新用户数据

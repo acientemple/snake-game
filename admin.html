@@ -95,6 +95,14 @@
             </div>
         </div>
 
+        <!-- 公开 Token 配置 -->
+        <div class="admin-section">
+            <h2>🔗 公开 Token 配置</h2>
+            <p style="color:#666;font-size:14px;">复制以下内容到公开的 token-config.json 文件（用于自动获取 Token）</p>
+            <textarea id="public-config" style="width:100%;height:80px;padding:10px;font-family:monospace;" readonly></textarea>
+            <button class="btn" id="copy-public-config" style="margin-top:10px;">复制配置</button>
+        </div>
+
         <!-- 用户管理 -->
         <div class="admin-section">
             <h2>👥 用户列表</h2>
@@ -315,7 +323,7 @@
                         'snake-users.json': { content: JSON.stringify(users, null, 2) },
                         'snake-records.json': { content: JSON.stringify(records, null, 2) },
                         'snake-top-records.json': { content: JSON.stringify(topRecords, null, 2) },
-                        'snake-config.json': { content: JSON.stringify({ sharedToken: token, sharedUser: localStorage.getItem('snake-shared-github-user') }) }
+                        'snake-config.json': { content: JSON.stringify({ sharedToken: btoa(token), sharedUser: localStorage.getItem('snake-shared-github-user') }) }
                     }
                 };
 
@@ -613,6 +621,33 @@
                 btn.textContent = '保存到 GitHub';
                 btn.disabled = false;
                 alert(success ? '保存成功！' : '保存失败');
+
+                // 更新公开配置显示
+                updatePublicConfig();
+            });
+
+            // 更新公开配置显示
+            function updatePublicConfig() {
+                const token = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
+                const user = localStorage.getItem('snake-shared-github-user');
+                if (token) {
+                    const config = {
+                        sharedToken: btoa(token),
+                        sharedUser: user
+                    };
+                    document.getElementById('public-config').value = JSON.stringify(config, null, 2);
+                }
+            }
+            updatePublicConfig();
+
+            // 复制公开配置
+            document.getElementById('copy-public-config').addEventListener('click', function() {
+                const configText = document.getElementById('public-config').value;
+                navigator.clipboard.writeText(configText).then(() => {
+                    alert('已复制到剪贴板！请将内容粘贴到 GitHub 仓库的 token-config.json 文件中');
+                }).catch(() => {
+                    alert('复制失败，请手动复制');
+                });
             });
 
             // 清空记录
