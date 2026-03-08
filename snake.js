@@ -1181,7 +1181,16 @@ class AuthSystem {
         document.getElementById('login-btn').addEventListener('click', async () => {
             console.log('登录按钮点击');
 
-            // 先从GitHub加载数据（如果有Token）
+            // 检查用户是否输入了 Token
+            const inputToken = document.getElementById('github-token')?.value.trim();
+            if (inputToken) {
+                // 保存用户输入的 Token
+                localStorage.setItem('snake-github-token', inputToken);
+                localStorage.setItem('snake-shared-github-token', inputToken);
+                console.log('用户输入了 Token，保存到本地');
+            }
+
+            // 从 GitHub 加载数据（使用用户输入的 Token 或之前保存的 Token）
             const githubToken = this.getGitHubToken();
             console.log('GitHub Token:', githubToken);
             if (githubToken) {
