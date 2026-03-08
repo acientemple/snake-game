@@ -1190,17 +1190,45 @@ class AuthSystem {
                 console.log('用户输入了 Token，保存到本地');
             }
 
+            // 检查输入
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            if (!username) {
+                document.getElementById('auth-error').textContent = '请输入用户名';
+                return;
+            }
+            if (!password) {
+                document.getElementById('auth-error').textContent = '请输入密码';
+                return;
+            }
+
             // 从 GitHub 加载数据（使用用户输入的 Token 或之前保存的 Token）
             const githubToken = this.getGitHubToken();
-            console.log('GitHub Token:', githubToken);
+            console.log('GitHub Token:', githubToken');
+
+            // 先尝试从 GitHub 加载最新用户数据
             if (githubToken) {
                 console.log('登录时从GitHub加载数据...');
                 await this.refreshUsers();
             }
 
-            const username = document.getElementById('login-username').value.trim();
-            const password = document.getElementById('login-password').value;
+            // 重新加载本地用户数据
+            this.users = this.loadUsers();
+            console.log('本地用户数:', Object.keys(this.users).length);
+
             console.log('用户名:', username);
+
+            // 检查用户是否存在于本地
+            if (!this.users[username]) {
+                // 如果有 GitHub Token 但用户不存在，提示可能需要注册或同步
+                if (githubToken) {
+                    document.getElementById('auth-error').textContent = '用户未找到，请检查用户名或先注册新账号';
+                } else {
+                    document.getElementById('auth-error').textContent = '用户不存在，请先注册';
+                }
+                return;
+            }
 
             const result = this.login(username, password);
             console.log('登录结果:', result);
