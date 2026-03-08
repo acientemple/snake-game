@@ -183,6 +183,75 @@ class AuthSystem {
         }
     }
 
+    // 登录后从 GitHub 加载用户和记录数据
+    async loadFromGitHubOnLogin() {
+        const githubToken = this.getGitHubToken();
+        if (!githubToken) {
+            console.log('loadFromGitHubOnLogin: 没有 GitHub Token');
+            return;
+        }
+
+        console.log('loadFromGitHubOnLogin: 开始加载...');
+        try {
+            let gistId = localStorage.getItem('snake-users-gist-id');
+
+            // 如果没有 gistId，尝试查找
+            if (!gistId) {
+                const listResponse = await fetch('https://api.github.com/gists', {
+                    headers: {
+                        'Authorization': `token ${githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                if (listResponse.ok) {
+                    const gists = await listResponse.json();
+                    const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
+                    if (existingGist) {
+                        gistId = existingGist.id;
+                        localStorage.setItem('snake-users-gist-id', gistId);
+                    }
+                }
+            }
+
+            if (!gistId) {
+                console.log('loadFromGitHubOnLogin: 未找到 Gist');
+                return;
+            }
+
+            // 获取 Gist 内容
+            const gistResponse = await fetch(`https://api.github.com/gists/${gistId}`, {
+                headers: {
+                    'Authorization': `token ${githubToken}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            if (gistResponse.ok) {
+                const gist = await gistResponse.json();
+
+                // 加载用户数据
+                const cloudUsers = gist.files['snake-users.json']?.content;
+                if (cloudUsers) {
+                    this.users = JSON.parse(cloudUsers);
+                    localStorage.setItem('snake-users', cloudUsers);
+                    console.log('登录时从GitHub加载用户:', Object.keys(this.users).length);
+                }
+
+                // 加载记录数据
+                const cloudRecords = gist.files['snake-records.json']?.content || '[]';
+                localStorage.setItem('snake-records', cloudRecords);
+                console.log('登录时从GitHub加载记录:', JSON.parse(cloudRecords).length);
+
+                // 刷新显示
+                if (this.displayRecords) {
+                    this.displayRecords();
+                }
+            }
+        } catch (e) {
+            console.error('loadFromGitHubOnLogin 失败:', e);
+        }
+    }
+
     // 从GitHub同步记录到本地（保存后立即调用）
     async syncRecordsFromGitHub() {
         const githubToken = this.getGitHubToken();
@@ -1233,6 +1302,9 @@ class AuthSystem {
             this.logout();
             location.reload();
         });
+
+        // 登录后自动从 GitHub 加载最新数据
+        this.loadFromGitHubOnLogin();
 
         // 初始化游戏
         initGame();
