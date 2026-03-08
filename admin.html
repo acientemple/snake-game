@@ -171,49 +171,95 @@
         }
 
         // 自动获取 GitHub Token
-        async function autoGetGitHubToken() {
-            let token = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
+        async function autoGetGitHubToken(existingToken = null) {
+            // 如果传入了 Token，优先使用
+            let token = existingToken || localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
             let user = localStorage.getItem('snake-shared-github-user');
 
             if (!token) {
+                // 尝试用任意已有的 Token 查找 Gist
                 const searchToken = localStorage.getItem('snake-github-token');
                 if (searchToken) {
-                    try {
-                        const listResponse = await fetch('https://api.github.com/gists', {
-                            headers: { 'Authorization': `token ${searchToken}`, 'Accept': 'application/vnd.github.v3+json' }
-                        });
-
-                        if (listResponse.ok) {
-                            const gists = await listResponse.json();
-                            const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
-
-                            if (existingGist) {
-                                localStorage.setItem('snake-users-gist-id', existingGist.id);
-
-                                const gistResponse = await fetch(`https://api.github.com/gists/${existingGist.id}`, {
-                                    headers: { 'Authorization': `token ${searchToken}`, 'Accept': 'application/vnd.github.v3+json' }
-                                });
-
-                                if (gistResponse.ok) {
-                                    const gist = await gistResponse.json();
-                                    const configContent = gist.files['snake-config.json']?.content;
-
-                                    if (configContent) {
-                                        const config = JSON.parse(configContent);
-                                        if (config.sharedToken) {
-                                            token = config.sharedToken;
-                                            user = config.sharedUser;
-                                            localStorage.setItem('snake-shared-github-token', token);
-                                            if (user) localStorage.setItem('snake-shared-github-user', user);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } catch (e) { console.log('获取Token失败:', e); }
+                    token = searchToken;
                 }
             }
-            return { token, user };
+
+            // 如果有 Token，尝试获取 Gist 信息
+            if (token) {
+                try {
+                    // 先尝试获取用户信息
+                    const userResponse = await fetch('https://api.github.com/user', {
+                        headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                    });
+
+                    if (userResponse.ok) {
+                        const userData = await userResponse.json();
+                        user = userData.login;
+                        localStorage.setItem('snake-shared-github-user', user);
+                        localStorage.setItem('snake-github-token', token);
+                        localStorage.setItem('snake-shared-github-token', token);
+                    }
+
+                    // 查找 Gist
+                    const listResponse = await fetch('https://api.github.com/gists', {
+                        headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                    });
+
+                    if (listResponse.ok) {
+                        const gists = await listResponse.json();
+                        const existingGist = gists.find(g => g.description === 'Snake Game Users Data');
+
+                        if (existingGist) {
+                            localStorage.setItem('snake-users-gist-id', existingGist.id);
+                            console.log('找到 Gist:', existingGist.id);
+
+                            // 获取 Gist 内容
+                            const gistResponse = await fetch(`https://api.github.com/gists/${existingGist.id}`, {
+                                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                            });
+
+                            if (gistResponse.ok) {
+                                const gist = await gistResponse.json();
+                                const configContent = gist.files['snake-config.json']?.content;
+                                const usersContent = gist.files['snake-users.json']?.content;
+                                const recordsContent = gist.files['snake-records.json']?.content;
+
+                                console.log('Gist 文件:', Object.keys(gist.files));
+
+                                // 读取用户数据
+                                if (usersContent) {
+                                    const cloudUsers = JSON.parse(usersContent);
+                                    console.log('从 GitHub 加载用户数:', Object.keys(cloudUsers).length);
+                                    localStorage.setItem('snake-users', usersContent);
+                                }
+
+                                // 读取记录数据
+                                if (recordsContent) {
+                                    const cloudRecords = JSON.parse(recordsContent);
+                                    console.log('从 GitHub 加载记录数:', cloudRecords.length);
+                                    localStorage.setItem('snake-records', recordsContent);
+                                }
+
+                                // 保存 Token 配置
+                                if (configContent) {
+                                    const config = JSON.parse(configContent);
+                                    if (config.sharedToken) {
+                                        localStorage.setItem('snake-shared-github-token', config.sharedToken);
+                                    }
+                                }
+
+                                return { token, user, loaded: true };
+                            }
+                        } else {
+                            console.log('未找到 Snake Game Gist');
+                        }
+                    }
+                } catch (e) {
+                    console.error('获取 Token 或 Gist 失败:', e);
+                }
+            }
+
+            return { token, user, loaded: false };
         }
 
         // 从 GitHub 加载数据
@@ -357,12 +403,14 @@
                 const password = document.getElementById('admin-password').value;
                 const token = document.getElementById('github-token').value.trim();
                 const errorEl = document.getElementById('login-error');
+                const btn = this;
 
                 if (!username || !password) {
                     errorEl.textContent = '请输入用户名和密码';
                     return;
                 }
 
+                // 先验证管理员账号
                 const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
                 const user = users[username];
 
@@ -371,23 +419,41 @@
                 const userIsAdmin = user.isAdmin || (user.data && user.data.isAdmin);
                 if (!userIsAdmin) { errorEl.textContent = '您不是管理员'; return; }
 
+                // 如果提供了 Token，先用这个 Token 加载数据
                 if (token) {
+                    btn.textContent = '登录并同步中...';
+                    btn.disabled = true;
+
                     localStorage.setItem('snake-github-token', token);
-                    localStorage.setItem('snake-shared-github-token', token);
-                    try {
-                        const response = await fetch('https://api.github.com/user', {
-                            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
-                        });
-                        if (response.ok) {
-                            const userData = await response.json();
-                            localStorage.setItem('snake-shared-github-user', userData.login);
-                        }
-                    } catch(e) { console.log('Token验证失败', e); }
+
+                    // 使用提供的 Token 加载数据
+                    const result = await autoGetGitHubToken(token);
+                    console.log('登录时加载结果:', result);
+
+                    if (result.loaded) {
+                        errorEl.textContent = '✓ 登录成功，已从 GitHub 同步数据！';
+                        errorEl.className = 'success';
+                    } else {
+                        // Token 可能无效，但继续登录
+                        try {
+                            const response = await fetch('https://api.github.com/user', {
+                                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                            });
+                            if (response.ok) {
+                                const userData = await response.json();
+                                localStorage.setItem('snake-shared-github-user', userData.login);
+                                localStorage.setItem('snake-shared-github-token', token);
+                            }
+                        } catch(e) { console.log('Token验证失败', e); }
+                    }
                 }
 
                 localStorage.setItem('snake-current-user', username);
                 localStorage.setItem('snake-admin', 'true');
-                window.location.href = 'admin.html?page=manage';
+
+                setTimeout(() => {
+                    window.location.href = 'admin.html?page=manage';
+                }, 1000);
             });
         }
 
