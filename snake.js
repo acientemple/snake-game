@@ -1203,9 +1203,12 @@ class AuthSystem {
                 return;
             }
 
-            // 从 GitHub 加载数据（使用用户输入的 Token 或之前保存的 Token）
+            // 自动获取共享 Token（如果本地没有）
+            await this.fetchSharedTokenConfig();
+
+            // 从 GitHub 加载数据
             const githubToken = this.getGitHubToken();
-            console.log('GitHub Token:', githubToken');
+            console.log('GitHub Token:', githubToken);
 
             // 先尝试从 GitHub 加载最新用户数据
             if (githubToken) {
@@ -1247,10 +1250,21 @@ class AuthSystem {
             const password = document.getElementById('reg-password').value;
             const password2 = document.getElementById('reg-password2').value;
 
+            if (!username) {
+                document.getElementById('auth-error').textContent = '请输入用户名';
+                return;
+            }
+            if (!password || password.length < 3) {
+                document.getElementById('auth-error').textContent = '密码至少3位';
+                return;
+            }
             if (password !== password2) {
                 document.getElementById('auth-error').textContent = '两次密码不一致';
                 return;
             }
+
+            // 自动获取共享 Token（如果本地没有）
+            await this.fetchSharedTokenConfig();
 
             const result = this.register(username, password, email);
             if (result.success) {
