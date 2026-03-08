@@ -45,12 +45,14 @@ class AuthSystem {
     // 从公开链接获取 Token（管理员可配置）
     async fetchTokenFromPublicURL() {
         const publicConfigUrl = 'https://acientemple.github.io/snake-game/token-config.json';
-        console.log('尝试从公开链接获取 Token...');
+        console.log('尝试从公开链接获取 Token...', publicConfigUrl);
 
         try {
             const response = await fetch(publicConfigUrl);
+            console.log('公开链接响应状态:', response.status);
             if (response.ok) {
                 const config = await response.json();
+                console.log('获取到的配置:', config);
                 if (config.sharedToken) {
                     let token = config.sharedToken;
                     // 尝试 Base64 解码
@@ -165,8 +167,11 @@ class AuthSystem {
 
     // 初始化方法，在 DOM 加载完成后调用
     async initAuth() {
+        console.log('=== 开始初始化认证系统 ===');
+
         // 加载本地用户数据
         this.users = this.loadUsers();
+        console.log('本地用户数:', Object.keys(this.users).length);
 
         // 创建默认管理员账号（如果不存在）
         const adminUsername = 'acientemple';
@@ -189,16 +194,25 @@ class AuthSystem {
         }
 
         // 先尝试从公开链接获取 Token（不需要认证）
+        console.log('步骤1: 获取公开 Token...');
         await this.fetchTokenFromPublicURL();
 
+        // 检查 Token 是否获取成功
+        const sharedToken = localStorage.getItem('snake-shared-github-token');
+        console.log('共享 Token 状态:', sharedToken ? '已获取' : '未获取');
+
         // 如果公开链接没有获取到，尝试从私有 Gist 获取
+        console.log('步骤2: 从 GitHub 获取配置...');
         await this.fetchSharedTokenConfig();
 
         // 如果有 GitHub Token（用户自己的或共享的），强制从 GitHub 加载最新用户数据
         const githubToken = this.getGitHubToken();
+        console.log('GitHub Token 状态:', githubToken ? '可用' : '不可用');
         if (githubToken) {
+            console.log('步骤3: 从 GitHub 加载用户数据...');
             // 页面加载时也尝试从 GitHub 加载最新用户数据
             await this.refreshUsers();
+            console.log('当前用户数据:', Object.keys(this.users).length, '个用户');
         }
 
         // 检查是否已登录
@@ -207,7 +221,6 @@ class AuthSystem {
         }
 
         // 显示共享 Token 状态
-        const sharedToken = localStorage.getItem('snake-shared-github-token');
         const sharedUser = localStorage.getItem('snake-shared-github-user');
         if (sharedToken && sharedUser) {
             const statusEl = document.getElementById('shared-token-status');
@@ -217,19 +230,29 @@ class AuthSystem {
             }
         }
 
+        console.log('=== 初始化完成 ===');
         this.init();
     }
 
-    // 强制刷新用户数据（从 GitHub）
+    // 强制刷新用户数据（从 GitHub，合并到本地）
     async refreshUsers() {
         const githubToken = this.getGitHubToken();
         if (githubToken) {
-            // 异步从 GitHub 加载
-            const users = await this.loadUsersFromGitHub(githubToken, null);
-            if (users && Object.keys(users).length > 0) {
-                this.users = users;
-                localStorage.setItem('snake-users', JSON.stringify(users));
-                console.log('已刷新GitHub用户数据, 用户数:', Object.keys(users).length);
+            // 先加载本地用户
+            const localUsers = this.loadUsers();
+            console.log('refreshUsers: 本地用户数:', Object.keys(localUsers).length);
+
+            // 再从 GitHub 加载
+            const githubUsers = await this.loadUsersFromGitHub(githubToken, null);
+            if (githubUsers && Object.keys(githubUsers).length > 0) {
+                // 合并用户数据
+                this.users = { ...localUsers, ...githubUsers };
+                localStorage.setItem('snake-users', JSON.stringify(this.users));
+                console.log('已合并GitHub用户数据, 总用户数:', Object.keys(this.users).length);
+            } else {
+                // 如果 GitHub 没有数据，使用本地数据
+                this.users = localUsers;
+                console.log('GitHub 无数据，使用本地用户');
             }
         }
     }
@@ -1210,18 +1233,23 @@ class AuthSystem {
             const githubToken = this.getGitHubToken();
             console.log('GitHub Token:', githubToken);
 
-            // 先尝试从 GitHub 加载最新用户数据
+            // 先加载本地用户数据作为基础
+            this.users = this.loadUsers();
+            console.log('本地用户数:', Object.keys(this.users).length);
+
+            // 再尝试从 GitHub 加载最新用户数据（如果有）
             if (githubToken) {
                 console.log('登录时从GitHub加载数据...');
-                await this.refreshUsers();
-                // refreshUsers 已经更新了 this.users，不需要重新加载
+                const githubUsers = await this.loadUsersFromGitHub(githubToken, null);
+                if (githubUsers && Object.keys(githubUsers).length > 0) {
+                    // 合并 GitHub 用户数据到本地（保留本地用户）
+                    this.users = { ...this.users, ...githubUsers };
+                    localStorage.setItem('snake-users', JSON.stringify(this.users));
+                    console.log('合并后用户数:', Object.keys(this.users).length);
+                } else {
+                    console.log('GitHub 上没有用户数据');
+                }
             }
-
-            // 只有在没有从 GitHub 加载时才从本地加载
-            if (!githubToken) {
-                this.users = this.loadUsers();
-            }
-            console.log('本地用户数:', Object.keys(this.users).length);
 
             console.log('用户名:', username);
 
