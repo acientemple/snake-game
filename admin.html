@@ -7,19 +7,23 @@
     <link rel="stylesheet" href="styles.css">
     <style>
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
         }
         .admin-login-container {
+            display: none;
             background: white;
             padding: 40px;
             border-radius: 10px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             width: 100%;
             max-width: 400px;
+            margin: 100px auto;
+        }
+        .admin-login-container.active {
+            display: block;
         }
         .admin-login-container h1 {
             text-align: center;
@@ -67,19 +71,113 @@
             color: #667eea;
             text-decoration: none;
         }
+        .admin-container {
+            display: none;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .admin-container.active {
+            display: block;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .admin-header h1 {
+            color: #667eea;
+            margin: 0;
+        }
+        .logout-btn {
+            padding: 8px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .admin-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .admin-section h2 {
+            color: #333;
+            margin-top: 0;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .btn {
+            padding: 8px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background: #5568d3;
+        }
+        .user-list, .record-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .user-item, .record-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
-    <div class="admin-login-container">
+    <!-- 登录表单 -->
+    <div class="admin-login-container active" id="login-form">
         <h1>🐍 管理员登录</h1>
         <input type="text" id="admin-username" placeholder="管理员用户名">
         <input type="password" id="admin-password" placeholder="管理员密码">
         <button id="admin-login-btn">登录</button>
-        <p id="admin-error" class="error"></p>
+        <p id="login-error" class="error"></p>
         <div class="back-link">
             <a href="index.html">返回主页</a>
         </div>
         <p class="hint">默认管理员: acientemple / 123456</p>
+    </div>
+
+    <!-- 管理面板 -->
+    <div class="admin-container" id="admin-panel">
+        <div class="admin-header">
+            <h1>🐍 管理员面板</h1>
+            <button class="logout-btn" id="logout-btn">退出登录</button>
+        </div>
+
+        <!-- 用户管理 -->
+        <div class="admin-section">
+            <h2>👥 用户列表</h2>
+            <button class="btn" id="refresh-users-btn">刷新用户</button>
+            <div class="user-list" id="user-list"></div>
+        </div>
+
+        <!-- 游戏记录 -->
+        <div class="admin-section">
+            <h2>📊 游戏记录</h2>
+            <button class="btn" id="refresh-records-btn">刷新记录</button>
+            <div class="record-list" id="record-list"></div>
+        </div>
     </div>
 
     <script src="snake.js?v=20240308"></script>
@@ -119,48 +217,137 @@
             }
         }
 
-        // 页面加载时创建管理员账号
+        // 根据 URL 参数决定显示哪个页面
+        const urlParams = new URLSearchParams(window.location.search);
+        const page = urlParams.get('page');
+
         ensureAdminExists();
 
-        document.getElementById('admin-login-btn').addEventListener('click', () => {
-            const username = document.getElementById('admin-username').value.trim();
-            const password = document.getElementById('admin-password').value;
-            const errorEl = document.getElementById('admin-error');
+        if (page === 'manage') {
+            // 管理页面
+            document.getElementById('login-form').classList.remove('active');
+            document.getElementById('admin-panel').classList.add('active');
 
-            if (!username || !password) {
-                errorEl.textContent = '请输入用户名和密码';
-                return;
+            // 检查登录状态
+            const currentUser = localStorage.getItem('snake-current-user');
+            const isAdmin = localStorage.getItem('snake-admin') === 'true';
+
+            if (!currentUser || !isAdmin) {
+                window.location.href = 'admin.html';
+            } else {
+                initAdminPanel();
+            }
+        } else {
+            // 登录页面
+            document.getElementById('login-form').classList.add('active');
+
+            // 检查是否已登录
+            const currentUser = localStorage.getItem('snake-current-user');
+            const isAdmin = localStorage.getItem('snake-admin') === 'true';
+
+            if (currentUser && isAdmin) {
+                window.location.href = 'admin.html?page=manage';
             }
 
-            // 验证管理员账号
-            // 从 localStorage 读取用户数据
-            const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
-            const user = users[username];
+            // 登录按钮点击事件
+            document.getElementById('admin-login-btn').addEventListener('click', function() {
+                const username = document.getElementById('admin-username').value.trim();
+                const password = document.getElementById('admin-password').value;
+                const errorEl = document.getElementById('login-error');
 
-            if (!user) {
-                errorEl.textContent = '管理员账号不存在';
-                return;
+                if (!username || !password) {
+                    errorEl.textContent = '请输入用户名和密码';
+                    return;
+                }
+
+                const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
+                const user = users[username];
+
+                if (!user) {
+                    errorEl.textContent = '管理员账号不存在';
+                    return;
+                }
+
+                if (user.password !== simpleHash(password)) {
+                    errorEl.textContent = '密码错误';
+                    return;
+                }
+
+                const userIsAdmin = user.isAdmin || (user.data && user.data.isAdmin);
+                if (!userIsAdmin) {
+                    errorEl.textContent = '您不是管理员';
+                    return;
+                }
+
+                localStorage.setItem('snake-current-user', username);
+                localStorage.setItem('snake-admin', 'true');
+                window.location.href = 'admin.html?page=manage';
+            });
+        }
+
+        // 初始化管理面板
+        function initAdminPanel() {
+            // 加载用户列表
+            function loadUsers() {
+                const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
+                const userList = document.getElementById('user-list');
+                userList.innerHTML = '';
+
+                Object.keys(users).forEach(username => {
+                    const user = users[username];
+                    const isAdminUser = user.isAdmin || (user.data && user.data.isAdmin);
+                    const div = document.createElement('div');
+                    div.className = 'user-item';
+                    div.innerHTML = `
+                        <span>
+                            <strong>${username}</strong>
+                            ${isAdminUser ? ' <span style="color:red;">[管理员]</span>' : ''}
+                            <br><small>注册时间: ${user.created || '未知'}</small>
+                        </span>
+                    `;
+                    userList.appendChild(div);
+                });
             }
 
-            if (user.password !== simpleHash(password)) {
-                errorEl.textContent = '密码错误';
-                return;
+            // 加载游戏记录
+            function loadRecords() {
+                const records = JSON.parse(localStorage.getItem('snake-records') || '[]');
+                const recordList = document.getElementById('record-list');
+                recordList.innerHTML = '';
+
+                records.sort((a, b) => b.score - a.score);
+
+                records.slice(0, 50).forEach((record, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'record-item';
+                    div.innerHTML = `
+                        <span>
+                            <strong>${record.username || record.playerName}</strong>
+                            - 分数: ${record.score}
+                            - 模式: ${record.mode}
+                            - 时间: ${record.date}
+                        </span>
+                        <span>#${index + 1}</span>
+                    `;
+                    recordList.appendChild(div);
+                });
             }
 
-            // 检查是否是管理员
-            const isAdmin = user.isAdmin || (user.data && user.data.isAdmin);
-            if (!isAdmin) {
-                errorEl.textContent = '您不是管理员';
-                return;
-            }
+            // 退出登录
+            document.getElementById('logout-btn').addEventListener('click', function() {
+                localStorage.removeItem('snake-current-user');
+                localStorage.removeItem('snake-admin');
+                window.location.href = 'admin.html';
+            });
 
-            // 登录成功
-            localStorage.setItem('snake-current-user', username);
-            localStorage.setItem('snake-admin', 'true');
+            // 初始化按钮事件
+            document.getElementById('refresh-users-btn').addEventListener('click', loadUsers);
+            document.getElementById('refresh-records-btn').addEventListener('click', loadRecords);
 
-            // 跳转到主页
-            window.location.href = 'index.html';
-        });
+            // 加载数据
+            loadUsers();
+            loadRecords();
+        }
     </script>
 </body>
 </html>
