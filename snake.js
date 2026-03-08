@@ -1215,6 +1215,24 @@ class AuthSystem {
             // 自动获取共享 Token（如果本地没有）
             await this.fetchSharedTokenConfig();
 
+            // 尝试从 GitHub 同步最新用户数据
+            const githubToken = this.getGitHubToken();
+            if (githubToken) {
+                document.getElementById('auth-error').textContent = '正在同步...';
+                await this.refreshUsers();
+                // 重新加载用户数据
+                this.users = this.loadUsers();
+            } else {
+                // 没有 Token，给出提示
+                document.getElementById('auth-error').textContent = '注意：无法连接云端，将使用本地注册';
+            }
+
+            // 检查用户名是否已存在（从同步后的数据中检查）
+            if (this.users[username]) {
+                document.getElementById('auth-error').textContent = '用户名已存在，请更换';
+                return;
+            }
+
             const result = this.register(username, password, email);
             if (result.success) {
                 // 注册成功后自动登录并进入游戏
