@@ -1635,8 +1635,21 @@ class AuthSystem {
             this.isAdmin = false;
             localStorage.setItem('snake-current-user', '游客');
             localStorage.setItem('snake-admin', 'false');
+            // 确保 auth.currentUser 也设置为游客（用于 saveRecord 判断）
+            this.currentUser = '游客';
             // 初始化游戏
-            this.initGame();
+            initGame();
+
+            // 加载全部玩家记录（游客也需要显示排行榜）
+            if (typeof firebase !== 'undefined') {
+                firebase.database().ref('records').once('value', (snapshot) => {
+                    const records = snapshot.val() || [];
+                    localStorage.setItem('snake-records', JSON.stringify(records));
+                    console.log('游客模式加载了 ' + records.length + ' 条记录');
+                    if (game) game.displayRecords();
+                });
+            }
+
             console.log('游客模式已启动');
         });
 
@@ -3362,10 +3375,26 @@ class SnakeGame {
     async saveRecord() {
         const records = this.loadRecords();
         const topRecords = this.loadTopRecords();
-        const currentUser = window.auth ? window.auth.currentUser : null;
+        const auth = window.auth;
+        const currentUser = auth ? auth.currentUser : null;
+
+        // 判断是否是游客模式
+        const isGuest = currentUser === '游客' || localStorage.getItem('snake-current-user') === '游客';
+        console.log('保存记录 - currentUser:', currentUser, 'isGuest:', isGuest, 'playerName:', this.playerName);
+
+        // 游客模式下，显示为 "玩家姓名-游客"（如果没有填姓名则显示"游客"）
+        let displayName = this.playerName;
+        if (isGuest) {
+            if (this.playerName && this.playerName !== '匿名玩家') {
+                displayName = this.playerName + '-游客';
+            } else {
+                displayName = '游客';
+            }
+        }
+
         const record = {
-            username: currentUser || this.playerName || '匿名',
-            playerName: this.isTwoPlayerMode ? (this.p1Score >= this.p2Score ? 'P1' : 'P2') : this.playerName,
+            username: isGuest ? displayName : (currentUser || this.playerName || '匿名'),
+            playerName: this.isTwoPlayerMode ? (this.p1Score >= this.p2Score ? 'P1' : 'P2') : displayName,
             score: this.isTwoPlayerMode ? Math.max(this.p1Score, this.p2Score) : this.score,
             mode: document.getElementById('game-mode').value,
             time: this.gameTime - this.timeRemaining,
@@ -3431,10 +3460,20 @@ class SnakeGame {
     // 获取当前用户的记录
     getUserRecords() {
         const allRecords = this.loadRecords();
-        const currentUser = window.auth ? window.auth.currentUser : null;
-        // 未登录时返回空
-        if (!currentUser) return [];
-        // 只返回当前用户的记录
+        const auth = window.auth;
+        const currentUser = auth ? auth.currentUser : null;
+
+        // 未登录且非游客模式时返回空
+        if (!currentUser && localStorage.getItem('snake-current-user') !== '游客') {
+            return [];
+        }
+
+        // 游客模式：根据 playerName 过滤（包含"-游客"后缀的）
+        if (currentUser === '游客' || localStorage.getItem('snake-current-user') === '游客') {
+            return allRecords.filter(r => r.playerName && r.playerName.endsWith('-游客'));
+        }
+
+        // 正常登录用户：根据 username 过滤
         return allRecords.filter(r => r.username === currentUser);
     }
 
@@ -3495,15 +3534,27 @@ class SnakeGame {
         // 按分数排序
         combinedRecords.sort((a, b) => b.score - a.score);
 
+        // 分页设置
+        const pageSize = 20;
+        if (!this.allRecordsPage) this.allRecordsPage = 1;
+        if (!this.myRecordsPage) this.myRecordsPage = 1;
+
+        // 全部玩家记录（分页）
         const allRecordsList = document.getElementById('records-list-all');
+        const totalAllPages = Math.ceil(combinedRecords.length / pageSize) || 1;
+        const allStart = (this.allRecordsPage - 1) * pageSize;
+        const allEnd = allStart + pageSize;
+        const allPageRecords = combinedRecords.slice(allStart, allEnd);
+
         if (combinedRecords.length === 0) {
             allRecordsList.innerHTML = '<div class="record-item">暂无记录</div>';
         } else {
             allRecordsList.innerHTML = '';
-            combinedRecords.forEach((record, index) => {
+            allPageRecords.forEach((record, index) => {
+                const realIndex = allStart + index;
                 const recordItem = document.createElement('div');
                 recordItem.className = 'record-item';
-                if (index < 3) recordItem.classList.add('highlight');
+                if (realIndex < 3) recordItem.classList.add('highlight');
 
                 const modeName = {
                     'classic': '经典',
@@ -3524,19 +3575,30 @@ class SnakeGame {
                 `;
                 allRecordsList.appendChild(recordItem);
             });
+
+            // 添加分页控件
+            if (combinedRecords.length > pageSize) {
+                allRecordsList.innerHTML += this.createPaginationHTML('all', this.allRecordsPage, totalAllPages);
+            }
         }
 
-        // 显示当前用户记录
+        // 我的记录（分页）
         const myRecords = this.getUserRecords();
         const myRecordsList = document.getElementById('records-list-mine');
+        const totalMyPages = Math.ceil(myRecords.length / pageSize) || 1;
+        const myStart = (this.myRecordsPage - 1) * pageSize;
+        const myEnd = myStart + pageSize;
+        const myPageRecords = myRecords.slice(myStart, myEnd);
+
         if (myRecords.length === 0) {
             myRecordsList.innerHTML = '<div class="record-item">暂无记录</div>';
         } else {
             myRecordsList.innerHTML = '';
-            myRecords.forEach((record, index) => {
+            myPageRecords.forEach((record, index) => {
+                const realIndex = myStart + index;
                 const recordItem = document.createElement('div');
                 recordItem.className = 'record-item';
-                if (index < 3) recordItem.classList.add('highlight');
+                if (realIndex < 3) recordItem.classList.add('highlight');
 
                 const modeName = {
                     'classic': '经典',
@@ -3557,7 +3619,50 @@ class SnakeGame {
                 `;
                 myRecordsList.appendChild(recordItem);
             });
+
+            // 添加分页控件
+            if (myRecords.length > pageSize) {
+                myRecordsList.innerHTML += this.createPaginationHTML('my', this.myRecordsPage, totalMyPages);
+            }
         }
+    }
+
+    // 创建分页 HTML
+    createPaginationHTML(type, currentPage, totalPages) {
+        let html = '<div class="pagination" style="display:flex;justify-content:center;align-items:center;margin-top:15px;gap:10px;">';
+
+        // 上一页
+        if (currentPage > 1) {
+            html += `<button class="page-btn" data-type="${type}" data-page="${currentPage - 1}">上一页</button>`;
+        }
+
+        // 页码
+        html += `<span style="color:#666;">第 ${currentPage} / ${totalPages} 页</span>`;
+
+        // 下一页
+        if (currentPage < totalPages) {
+            html += `<button class="page-btn" data-type="${type}" data-page="${currentPage + 1}">下一页</button>`;
+        }
+
+        html += '</div>';
+
+        // 添加点击事件
+        setTimeout(() => {
+            document.querySelectorAll('.page-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const btnType = e.target.dataset.type;
+                    const page = parseInt(e.target.dataset.page);
+                    if (btnType === 'all') {
+                        this.allRecordsPage = page;
+                    } else {
+                        this.myRecordsPage = page;
+                    }
+                    this.displayRecords();
+                });
+            });
+        }, 100);
+
+        return html;
     }
 
     async clearRecords() {
