@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃蛇游戏 - 使用说明</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.1em; opacity: 0.9; }
+        .content { padding: 30px; }
+        .section {
+            margin-bottom: 35px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #667eea;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .section h3 {
+            color: #333;
+            font-size: 1.2em;
+            margin: 20px 0 15px 0;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .feature-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .feature-item strong { color: #667eea; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover { background: #f5f5f5; }
+        .icon { font-size: 1.3em; text-align: center; }
+        .note {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #ffc107;
+        }
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        .achievement-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .achievement-item:hover { transform: translateY(-3px); }
+        .achievement-icon { font-size: 2em; margin-bottom: 8px; }
+        .achievement-name { font-weight: 600; color: #333; }
+        .achievement-desc { font-size: 0.85em; color: #666; margin-top: 5px; }
+        .faq-grid {
+            display: grid;
+            gap: 15px;
+        }
+        .faq-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .faq-question {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.05em;
+        }
+        .faq-answer { color: #555; }
+        .sync-list {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        .sync-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .sync-item:last-child { border-bottom: none; }
+        .sync-num {
+            background: #667eea;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .sync-text { color: #333; }
+        .mode-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        .mode-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .mode-card:hover { transform: translateY(-3px); }
+        .mode-icon { font-size: 2.5em; margin-bottom: 10px; }
+        .mode-name { font-weight: 600; color: #333; margin-bottom: 8px; }
+        .mode-desc { font-size: 0.85em; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐍 贪吃蛇游戏</h1>
+            <p>使用说明 & 新手攻略</p>
+        </div>
+
+        <div class="content">
+            <!-- 云端功能 -->
+            <div class="section">
+                <h2>☁️ 云端功能</h2>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <strong>📱 用户注册</strong><br>
+                        注册账号，保存游戏进度
+                    </div>
+                    <div class="feature-item">
+                        <strong>🔄 自动同步</strong><br>
+                        游戏数据自动云端保存
+                    </div>
+                    <div class="feature-item">
+                        <strong>👥 多人共享</strong><br>
+                        查看所有玩家记录
+                    </div>
+                    <div class="feature-item">
+                        <strong>🏆 成就系统</strong><br>
+                        成就进度云端存储
+                    </div>
+                </div>
+            </div>
+
+            <!-- 游戏目标 -->
+            <div class="section">
+                <h2>🎯 游戏目标</h2>
+                <p>控制蛇吃到食物，获得尽可能高的分数。吃到食物后蛇会变长，速度会逐渐增加，挑战极限高分！</p>
+            </div>
+
+            <!-- 控制方式 -->
+            <div class="section">
+                <h2>⌨️ 控制方式</h2>
+                <h3>单人模式</h3>
+                <table>
+                    <tr><th>按键</th><th>功能</th></tr>
+                    <tr><td>↑ / W</td><td>向上移动</td></tr>
+                    <tr><td>↓ / S</td><td>向下移动</td></tr>
+                    <tr><td>← / A</td><td>向左移动</td></tr>
+                    <tr><td>→ / D</td><td>向右移动</td></tr>
+                    <tr><td>空格</td><td>暂停/继续</td></tr>
+                    <tr><td>F</td><td>全屏切换</td></tr>
+                </table>
+
+                <h3>双人对战模式</h3>
+                <table>
+                    <tr><th>玩家</th><th>按键</th><th>功能</th></tr>
+                    <tr><td>P1</td><td>W/A/S/D</td><td>控制移动</td></tr>
+                    <tr><td>P2</td><td>方向键</td><td>控制移动</td></tr>
+                </table>
+            </div>
+
+            <!-- 游戏模式 -->
+            <div class="section">
+                <h2>🎮 游戏模式</h2>
+                <div class="mode-cards">
+                    <div class="mode-card">
+                        <div class="mode-icon">🏠</div>
+                        <div class="mode-name">经典模式</div>
+                        <div class="mode-desc">传统玩法，可设置游戏时间，可启用道具</div>
+                    </div>
+                    <div class="mode-card">
+                        <div class="mode-icon">⏰</div>
+                        <div class="mode-name">限时挑战</div>
+                        <div class="mode-desc">60/90/120秒时限挑战，限定时间内获得最高分</div>
+                    </div>
+                    <div class="mode-card">
+                        <div class="mode-icon">♾️</div>
+                        <div class="mode-name">无尽模式</div>
+                        <div class="mode-desc">无时间限制，每吃5个食物速度+1</div>
+                    </div>
+                    <div class="mode-card">
+                        <div class="mode-icon">⚔️</div>
+                        <div class="mode-name">双人对战</div>
+                        <div class="mode-desc">双人同屏对战，先撞墙者输</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 道具系统 -->
+            <div class="section">
+                <h2>🎁 道具系统</h2>
+
+                <h3>食物类</h3>
+                <table>
+                    <tr><th>道具</th><th class="icon">图标</th><th>效果</th></tr>
+                    <tr><td>普通食物</td><td class="icon">🍎</td><td>得分 10 + 速度×2</td></tr>
+                    <tr><td>金色食物</td><td class="icon">★</td><td>+50分</td></tr>
+                </table>
+
+                <h3>障碍类</h3>
+                <table>
+                    <tr><th>道具</th><th class="icon">图标</th><th>效果</th></tr>
+                    <tr><td>炸弹</td><td class="icon">💣</td><td>-20分，蛇身缩短2节</td></tr>
+                </table>
+
+                <h3>加速类（永久提升基础速度）</h3>
+                <table>
+                    <tr><th>道具</th><th class="icon">图标</th><th>效果</th></tr>
+                    <tr><td>汽车</td><td class="icon">🚗</td><td>速度 +1</td></tr>
+                    <tr><td>高铁</td><td class="icon">🚄</td><td>速度 +2</td></tr>
+                    <tr><td>飞机</td><td class="icon">✈️</td><td>速度 +3</td></tr>
+                </table>
+
+                <h3>减速类（永久降低基础速度）</h3>
+                <table>
+                    <tr><th>道具</th><th class="icon">图标</th><th>效果</th></tr>
+                    <tr><td>蜗牛</td><td class="icon">🐌</td><td>速度 -3</td></tr>
+                    <tr><td>考拉</td><td class="icon">🐨</td><td>速度 -2</td></tr>
+                    <tr><td>乌龟</td><td class="icon">🐢</td><td>速度 -1</td></tr>
+                </table>
+
+                <h3>特殊类</h3>
+                <table>
+                    <tr><th>道具</th><th class="icon">图标</th><th>效果</th></tr>
+                    <tr><td>无敌</td><td class="icon">🛡️</td><td>获得1次穿墙机会（撞墙不死）</td></tr>
+                    <tr><td>幽灵</td><td class="icon">👻</td><td>获得1次穿过自身机会（撞自己不死）</td></tr>
+                </table>
+
+                <div class="note">
+                    <strong>💡 注意：</strong>加速/减速道具是永久改变基础速度，游戏重启后恢复。
+                </div>
+            </div>
+
+            <!-- 计分规则 -->
+            <div class="section">
+                <h2>📊 计分规则</h2>
+                <table>
+                    <tr><th>速度等级</th><th>每次得分</th></tr>
+                    <tr><td>速度 1 级</td><td>12 分</td></tr>
+                    <tr><td>速度 5 级</td><td>20 分</td></tr>
+                    <tr><td>速度 10 级</td><td>30 分</td></tr>
+                </table>
+                <p style="margin-top:10px;color:#666;">基础分数: 10 + 速度×2</p>
+            </div>
+
+            <!-- 成就系统 -->
+            <div class="section">
+                <h2>🏆 成就系统</h2>
+                <div class="achievement-grid">
+                    <div class="achievement-item">
+                        <div class="achievement-icon">🍎</div>
+                        <div class="achievement-name">初试身手</div>
+                        <div class="achievement-desc">首次吃到食物</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">🔥</div>
+                        <div class="achievement-name">连击达人</div>
+                        <div class="achievement-desc">连续吃10个食物</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">⭐</div>
+                        <div class="achievement-name">初露头角</div>
+                        <div class="achievement-desc">突破100分</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">🌟</div>
+                        <div class="achievement-name">高分选手</div>
+                        <div class="achievement-desc">突破500分</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">👑</div>
+                        <div class="achievement-name">大神级别</div>
+                        <div class="achievement-desc">突破1000分</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">⚡</div>
+                        <div class="achievement-name">速度之王</div>
+                        <div class="achievement-desc">速度达到10级</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">🎮</div>
+                        <div class="achievement-name">小试牛刀</div>
+                        <div class="achievement-desc">完成10局游戏</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">🏆</div>
+                        <div class="achievement-name">资深玩家</div>
+                        <div class="achievement-desc">完成50局游戏</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">🏅</div>
+                        <div class="achievement-name">传奇人物</div>
+                        <div class="achievement-desc">完成100局游戏</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 皮肤系统 -->
+            <div class="section">
+                <h2>🎨 皮肤系统</h2>
+                <h3>蛇身颜色</h3>
+                <p>绿色（默认）、蓝色、红色、彩虹（渐变色）</p>
+
+                <h3>食物样式</h3>
+                <p>圆形（默认）、星星 ★、爱心 ♥</p>
+
+                <h3>背景样式</h3>
+                <p>网格（默认）、纯色、渐变</p>
+            </div>
+
+            <!-- 音效系统 -->
+            <div class="section">
+                <h2>🔊 音效系统</h2>
+                <p>可单独开关以下音效：</p>
+                <ul style="margin:15px 0 0 20px;">
+                    <li>🎵 吃到食物音效</li>
+                    <li>🎁 道具触发音效</li>
+                    <li>💀 游戏结束音效</li>
+                    <li>🎼 背景音乐</li>
+                </ul>
+            </div>
+
+            <!-- 常见问题 -->
+            <div class="section">
+                <h2>❓ 常见问题</h2>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <div class="faq-question">Q: 如何开始游戏？</div>
+                        <div class="faq-answer">A: 输入玩家姓名，选择游戏模式，点击"开始游戏"按钮或按空格键。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Q: 如何暂停游戏？</div>
+                        <div class="faq-answer">A: 点击"暂停"按钮或按空格键。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Q: 记录会自动保存吗？</div>
+                        <div class="faq-answer">A: 是的，游戏结束后会自动保存到 Firebase 云端，多设备同步。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Q: 如何注册和登录？</div>
+                        <div class="faq-answer">A: 打开游戏后会自动显示登录/注册界面。输入用户名和密码（至少3位）即可注册。登录后游戏数据会自动同步到云端。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Q: 云端数据会自动同步吗？</div>
+                        <div class="faq-answer">
+                            <div class="sync-list">
+                                <div class="sync-item"><span class="sync-num">1</span><span class="sync-text">登录时：从云端下载最新数据到本地</span></div>
+                                <div class="sync-item"><span class="sync-num">2</span><span class="sync-text">游戏结束：立即上传到云端</span></div>
+                                <div class="sync-item"><span class="sync-num">3</span><span class="sync-text">登出时：保存所有数据到云端</span></div>
+                                <div class="sync-item"><span class="sync-num">4</span><span class="sync-text">再次开始游戏：从云端获取最新数据</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Q: 无尽模式怎么玩？</div>
+                        <div class="faq-answer">A: 选择"无尽模式"，每吃5个食物速度会自动+1，没有时间限制，挑战最高分！</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Q: 道具效果是永久的吗？</div>
+                        <div class="faq-answer">A: 加速/减速道具是永久改变本局基础速度（汽车+1、高铁+2、飞机+3，蜗牛-1、考拉-2、乌龟-3）。无敌道具提供1次撞墙保护机会。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Q: 如何解锁成就？</div>
+                        <div class="faq-answer">A: 点击"成就"按钮查看当前进度，完成相应条件即可解锁。解锁时屏幕会显示祝贺词。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Q: 如何更换皮肤？</div>
+                        <div class="faq-answer">A: 点击"皮肤"按钮，选择喜欢的样式后保存即可。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
