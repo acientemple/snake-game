@@ -2300,6 +2300,7 @@ function initGame() {
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d');
     game = new SnakeGame(canvas, ctx);
+    window.game = game; // 供虚拟控制键使用
 
     game.displayRecords('mine');
     game.updatePlayerNamesDropdown();
@@ -2366,13 +2367,18 @@ function initDeviceDetection() {
 
 // 处理虚拟控制键方向
 function handleVirtualControl(dir) {
-    if (!window.game) return;
+    if (!window.game) {
+        console.log('游戏未初始化');
+        return;
+    }
 
     const game = window.game;
 
-    // 如果游戏未运行，点击开始
+    // 如果游戏未运行，点击开始游戏并设置方向
     if (!game.isRunning) {
         game.start();
+        // 设置初始方向
+        setDirection(game, dir);
         return;
     }
 
@@ -2383,6 +2389,11 @@ function handleVirtualControl(dir) {
     }
 
     // 根据方向控制蛇
+    setDirection(game, dir);
+}
+
+// 设置蛇的方向
+function setDirection(game, dir) {
     switch(dir) {
         case 'up':
             if (game.direction.y === 0) game.direction = {x: 0, y: -1};

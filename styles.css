@@ -985,11 +985,17 @@ body {
     justify-content: center;
     align-items: center;
     padding: 15px;
-    gap: 5px;
 }
 
 .virtual-controls.show {
     display: flex;
+}
+
+.vc-cross {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
 }
 
 .vc-row {
@@ -997,12 +1003,21 @@ body {
     gap: 5px;
 }
 
+.vc-row-top {
+    margin-bottom: 5px;
+}
+
+.vc-row-middle {
+    display: flex;
+    justify-content: center;
+}
+
 .vc-btn {
-    width: 60px;
-    height: 60px;
-    font-size: 24px;
+    width: 65px;
+    height: 65px;
+    font-size: 28px;
     border: none;
-    border-radius: 12px;
+    border-radius: 15px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     cursor: pointer;
@@ -1013,12 +1028,8 @@ body {
 }
 
 .vc-btn:active {
-    transform: scale(0.95);
+    transform: scale(0.92);
     background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
-}
-
-.vc-btn.vc-up, .vc-btn.vc-down {
-    margin: 0 auto;
 }
 
 /* ==================== 响应式布局 ==================== */
