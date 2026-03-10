@@ -124,8 +124,8 @@
             </div>
             <div class="setting-item">
                 <label for="game-speed">游戏速度:</label>
-                <input type="range" id="game-speed" min="1" max="10" value="5">
-                <span id="speed-value">5</span>
+                <input type="range" id="game-speed" min="1" max="20" value="5">
+                <span id="speed-value">🐢 龟</span>
             </div>
             <div class="setting-item" id="powerups-container">
                 <label>
@@ -170,8 +170,7 @@
                 </div>
                 <div class="records-column">
                     <h3>我的记录</h3>
-                    <button id="clear-records-btn" onclick="clearMyRecords()">清除我的记录</button>
-<script>function clearMyRecords(){ if(!window.game){alert('请先登录');return;} window.game.clearRecords(); }</script>
+                    <button id="clear-records-btn">清除我的记录</button>
                     <div id="records-list-mine"></div>
                 </div>
             </div>

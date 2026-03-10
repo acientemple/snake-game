@@ -2306,6 +2306,12 @@ function initGame() {
     game.handleModeChange(document.getElementById('game-mode').value);
     game.updateModeUI(document.getElementById('game-mode').value);
     game.initRecordTabs();
+
+    // 初始化速度显示
+    const speed = parseInt(document.getElementById('game-speed').value);
+    document.getElementById('speed-value').textContent = game.getSpeedLabel(speed);
+    document.getElementById('current-speed').textContent = speed;
+
     game.draw();
 }
 
@@ -2478,8 +2484,8 @@ class SnakeGame {
         document.getElementById('game-speed').addEventListener('input', (e) => {
             this.speed = parseInt(e.target.value);
             this.baseSpeed = this.speed;
-            document.getElementById('speed-value').textContent = this.speed;
-            document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+            document.getElementById('speed-value').textContent = this.getSpeedLabel(this.speed);
+            document.getElementById('current-speed').textContent = this.speed;
         });
 
         // 游戏模式控制
@@ -2681,50 +2687,50 @@ class SnakeGame {
                 break;
             // 加速道具
             case 'car': // 汽车 +1
-                this.speed = Math.min(10, this.baseSpeed + 1);
+                this.speed = Math.min(20, this.baseSpeed + 1);
                 this.baseSpeed = this.speed;
-                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                document.getElementById('current-speed').textContent = this.speed;
                 this.showPowerupNotification('🚗 汽车! 速度+1', true);
                 break;
             case 'train': // 高铁 +2
-                this.speed = Math.min(10, this.baseSpeed + 2);
+                this.speed = Math.min(20, this.baseSpeed + 2);
                 this.baseSpeed = this.speed;
-                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                document.getElementById('current-speed').textContent = this.speed;
                 this.showPowerupNotification('🚄 高铁! 速度+2', true);
                 break;
             case 'plane': // 飞机 +3
-                this.speed = Math.min(10, this.baseSpeed + 3);
+                this.speed = Math.min(20, this.baseSpeed + 3);
                 this.baseSpeed = this.speed;
-                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                document.getElementById('current-speed').textContent = this.speed;
                 this.showPowerupNotification('✈️ 飞机! 速度+3', true);
                 break;
             // 减速道具
             case 'snail': // 蜗牛 -3
                 this.speed = Math.max(1, this.baseSpeed - 3);
                 this.baseSpeed = this.speed;
-                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                document.getElementById('current-speed').textContent = this.speed;
                 this.showPowerupNotification('🐌 蜗牛! 速度-3', false);
                 break;
             case 'koala': // 考拉 -2
                 this.speed = Math.max(1, this.baseSpeed - 2);
                 this.baseSpeed = this.speed;
-                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                document.getElementById('current-speed').textContent = this.speed;
                 this.showPowerupNotification('🐨 考拉! 速度-2', false);
                 break;
             case 'turtle': // 乌龟 -1
                 this.speed = Math.max(1, this.baseSpeed - 1);
                 this.baseSpeed = this.speed;
-                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                document.getElementById('current-speed').textContent = this.speed;
                 this.showPowerupNotification('🐢 乌龟! 速度-1', false);
                 break;
             case 'speedDown':
                 this.activeEffects.speedDown = true;
                 this.speed = Math.max(1, this.baseSpeed - 3);
-                document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                document.getElementById('current-speed').textContent = this.speed;
                 setTimeout(() => {
                     this.activeEffects.speedDown = false;
-                    this.speed = this.getCurrentSpeed();
-                    document.getElementById('current-speed').textContent = this.getCurrentSpeed();
+                    this.speed = this.baseSpeed;
+                    document.getElementById('current-speed').textContent = this.speed;
                 }, 5000);
                 break;
             case 'invincible':
@@ -2742,6 +2748,20 @@ class SnakeGame {
 
     getCurrentSpeed() {
         return this.speed;
+    }
+
+    // 速度图标映射
+    getSpeedIcon(speed) {
+        const icons = ['', '🐢', '🦀', '🦆', '🐱', '🐶', '🐑', '🐒', '🦌', '🐯', '🐆',
+                       '🚗', '🚄', '🚁', '🛩️', '💺', '✈️', '🛸', '🚀', '⛴️', '💫'];
+        return icons[speed] || speed;
+    }
+
+    // 速度图标+文字映射
+    getSpeedLabel(speed) {
+        const labels = ['', '🐢 龟', '🦀 蟹', '🦆 鸭', '🐱 猫', '🐶 狗', '🐑 羊', '🐒 猴', '🦌 鹿', '🐯 虎', '🐆 豹',
+                       '🚗 汽车', '🚄 高铁', '🚁 直升机', '🛩️ 小型飞机', '💺 商务飞机', '✈️ 战斗机', '🛸 航天飞机', '🚀 火箭', '⛴️ 飞船', '💫 光速'];
+        return labels[speed] || speed;
     }
 
     draw() {
@@ -2922,7 +2942,7 @@ class SnakeGame {
                 this.ctx.font = `${size - 2}px Arial`;
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
-                this this.ctx.fillText('🐛', centerX, centerY);
+                this.ctx.fillText('🐛', centerX, centerY);
                 break;
             case 'apple':
                 this.ctx.font = `${size - 2}px Arial`;
@@ -3226,10 +3246,10 @@ class SnakeGame {
 
         // 无尽模式 - 每吃5个加速
         if (this.isEndlessMode && this.foodsEaten % 5 === 0) {
-            this.baseSpeed = Math.min(10, this.baseSpeed + 1);
+            this.baseSpeed = Math.min(20, this.baseSpeed + 1);
             this.speed = this.baseSpeed;
             document.getElementById('current-speed').textContent = this.speed;
-            document.getElementById('speed-value').textContent = this.speed;
+            document.getElementById('speed-value').textContent = this.getSpeedLabel(this.speed);
             document.getElementById('game-speed').value = this.speed;
             // 显示加速提示
             this.showSpeedNotification(this.speed);
@@ -3870,7 +3890,7 @@ class SnakeGame {
 
     showSpeedNotification(speed) {
         const notification = document.getElementById('achievement-notification');
-        notification.textContent = `⚡ 速度提升! 当前速度: ${speed}`;
+        notification.textContent = `⚡ 速度提升! 当前速度: ${this.getSpeedIcon(speed)}`;
         notification.classList.remove('show', 'speed');
         void notification.offsetWidth;
         notification.classList.add('show', 'speed');

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试登录</title>
+</head>
+<body>
+    <h1>测试页面</h1>
+    <input type="text" id="test-username" placeholder="用户名" value="henry">
+    <input type="text" id="test-password" placeholder="密码" value="624ad31f">
+    <button onclick="testLogin()">测试登录</button>
+    <div id="result"></div>
+
+    <script>
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return hash.toString(16);
+        }
+
+        // 用户数据
+        const users = {
+            "henry": {
+                password: "624ad31f",
+                email: "",
+                created: "2026-03-07T15:53:30.252Z",
+                data: {}
+            }
+        };
+
+        function testLogin() {
+            const username = document.getElementById('test-username').value.trim();
+            const password = document.getElementById('test-password').value;
+            const result = document.getElementById('result');
+
+            const hashedPassword = simpleHash(password);
+            result.innerHTML = `输入密码: ${password}<br>哈希后: ${hashedPassword}<br>用户密码: ${users[username]?.password}<br>匹配: ${hashedPassword === users[username]?.password}`;
+        }
+    </script>
+</body>
+</html>

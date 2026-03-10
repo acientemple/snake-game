@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>导入数据到 Firebase</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body>
+    <h1>导入数据到 Firebase</h1>
+    <div id="status">准备就绪，点击按钮开始导入...</div>
+    <br>
+    <button onclick="importData()" style="padding: 10px 20px; font-size: 16px;">导入数据</button>
+
+    <script>
+        // Firebase 配置
+        const firebaseConfig = {
+            projectId: "snake-game-6e39e",
+            databaseURL: "https://snake-game-6e39e-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // 简单的哈希函数
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return hash.toString(16);
+        }
+
+        // 要导入的数据（密码已哈希）
+        const data = {
+            users: {
+                "1111": {"password": simpleHash("170440"), "email": "", "created": "2026-03-07T18:30:58.283Z", "data": {}},
+                "2222": {"password": simpleHash("177c80"), "email": "", "created": "2026-03-07T18:36:25.537Z", "data": {}},
+                "3333": {"password": simpleHash("17f4c0"), "email": "", "created": "2026-03-07T19:32:53.524Z", "data": {}},
+                "james": {"password": simpleHash("624ad31f"), "email": "", "created": "2026-03-07T15:35:25.743Z", "data": {}},
+                "henry": {"password": simpleHash("624ad31f"), "email": "", "created": "2026-03-07T15:53:30.252Z", "data": {}},
+                "becky": {"password": simpleHash("624ad31f"), "email": "", "created": "2026-03-07T15:56:36.480Z", "data": {}},
+                "xuemei": {"password": simpleHash("624ad31f"), "email": "", "created": "2026-03-07T16:04:10.650Z", "data": {}},
+                "gastation": {"password": simpleHash("624ad31f"), "email": "", "created": "2026-03-07T17:28:59.973Z", "data": {}}
+            },
+            records: [
+                {"username":"henry","playerName":"henry","score":212,"mode":"classic","time":0,"date":"2026/3/8 03:30:13"},
+                {"username":"gastation","playerName":"gastation","score":174,"mode":"classic","time":0,"date":"2026/3/8 03:43:19"},
+                {"username":"acientemple","playerName":"acientemple","score":120,"mode":"classic","time":0,"date":"2026/3/8 03:15:39"},
+                {"username":"becky","playerName":"becky","score":60,"mode":"classic","time":0,"date":"2026/3/8 03:32:37"},
+                {"username":"james","playerName":"james","score":40,"mode":"classic","time":0,"date":"2026/3/8 03:16:23"},
+                {"username":"james","playerName":"james","score":40,"mode":"classic","time":0,"date":"2026/3/8 03:29:06"},
+                {"username":"2222","playerName":"2222","score":20,"mode":"classic","time":0,"date":"2026/3/8 03:44:46"},
+                {"username":"3333","playerName":"3333","score":0,"mode":"classic","time":0,"date":"2026/3/8 03:33:13"}
+            ],
+            topRecords: [
+                {"username":"henry","playerName":"henry","score":212,"mode":"classic","time":0,"date":"2026/3/8 03:30:13"},
+                {"username":"gastation","playerName":"gastation","score":174,"mode":"classic","time":0,"date":"2026/3/8 03:43:19"},
+                {"username":"acientemple","playerName":"acientemple","score":120,"mode":"classic","time":0,"date":"2026/3/8 03:15:39"},
+                {"username":"becky","playerName":"becky","score":60,"mode":"classic","time":0,"date":"2026/3/8 03:32:37"},
+                {"username":"james","playerName":"james","score":40,"mode":"classic","time":0,"date":"2026/3/8 03:16:23"},
+                {"username":"james","playerName":"james","score":40,"mode":"classic","time":0,"date":"2026/3/8 03:29:06"}
+            ]
+        };
+
+        async function importData() {
+            const status = document.getElementById('status');
+            try {
+                status.textContent = '正在导入用户数据...';
+
+                // 导入用户
+                for (const [key, value] of Object.entries(data.users)) {
+                    await database.ref('users/' + key).set(value);
+                }
+                status.textContent = '用户导入完成，正在导入成绩...';
+
+                // 导入成绩
+                for (const record of data.records) {
+                    await database.ref('records').push().set(record);
+                }
+                status.textContent = '成绩导入完成，正在导入最高分...';
+
+                // 导入最高分
+                for (const record of data.topRecords) {
+                    await database.ref('topRecords').push().set(record);
+                }
+
+                status.textContent = '✅ 导入完成！8个用户、8条成绩、6条最高分已保存到 Firebase';
+                status.style.color = 'green';
+            } catch (e) {
+                status.textContent = '❌ 导入失败: ' + e.message;
+                status.style.color = 'red';
+            }
+        }
+    </script>
+</body>
+</html>

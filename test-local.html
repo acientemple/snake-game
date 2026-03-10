@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>本地测试登录</title>
+</head>
+<body>
+    <h1>本地测试登录</h1>
+    <div id="output" style="font-family: monospace; white-space: pre-wrap; background: #f0f0f0; padding: 10px;"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        function log(msg) {
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        // 加载本地用户
+        const localUsers = JSON.parse(localStorage.getItem('snake-users') || '{}');
+        log('本地用户: ' + JSON.stringify(Object.keys(localUsers)));
+
+        // 简单的哈希函数
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return hash.toString(16);
+        }
+
+        const username = 'henry';
+        const password = '624ad31f';
+        const hashedPassword = simpleHash(password);
+
+        log('\n测试 henry / 624ad31f:');
+        log('  哈希后: ' + hashedPassword);
+        log('  存储的密码: ' + localUsers['henry']?.password);
+        log('  匹配: ' + (hashedPassword === localUsers['henry']?.password));
+
+        if (hashedPassword === localUsers['henry']?.password) {
+            log('\n✅ 本地登录成功!');
+        } else {
+            log('\n❌ 本地登录失败!');
+        }
+    </script>
+</body>
+</html>

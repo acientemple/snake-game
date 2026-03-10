@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试游戏</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            projectId: "snake-game-6e39e",
+            databaseURL: "https://snake-game-6e39e-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
+</head>
+<body>
+    <div id="auth-panel" class="modal">
+        <div class="modal-content auth-content">
+            <h2>测试登录</h2>
+            <input type="text" id="login-username" value="henry">
+            <input type="text" id="login-password" value="henry">
+            <button id="login-btn">登录</button>
+        </div>
+    </div>
+
+    <div class="game-container" id="game-container" style="display:none;">
+        <div class="game-header">
+            <h1>🐍 贪吃蛇游戏</h1>
+        </div>
+        <canvas id="game-canvas" width="600" height="600" style="border:2px solid #27ae60;"></canvas>
+        <div class="game-controls">
+            <button id="start-btn">开始游戏</button>
+            <button id="pause-btn">暂停</button>
+        </div>
+        <div id="score">分数: 0</div>
+    </div>
+
+    <script>
+        var game = null;
+
+        // 简单哈希
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return hash.toString(16);
+        }
+
+        // 加载用户
+        async function loadUsers() {
+            const snapshot = await firebase.database().ref('users').once('value');
+            return snapshot.val() || {};
+        }
+
+        // 登录
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            const users = await loadUsers();
+            const user = users[username];
+
+            if (user && user.password === simpleHash(password)) {
+                alert('登录成功!');
+                document.getElementById('auth-panel').classList.remove('show');
+                document.getElementById('game-container').style.display = 'block';
+
+                // 初始化游戏
+                const canvas = document.getElementById('game-canvas');
+                const ctx = canvas.getContext('2d');
+                game = new window.SnakeGame(canvas, ctx);
+                game.start();
+            } else {
+                alert('登录失败');
+            }
+        });
+    </script>
+
+    <script src="snake.js?v=20240323"></script>
+</body>
+</html>

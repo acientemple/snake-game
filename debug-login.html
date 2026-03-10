@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试登录</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body>
+    <h1>登录测试</h1>
+    <div id="output" style="font-family: monospace; white-space: pre-wrap;"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        function log(msg) {
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        // Firebase 配置
+        const firebaseConfig = {
+            projectId: "snake-game-6e39e",
+            databaseURL: "https://snake-game-6e39e-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+
+        log('1. 初始化 Firebase...');
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        log('   Firebase 初始化完成');
+
+        // 简单的哈希函数
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return hash.toString(16);
+        }
+
+        // 测试登录
+        async function testLogin() {
+            log('\n2. 从 Firebase 加载用户...');
+            const snapshot = await database.ref('users').once('value');
+            const users = snapshot.val() || {};
+            log('   用户数量: ' + Object.keys(users).length + ', 用户: ' + JSON.stringify(Object.keys(users)));
+
+            const username = 'henry';
+            const password = '624ad31f';
+            const hashedPassword = simpleHash(password);
+
+            log('\n3. 尝试登录...');
+            log('   输入用户名: ' + username);
+            log('   输入密码: ' + password);
+            log('   哈希后密码: ' + hashedPassword);
+
+            const user = users[username];
+            if (!user) {
+                log('   用户不存在!');
+                return;
+            }
+
+            log('   数据库中存储的密码: ' + user.password);
+            log('   密码匹配: ' + (hashedPassword === user.password));
+
+            if (hashedPassword === user.password) {
+                log('\n✅ 登录成功!');
+            } else {
+                log('\n❌ 密码错误!');
+            }
+        }
+
+        testLogin().catch(e => log('错误: ' + e.message));
+    </script>
+</body>
+</html>

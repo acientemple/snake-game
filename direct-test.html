@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>直接测试登录</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body>
+    <h1>直接测试登录</h1>
+
+    <div class="modal show" style="display: block; position: relative;">
+        <div class="modal-content auth-content">
+            <h2>🐍 贪吃蛇游戏</h2>
+            <div id="login-form">
+                <h3>登录</h3>
+                <input type="text" id="login-username" placeholder="用户名" value="henry">
+                <input type="password" id="login-password" placeholder="密码" value="624ad31f">
+                <button id="login-btn" class="auth-btn">登录</button>
+                <p id="auth-error" style="color: red;"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="output" style="margin-top: 20px; font-family: monospace; white-space: pre-wrap; background: #f0f0f0; padding: 10px;"></div>
+
+    <script>
+        const output = document.getElementById('output');
+        function log(msg) {
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        // Firebase 配置
+        const firebaseConfig = {
+            projectId: "snake-game-6e39e",
+            databaseURL: "https://snake-game-6e39e-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+
+        log('1. 初始化 Firebase...');
+        firebase.initializeApp(firebaseConfig);
+
+        // 简单的哈希函数
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return hash.toString(16);
+        }
+
+        // 加载用户
+        function loadUsers() {
+            const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
+            return users;
+        }
+
+        // 绑定登录按钮
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            log('\n2. 登录按钮点击');
+
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            log('   用户名: ' + username);
+            log('   密码: ' + password);
+
+            if (!username) {
+                document.getElementById('auth-error').textContent = '请输入用户名';
+                return;
+            }
+            if (!password) {
+                document.getElementById('auth-error').textContent = '请输入密码';
+                return;
+            }
+
+            // 加载本地用户
+            let users = loadUsers();
+            log('   本地用户数: ' + Object.keys(users).length);
+
+            // 从 Firebase 加载
+            try {
+                const snapshot = await firebase.database().ref('users').once('value');
+                const cloudUsers = snapshot.val() || {};
+                log('   云端用户数: ' + Object.keys(cloudUsers).length);
+
+                users = { ...users, ...cloudUsers };
+                log('   合并后用户数: ' + Object.keys(users).length);
+            } catch (e) {
+                log('   Firebase 加载失败: ' + e.message);
+            }
+
+            // 检查用户 - 使用合并后的 users
+            const user = users[username];
+            if (!user) {
+                document.getElementById('auth-error').textContent = '用户不存在';
+                log('   用户不存在');
+                return;
+            }
+
+            log('   找到用户，密码: ' + user.password);
+            log('   输入密码哈希: ' + simpleHash(password));
+
+            // 直接验证密码
+            if (user.password === simpleHash(password)) {
+                document.getElementById('auth-error').textContent = '';
+                log('\n✅ 登录成功!');
+            } else {
+                document.getElementById('auth-error').textContent = '密码错误';
+                log('\n❌ 密码错误');
+            }
+        });
+
+        log('页面加载完成，点击登录按钮测试');
+    </script>
+</body>
+</html>
