@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>贪吃蛇游戏</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            projectId: "snake-game-6e39e",
+            databaseURL: "https://snake-game-6e39e-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
 </head>
 <body>
     <!-- 成就提示 -->
@@ -18,10 +28,15 @@
                 <h3>登录</h3>
                 <input type="text" id="login-username" placeholder="用户名">
                 <input type="password" id="login-password" placeholder="密码">
+                <label class="remember-me">
+                    <input type="checkbox" id="remember-me">
+                    记住用户名和密码
+                    <button type="button" id="clear-credentials" class="clear-credentials-btn">清除</button>
+                </label>
                 <button id="login-btn" class="auth-btn">登录</button>
                 <p>还没有账号？<a href="#" id="show-register">注册</a></p>
                 <p><a href="#" id="show-admin">管理员入口</a></p>
-                <p><a href="#" id="show-forgot" style="font-size:12px;color:#666;">忘记密码？</a></p>
+                <p><a href="#" id="show-forgot">忘记密码？</a></p>
                 <!-- 隐藏的按钮元素，用于JS事件绑定 -->
                 <button id="confirm-change-pass" style="display:none;"></button>
             </div>
@@ -30,7 +45,7 @@
                 <input type="text" id="admin-username" placeholder="管理员用户名">
                 <input type="password" id="admin-password" placeholder="管理员密码">
                 <button id="admin-login-btn" class="auth-btn">登录</button>
-                <p><a href="#" id="show-user-login">返回用户登录</a></p>
+                <p><a href="#" id="show-user-login">返回用户登录</a> | <a href="#" id="show-forgot-from-admin">忘记密码？</a></p>
             </div>
             <div id="register-form" style="display:none;">
                 <h3>注册</h3>
@@ -44,45 +59,21 @@
             <div id="forgot-form" style="display:none;">
                 <h3>找回密码</h3>
                 <div id="forgot-step1">
-                    <p style="color:#666;font-size:14px;margin:10px 0;">请输入注册时填写的用户名和邮箱，重置链接将发送到您的邮箱</p>
                     <input type="text" id="forgot-username" placeholder="用户名">
-                    <input type="email" id="forgot-email" placeholder="注册的邮箱">
-                    <button id="forgot-btn" class="auth-btn">发送重置邮件</button>
+                    <input type="email" id="forgot-email" placeholder="注册时填写的邮箱">
+                    <button id="forgot-btn" class="auth-btn">发送重置链接</button>
                 </div>
                 <div id="forgot-step2" style="display:none;">
-                    <p style="color:green;margin:15px 0;text-align:center;font-size:18px;">✓ 邮件已发送！</p>
-                    <p style="color:#666;font-size:14px;margin:10px 0;">重置链接已发送到您的邮箱<br>请查收邮件并点击链接重置密码</p>
-                    <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
-                        <p style="color:#999;font-size:12px;">演示说明：由于是静态网页，重置链接直接显示（实际会发送到邮箱）</p>
-                        <p id="reset-link" style="background:#fff;padding:10px;word-break:break-all;font-size:12px;border-radius:5px;margin-top:10px;cursor:pointer;border:1px dashed #ccc;" title="点击打开链接" onclick="window.open(this.innerText)"></p>
-                    </div>
-                    <p style="color:#667eea;font-size:14px;">请打开上述链接重置密码</p>
-                    <button id="use-link-btn" class="auth-btn" style="margin-top:10px;">我已打开链接</button>
+                    <p>验证码已发送到您的邮箱</p>
+                    <input type="text" id="reset-code-input" placeholder="输入收到的验证码">
+                    <button id="use-link-btn" class="auth-btn">验证</button>
                 </div>
                 <div id="forgot-step3" style="display:none;">
-                    <h4>重置密码</h4>
-                    <input type="password" id="new-password-input" placeholder="输入新密码（至少3位）">
+                    <input type="password" id="new-password-input" placeholder="新密码">
                     <input type="password" id="new-password-confirm" placeholder="确认新密码">
                     <button id="confirm-reset-btn" class="auth-btn">确认重置</button>
                 </div>
                 <p><a href="#" id="show-user-login2">返回登录</a></p>
-            </div>
-            <div id="github-sync" style="display:none;">
-                <hr>
-                <h4>GitHub 云同步（可选）</h4>
-                <input type="text" id="github-token" placeholder="GitHub Personal Access Token">
-                <p class="hint">创建 Token: GitHub → Settings → Developer settings → Personal access tokens → Generate new token (需要 gist 权限)</p>
-                <button id="sync-btn" class="auth-btn">同步到 GitHub</button>
-                <button id="download-btn" class="auth-btn" style="margin-left:10px;">从 GitHub 下载</button>
-            </div>
-            <!-- EmailJS 配置说明 -->
-            <div id="email-config" style="display:none;margin-top:15px;">
-                <hr>
-                <h4>邮件配置（可选）</h4>
-                <p class="hint">要启用邮件发送，请在 snake.js 中配置 EmailJS：<br>
-                1. 注册 <a href="https://www.emailjs.com/" target="_blank">EmailJS</a><br>
-                2. 创建 Email Service 和 Template<br>
-                3. 在代码中替换 EMAILJS_CONFIG 的配置</p>
             </div>
             <p id="auth-error" class="error"></p>
         </div>
@@ -91,7 +82,7 @@
     <div class="game-container" style="display:none;" id="game-container">
         <div class="game-header">
             <h1>贪吃蛇游戏</h1>
-            <a href="README.md" target="_blank" class="help-link">📖 使用说明</a>
+            <a href="README.html" target="_blank" class="help-link">📖 使用说明</a>
             <div class="player-info">
                 <label for="player-name">玩家姓名:</label>
                 <input type="text" id="player-name" placeholder="输入您的名字" list="player-names">
@@ -308,7 +299,7 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-    <script src="snake.js?v=20240313"></script>
+    <script src="https://unpkg.com/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="snake.js?v=20260311s"></script>
 </body>
 </html>

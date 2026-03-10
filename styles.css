@@ -817,6 +817,36 @@ body {
     margin-top: 10px;
 }
 
+.auth-content .remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #666;
+    margin: 10px 0;
+    cursor: pointer;
+}
+
+.auth-content .remember-me input {
+    width: auto;
+    margin: 0;
+}
+
+.auth-content .clear-credentials-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.auth-content .clear-credentials-btn:hover {
+    background: #c0392b;
+}
+
 #game-container.show {
     display: block;
 }

@@ -11,17 +11,56 @@ function simpleHash(str) {
     return hash.toString(16);
 }
 
-// EmailJS 配置 - 从 localStorage 加载
+// EmailJS 配置 - 优先使用管理员保存的配置
 function getEmailJSConfig() {
-    const config = localStorage.getItem('snake-emailjs-config');
-    return config ? JSON.parse(config) : null;
+    // 优先从 localStorage 读取管理员保存的配置
+    const savedConfig = localStorage.getItem('snake-emailjs-config');
+    console.log('localStorage raw value:', savedConfig);
+    if (savedConfig) {
+        try {
+            const parsed = JSON.parse(savedConfig);
+            console.log('parsed config:', parsed);
+            if (parsed.publicKey && parsed.serviceId && parsed.templateId) {
+                console.log('使用已保存的 EmailJS 配置');
+                return parsed;
+            }
+        } catch (e) {
+            console.error('解析 EmailJS 配置失败:', e);
+        }
+    }
+    // 如果没有保存的配置，返回默认配置
+    return {
+        publicKey: 'LsNvV4SDNGLYE7PuD',
+        serviceId: 'service_mm0l2m5',
+        templateId: 'template_vmv2xvo'
+    };
 }
 
-const EMAILJS_CONFIG = getEmailJSConfig() || {
-    publicKey: '',
-    serviceId: '',
-    templateId: ''
+// 预配置的 EmailJS 配置（用于内存中快速访问）
+let EMAILJS_CONFIG = {
+    publicKey: 'LsNvV4SDNGLYE7PuD',
+    serviceId: 'service_mm0l2m5',
+    templateId: 'template_vmv2xvo'
 };
+
+// 修复 admin 邮箱（仅当用户未设置时）
+if (typeof localStorage !== 'undefined') {
+    try {
+        const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
+        if (users['admin'] && !users['admin'].email) {
+            users['admin'].email = 'acientemple@gmail.com';
+            localStorage.setItem('snake-users', JSON.stringify(users));
+            console.log('已修复 admin 邮箱');
+
+            // 同步到 Firebase
+            if (typeof firebase !== 'undefined') {
+                firebase.database().ref('users').set(users).then(() => {
+                    console.log('admin 邮箱已同步到 Firebase');
+                }).catch(err => console.log('同步失败:', err));
+            }
+        }
+    } catch(e) {}
+}
 
 // 用户认证系统
 class AuthSystem {
@@ -167,71 +206,92 @@ class AuthSystem {
 
     // 初始化方法，在 DOM 加载完成后调用
     async initAuth() {
-        console.log('=== 开始初始化认证系统 ===');
+        console.log('=== 开始初始化认证系统 (Firebase) ===');
 
         // 加载本地用户数据
         this.users = this.loadUsers();
         console.log('本地用户数:', Object.keys(this.users).length);
 
         // 创建默认管理员账号（如果不存在）
-        const adminUsername = 'acientemple';
-        const adminPassword = '123456';
+        const adminUsername = 'admin';
+        const adminPassword = '801228';
+        const adminEmail = 'acientemple@gmail.com';
         if (!this.users[adminUsername]) {
             console.log('创建默认管理员账号');
             this.users[adminUsername] = {
                 password: simpleHash(adminPassword),
-                email: '',
+                email: adminEmail,
                 created: new Date().toISOString(),
                 data: { isAdmin: true },
                 isAdmin: true
             };
+            // 保存到 Firebase
             this.saveUsers();
         } else {
-            // 确保管理员有 isAdmin 标记
+            // 确保管理员有 isAdmin 标记和邮箱
             this.users[adminUsername].isAdmin = true;
+            this.users[adminUsername].email = adminEmail;
             this.users[adminUsername].data = this.users[adminUsername].data || {};
             this.users[adminUsername].data.isAdmin = true;
+            // 保存到 Firebase
+            this.saveUsers();
         }
 
-        // 先尝试从公开链接获取 Token（不需要认证）
-        console.log('步骤1: 获取公开 Token...');
-        await this.fetchTokenFromPublicURL();
-
-        // 检查 Token 是否获取成功
-        const sharedToken = localStorage.getItem('snake-shared-github-token');
-        console.log('共享 Token 状态:', sharedToken ? '已获取' : '未获取');
-
-        // 如果公开链接没有获取到，尝试从私有 Gist 获取
-        console.log('步骤2: 从 GitHub 获取配置...');
-        await this.fetchSharedTokenConfig();
-
-        // 如果有 GitHub Token（用户自己的或共享的），强制从 GitHub 加载最新用户数据
-        const githubToken = this.getGitHubToken();
-        console.log('GitHub Token 状态:', githubToken ? '可用' : '不可用');
-        if (githubToken) {
-            console.log('步骤3: 从 GitHub 加载用户数据...');
-            // 页面加载时也尝试从 GitHub 加载最新用户数据
-            await this.refreshUsers();
-            console.log('当前用户数据:', Object.keys(this.users).length, '个用户');
-        }
+        // 从 Firebase 加载最新用户数据
+        console.log('从 Firebase 加载用户数据...');
+        await this.loadUsersFromFirebase();
 
         // 检查是否已登录
         if (this.isLoggedIn()) {
             console.log('已自动登录: ' + this.currentUser);
-        }
-
-        // 显示共享 Token 状态
-        const sharedUser = localStorage.getItem('snake-shared-github-user');
-        if (sharedToken && sharedUser) {
-            const statusEl = document.getElementById('shared-token-status');
-            if (statusEl) {
-                statusEl.textContent = '✓ 共享 Token 已设置，当前用户: ' + sharedUser;
-                statusEl.style.color = 'green';
-            }
+            // 登录状态下从 Firebase 加载游戏记录
+            await this.loadRecordsFromFirebase();
         }
 
         console.log('=== 初始化完成 ===');
         this.init();
+    }
+
+    // 从 Firebase 加载用户数据
+    loadUsersFromFirebase() {
+        return new Promise((resolve) => {
+            firebase.database().ref('users').once('value', (snapshot) => {
+                const firebaseUsers = snapshot.val() || {};
+                console.log('Firebase 用户数:', Object.keys(firebaseUsers).length);
+
+                if (Object.keys(firebaseUsers).length > 0) {
+                    // 合并 Firebase 用户和本地用户
+                    this.users = { ...this.users, ...firebaseUsers };
+                    localStorage.setItem('snake-users', JSON.stringify(this.users));
+                    console.log('合并后用户数:', Object.keys(this.users).length);
+                }
+                resolve();
+            }, (error) => {
+                console.log('从 Firebase 加载用户失败:', error.message);
+                resolve();
+            });
+        });
+    }
+
+    // 从 Firebase 加载游戏记录
+    loadRecordsFromFirebase() {
+        return new Promise((resolve) => {
+            const currentUser = this.currentUser;
+            if (!currentUser) {
+                resolve();
+                return;
+            }
+
+            firebase.database().ref('records').once('value', (snapshot) => {
+                const records = snapshot.val() || [];
+                localStorage.setItem('snake-records', JSON.stringify(records));
+                console.log('从 Firebase 加载了', records.length, '条记录');
+                resolve();
+            }, (error) => {
+                console.log('从 Firebase 加载记录失败:', error.message);
+                resolve();
+            });
+        });
     }
 
     // 强制刷新用户数据（从 GitHub，合并到本地）
@@ -420,53 +480,89 @@ class AuthSystem {
     }
 
     // 发送密码重置邮件
-    async sendPasswordResetEmail(email, username, resetLink) {
+    async sendPasswordResetEmail(email, username, resetCode) {
+        console.log('===== 发送邮件调试 =====');
+        console.log('收件人邮箱:', email);
+        console.log('用户名:', username);
+        console.log('验证码:', resetCode);
+
         const config = getEmailJSConfig();
-        if (!config || !config.publicKey || typeof emailjs === 'undefined') {
-            // 如果未配置，显示链接
-            document.getElementById('reset-link').textContent = resetLink;
-            return true;
+        console.log('EmailJS 配置:', config);
+        console.log('emailjs 对象:', typeof emailjs);
+
+        if (!config || !config.publicKey) {
+            alert('EmailJS 未配置，无法发送邮件。请联系管理员。');
+            return false;
         }
 
+        if (typeof emailjs === 'undefined') {
+            alert('邮件服务加载失败，请刷新页面后重试。');
+            return false;
+        }
+
+        // EmailJS 参数
+        const templateParams = {
+            to_email: email,
+            to_name: username,
+            reset_code: resetCode
+        };
+        console.log('发送参数:', templateParams);
+
         try {
-            const response = await emailjs.send(config.serviceId, config.templateId, {
-                to_email: email,
+            // 初始化 EmailJS
+            console.log('初始化 EmailJS with publicKey:', config.publicKey);
+            emailjs.init(config.publicKey);
+            console.log('EmailJS 初始化完成');
+
+            // 发送邮件 - 使用 sendForm 方式
+            console.log('准备发送邮件...');
+            console.log('serviceId:', config.serviceId);
+            console.log('templateId:', config.templateId);
+            console.log('收件人:', email);
+
+            // 创建一个隐藏的表单来发送
+            const form = document.createElement('form');
+            form.style.display = 'none';
+            form.setAttribute('id', 'emailjs-temp-form');
+
+            // 添加参数 - 使用正确的变量名
+            const params = {
                 to_name: username,
-                reset_link: resetLink,
-                from_name: '贪吃蛇游戏'
-            });
+                to_email: email,
+                email: email,
+                reset_code: resetCode
+            };
+            console.log('邮件参数:', params);
+
+            // 直接使用 send 方法发送
+            const response = await emailjs.send(
+                config.serviceId,
+                config.templateId,
+                params
+            );
             console.log('邮件发送成功:', response);
+            alert('验证码已发送到您的邮箱: ' + email);
             return true;
         } catch (error) {
-            console.error('邮件发送失败:', error);
-            // 失败时显示链接作为备选
-            document.getElementById('reset-link').textContent = resetLink;
+            console.error('邮件发送失败详细:', error);
+            // 尝试获取更详细的错误信息
+            let errorMsg = '未知错误';
+            if (error.message) {
+                errorMsg = error.message;
+            } else if (error.text) {
+                errorMsg = error.text;
+            } else if (typeof error === 'string') {
+                errorMsg = error;
+            }
+            alert('邮件发送失败: ' + errorMsg + '，请检查 EmailJS 配置是否正确');
             return false;
         }
     }
 
     loadUsers() {
-        // 优先从 GitHub 加载（如果已配置）
-        const githubToken = this.getGitHubToken();
-
-        // 同步版本：先从本地加载
+        // 从本地加载（登录时已从Firebase同步）
         const users = localStorage.getItem('snake-users');
-        const localUsers = users ? JSON.parse(users) : {};
-
-        // 如果有 GitHub Token，尝试从 GitHub 异步加载
-        if (githubToken) {
-            this.loadUsersFromGitHub(githubToken, null).then(cloudUsers => {
-                if (cloudUsers && Object.keys(cloudUsers).length > 0) {
-                    this.users = cloudUsers;
-                    localStorage.setItem('snake-users', JSON.stringify(cloudUsers));
-                    console.log('已从GitHub同步用户数据, 用户数:', Object.keys(cloudUsers).length);
-                }
-            }).catch(() => {
-                console.log('从GitHub加载失败，使用本地数据');
-            });
-        }
-
-        return localUsers;
+        return users ? JSON.parse(users) : {};
     }
 
     // 从 GitHub 加载用户数据
@@ -593,6 +689,19 @@ class AuthSystem {
     saveUsers() {
         // 保存到本地
         localStorage.setItem('snake-users', JSON.stringify(this.users));
+
+        // 同时保存到 Firebase（合并现有用户后保存）
+        try {
+            firebase.database().ref('users').once('value', (snapshot) => {
+                const firebaseUsers = snapshot.val() || {};
+                // 合并本地用户和 Firebase 用户
+                const mergedUsers = { ...firebaseUsers, ...this.users };
+                firebase.database().ref('users').set(mergedUsers);
+                console.log('用户数据已保存到 Firebase (合并后)');
+            });
+        } catch (e) {
+            console.log('保存到 Firebase 失败:', e.message);
+        }
 
         // 获取游戏记录
         const records = localStorage.getItem('snake-records') || '[]';
@@ -884,15 +993,80 @@ class AuthSystem {
 
     // 管理员删除用户
     adminDeleteUser(username) {
+        console.log('adminDeleteUser called for:', username);
+        console.log('isAdmin:', this.isAdmin);
+        console.log('users before delete:', this.users);
         if (!this.isAdmin) {
+            alert('无权限');
             return { success: false, message: '无权限' };
         }
+        if (username === 'admin') {
+            alert('不能删除默认管理员');
+            return { success: false, message: '不能删除默认管理员' };
+        }
         if (!this.users[username]) {
+            alert('用户不存在');
             return { success: false, message: '用户不存在' };
         }
+        if (!confirm(`确定要删除用户 "${username}" 吗？`)) {
+            return { success: false, message: '已取消' };
+        }
         delete this.users[username];
+        console.log('users after delete:', this.users);
         this.saveUsers();
+
+        // 刷新管理面板显示
+        this.loadAdminData();
+
+        alert('用户已删除');
         return { success: true, message: '用户已删除' };
+    }
+
+    // 设为管理员
+    adminSetAdmin(username) {
+        if (!this.isAdmin) {
+            alert('无权限');
+            return;
+        }
+        if (!this.users[username]) {
+            alert('用户不存在');
+            return;
+        }
+        if (!confirm(`确定要将 "${username}" 设为管理员吗？`)) {
+            return;
+        }
+        this.users[username].isAdmin = true;
+        this.users[username].data = this.users[username].data || {};
+        this.users[username].data.isAdmin = true;
+        this.saveUsers();
+        this.loadAdminData();
+        alert('已设置为管理员');
+    }
+
+    // 取消管理员
+    adminRemoveAdmin(username) {
+        if (!this.isAdmin) {
+            alert('无权限');
+            return;
+        }
+        if (username === 'admin') {
+            alert('不能取消默认管理员的权限');
+            return;
+        }
+        if (!this.users[username]) {
+            alert('用户不存在');
+            return;
+        }
+        if (!confirm(`确定要取消 "${username}" 的管理员权限吗？`)) {
+            return;
+        }
+        this.users[username].isAdmin = false;
+        if (this.users[username].data) {
+            this.users[username].data.isAdmin = false;
+        }
+        this.saveUsers();
+        this.loadAdminData();
+        alert('已取消管理员权限');
     }
 
     // 管理员查看用户数据
@@ -925,24 +1099,43 @@ class AuthSystem {
         return { success: true, message: '密码修改成功' };
     }
 
-    // 显示修改密码对话框
+    // 显示修改密码/邮箱对话框
     showChangePasswordDialog() {
+        const currentEmail = this.users[this.currentUser]?.email || '';
         const dialog = document.createElement('div');
         dialog.id = 'change-password-dialog';
         dialog.className = 'modal show';
         dialog.innerHTML = `
             <div class="modal-content" style="max-width:400px;">
                 <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
-                <h3>修改密码</h3>
-                <input type="password" id="old-password" placeholder="原密码" style="width:100%;padding:12px;margin:10px 0;border:2px solid #ddd;border-radius:8px;">
-                <input type="password" id="new-password-change" placeholder="新密码（至少3位）" style="width:100%;padding:12px;margin:10px 0;border:2px solid #ddd;border-radius:8px;">
-                <input type="password" id="new-password-confirm" placeholder="确认新密码" style="width:100%;padding:12px;margin:10px 0;border:2px solid #ddd;border-radius:8px;">
-                <button id="confirm-change-pass" class="auth-btn">确认修改</button>
+                <h3>账号设置</h3>
+                <label style="display:block;margin:10px 0;font-weight:bold;">邮箱</label>
+                <input type="email" id="change-email" placeholder="用于找回密码" value="${currentEmail}" style="width:100%;padding:12px;margin:5px 0;border:2px solid #ddd;border-radius:8px;">
+                <button id="confirm-change-email" class="auth-btn" style="background:#3498db;margin-bottom:15px;">保存邮箱</button>
+                <hr style="margin:15px 0;">
+                <label style="display:block;margin:10px 0;font-weight:bold;">修改密码</label>
+                <input type="password" id="old-password" placeholder="原密码" style="width:100%;padding:12px;margin:5px 0;border:2px solid #ddd;border-radius:8px;">
+                <input type="password" id="new-password-change" placeholder="新密码（至少3位）" style="width:100%;padding:12px;margin:5px 0;border:2px solid #ddd;border-radius:8px;">
+                <input type="password" id="new-password-confirm" placeholder="确认新密码" style="width:100%;padding:12px;margin:5px 0;border:2px solid #ddd;border-radius:8px;">
+                <button id="confirm-change-pass" class="auth-btn">确认修改密码</button>
             </div>
         `;
 
         document.body.appendChild(dialog);
 
+        // 保存邮箱
+        document.getElementById('confirm-change-email').addEventListener('click', () => {
+            const newEmail = document.getElementById('change-email').value.trim();
+            if (newEmail && !newEmail.includes('@')) {
+                alert('请输入有效的邮箱地址');
+                return;
+            }
+            this.users[this.currentUser].email = newEmail;
+            this.saveUsers();
+            alert('邮箱保存成功！');
+        });
+
+        // 修改密码
         document.getElementById('confirm-change-pass').addEventListener('click', () => {
             const oldPass = document.getElementById('old-password').value;
             const newPass = document.getElementById('new-password-change').value;
@@ -983,6 +1176,40 @@ class AuthSystem {
     }
 
     logout() {
+        // 登出前保存当前游戏数据到 Firebase
+        const currentUser = this.currentUser;
+        if (currentUser) {
+            // 保存记录
+            const records = localStorage.getItem('snake-records');
+            if (records) {
+                firebase.database().ref('records').set(JSON.parse(records))
+                    .then(() => console.log('登出前保存记录到 Firebase'))
+                    .catch(e => console.log('保存记录失败:', e.message));
+            }
+
+            // 保存最高记录
+            const topRecords = localStorage.getItem('snake-top-records');
+            if (topRecords) {
+                const topRecordsObj = {};
+                JSON.parse(topRecords).forEach((r, i) => {
+                    topRecordsObj['-' + Date.now() + i] = r;
+                });
+                firebase.database().ref('topRecords').set(topRecordsObj)
+                    .then(() => console.log('登出前保存最高记录到 Firebase'))
+                    .catch(e => console.log('保存最高记录失败:', e.message));
+            }
+
+            // 保存成就
+            const achievements = localStorage.getItem('snake-achievements-' + currentUser);
+            if (achievements) {
+                firebase.database().ref('achievements/' + currentUser).set(JSON.parse(achievements))
+                    .then(() => console.log('登出前保存成就到 Firebase'))
+                    .catch(e => console.log('保存成就失败:', e.message));
+            }
+
+            console.log('用户 ' + currentUser + ' 登出，数据已保存');
+        }
+
         this.currentUser = null;
         this.isAdmin = false;
         localStorage.removeItem('snake-current-user');
@@ -1017,14 +1244,11 @@ class AuthSystem {
             e.preventDefault();
             document.getElementById('login-form').style.display = 'none';
             document.getElementById('register-form').style.display = 'block';
-            document.getElementById('github-sync').style.display = 'block';
-            document.getElementById('email-config').style.display = 'block';
         });
 
         document.getElementById('show-login').addEventListener('click', (e) => {
             e.preventDefault();
             document.getElementById('register-form').style.display = 'none';
-            document.getElementById('github-sync').style.display = 'none';
             document.getElementById('login-form').style.display = 'block';
         });
 
@@ -1041,6 +1265,13 @@ class AuthSystem {
             document.getElementById('login-form').style.display = 'block';
         });
 
+        // 管理员登录页的忘记密码
+        document.getElementById('show-forgot-from-admin')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('admin-form').style.display = 'none';
+            document.getElementById('forgot-form').style.display = 'block';
+        });
+
         // 忘记密码
         document.getElementById('show-forgot').addEventListener('click', (e) => {
             e.preventDefault();
@@ -1054,50 +1285,80 @@ class AuthSystem {
             document.getElementById('login-form').style.display = 'block';
         });
 
-        // 忘记密码 - 第一步：发送重置链接
-        document.getElementById('forgot-btn').addEventListener('click', () => {
+        // 忘记密码 - 第一步：发送验证码
+        document.getElementById('forgot-btn').addEventListener('click', async () => {
             const username = document.getElementById('forgot-username').value.trim();
             const email = document.getElementById('forgot-email').value.trim();
 
             const user = this.users[username];
+            console.log('查找用户:', username);
+            console.log('用户数据:', user);
+            console.log('输入邮箱:', email);
+
             if (!user) {
                 document.getElementById('auth-error').textContent = '用户不存在';
                 return;
             }
-            if (user.email !== email) {
-                document.getElementById('auth-error').textContent = '用户名与邮箱不匹配';
+
+            // 所有用户都需要验证邮箱
+            let storedEmail = (user.email || '').trim().toLowerCase();
+            const inputEmail = email.trim().toLowerCase();
+            console.log('storedEmail:', storedEmail);
+            console.log('inputEmail:', inputEmail);
+
+            // 特殊处理：如果用户输入的是正确邮箱，直接通过
+            if (username === 'admin' && inputEmail === 'acientemple@gmail.com') {
+                console.log('admin 邮箱验证通过');
+            } else if (inputEmail !== storedEmail) {
+                console.log('邮箱不匹配');
+                document.getElementById('auth-error').textContent = '用户名与邮箱不匹配，请检查';
                 return;
             }
 
-            // 生成重置码
-            const resetCode = Math.random().toString(36).substring(2, 10);
+            // 生成验证码
+            const resetCode = Math.random().toString(36).substring(2, 10).toUpperCase();
             localStorage.setItem('snake-reset-code', resetCode);
             localStorage.setItem('snake-reset-user', username);
 
-            // 生成重置链接
-            const resetLink = `${window.location.origin}${window.location.pathname}?reset=${resetCode}`;
-
-            // 发送邮件
+            // 发送验证码邮件
             document.getElementById('auth-error').textContent = '正在发送邮件...';
 
-            this.sendPasswordResetEmail(email, username, resetLink).then(() => {
-                document.getElementById('forgot-step1').style.display = 'none';
-                document.getElementById('forgot-step2').style.display = 'block';
-                document.getElementById('auth-error').textContent = '';
-            }).catch(() => {
-                document.getElementById('forgot-step1').style.display = 'none';
-                document.getElementById('forgot-step2').style.display = 'block';
-                document.getElementById('auth-error').textContent = '';
-            });
+            console.log('准备发送邮件 - 邮箱:', email, '用户名:', username, '验证码:', resetCode);
+            const emailSent = await this.sendPasswordResetEmail(email, username, resetCode);
+
+            if (!emailSent) {
+                // 发送失败，停留在当前步骤
+                document.getElementById('auth-error').textContent = '邮件发送失败，请重试';
+                return;
+            }
+
+            // 发送成功，进入下一步
+            document.getElementById('forgot-step1').style.display = 'none';
+            document.getElementById('forgot-step2').style.display = 'block';
+            document.getElementById('auth-error').textContent = '';
         });
 
-        // 忘记密码 - 第二步：使用链接
+        // 忘记密码 - 第二步：验证验证码
         document.getElementById('use-link-btn').addEventListener('click', () => {
+            const inputCode = document.getElementById('reset-code-input').value.trim();
+            const storedCode = localStorage.getItem('snake-reset-code');
+
+            if (!inputCode) {
+                alert('请输入收到的验证码');
+                return;
+            }
+
+            if (inputCode !== storedCode) {
+                alert('验证码错误，请重试');
+                return;
+            }
+
+            // 验证成功，进入第三步
             document.getElementById('forgot-step2').style.display = 'none';
             document.getElementById('forgot-step3').style.display = 'block';
         });
 
-        // 忘记密码 - 第三步：确认重置
+        // 忘记密码 - 第三步：确认重置（使用 Firebase）
         document.getElementById('confirm-reset-btn').addEventListener('click', () => {
             const newPassword = document.getElementById('new-password-input').value;
             const confirmPassword = document.getElementById('new-password-confirm').value;
@@ -1120,27 +1381,32 @@ class AuthSystem {
                 return;
             }
 
-            // 重置密码
-            this.users[resetUser].password = simpleHash(newPassword);
-            this.saveUsers();
+            // 重置密码到 Firebase
+            firebase.database().ref('users/' + resetUser + '/password').set(simpleHash(newPassword))
+                .then(() => {
+                    console.log('Firebase 密码重置成功');
 
-            // 清理
-            localStorage.removeItem('snake-reset-code');
-            localStorage.removeItem('snake-reset-user');
+                    // 清理
+                    localStorage.removeItem('snake-reset-code');
+                    localStorage.removeItem('snake-reset-user');
 
-            alert('密码重置成功！请使用新密码登录');
-            // 清理URL参数
-            window.history.pushState({}, '', window.location.pathname);
-            // 重置表单
-            document.getElementById('forgot-username').value = '';
-            document.getElementById('forgot-email').value = '';
-            document.getElementById('new-password-input').value = '';
-            document.getElementById('new-password-confirm').value = '';
-            document.getElementById('forgot-step1').style.display = 'block';
-            document.getElementById('forgot-step2').style.display = 'none';
-            document.getElementById('forgot-step3').style.display = 'none';
-            document.getElementById('forgot-form').style.display = 'none';
-            document.getElementById('login-form').style.display = 'block';
+                    alert('密码重置成功！请使用新密码登录');
+                    // 清理URL参数
+                    window.history.pushState({}, '', window.location.pathname);
+                    // 重置表单
+                    document.getElementById('forgot-username').value = '';
+                    document.getElementById('forgot-email').value = '';
+                    document.getElementById('new-password-input').value = '';
+                    document.getElementById('new-password-confirm').value = '';
+                    document.getElementById('forgot-step1').style.display = 'block';
+                    document.getElementById('forgot-step2').style.display = 'none';
+                    document.getElementById('forgot-step3').style.display = 'none';
+                    document.getElementById('forgot-form').style.display = 'none';
+                    document.getElementById('login-form').style.display = 'block';
+                })
+                .catch((error) => {
+                    alert('密码重置失败: ' + error.message);
+                });
         });
 
         // 检查URL是否有重置参数
@@ -1160,7 +1426,15 @@ class AuthSystem {
             }
         }
 
-        // 管理员登录 - 使用本地账号验证
+        // 管理员登录 - 使用 Firebase
+        // 支持回车键登录
+        document.getElementById('admin-username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('admin-login-btn').click();
+        });
+        document.getElementById('admin-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('admin-login-btn').click();
+        });
+
         document.getElementById('admin-login-btn').addEventListener('click', () => {
             const username = document.getElementById('admin-username').value.trim();
             const password = document.getElementById('admin-password').value;
@@ -1170,52 +1444,111 @@ class AuthSystem {
                 return;
             }
 
-            // 验证管理员账号
-            const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
-            const user = users[username];
+            document.getElementById('auth-error').textContent = '登录中...';
 
-            if (!user) {
-                document.getElementById('auth-error').textContent = '管理员账号不存在';
-                return;
-            }
+            // 从 Firebase 验证管理员账号
+            firebase.database().ref('users').once('value', (snapshot) => {
+                const users = snapshot.val() || {};
+                const user = users[username];
 
-            if (user.password !== simpleHash(password)) {
-                document.getElementById('auth-error').textContent = '密码错误';
-                return;
-            }
+                if (!user) {
+                    document.getElementById('auth-error').textContent = '管理员账号不存在';
+                    return;
+                }
 
-            // 检查是否是管理员
-            const isAdmin = user.isAdmin || (user.data && user.data.isAdmin);
-            if (!isAdmin) {
-                document.getElementById('auth-error').textContent = '您不是管理员';
-                return;
-            }
+                if (user.password !== simpleHash(password)) {
+                    document.getElementById('auth-error').textContent = '密码错误';
+                    return;
+                }
 
-            // 登录成功
-            this.currentUser = username;
-            this.isAdmin = true;
-            localStorage.setItem('snake-current-user', username);
-            localStorage.setItem('snake-admin', 'true');
-            document.getElementById('auth-error').textContent = '';
-            this.showGame();
+                // 检查是否是管理员
+                const isAdmin = user.isAdmin || (user.data && user.data.isAdmin);
+                if (!isAdmin) {
+                    document.getElementById('auth-error').textContent = '您不是管理员';
+                    return;
+                }
+
+                // 登录成功 - 从 Firebase 同步所有数据
+                console.log('Firebase 管理员登录成功:', username);
+                this.currentUser = username;
+                this.isAdmin = true;
+                localStorage.setItem('snake-current-user', username);
+                localStorage.setItem('snake-admin', 'true');
+                document.getElementById('auth-error').textContent = '正在同步数据...';
+
+                // 从 Firebase 读取用户数据
+                this.users = users;
+                localStorage.setItem('snake-users', JSON.stringify(users));
+
+                // 读取游戏记录
+                firebase.database().ref('records').once('value', (recSnapshot) => {
+                    const records = recSnapshot.val() || [];
+                    localStorage.setItem('snake-records', JSON.stringify(records));
+                    console.log('从Firebase加载了 ' + records.length + ' 条记录');
+
+                    // 读取最高记录
+                    firebase.database().ref('topRecords').once('value', (topSnapshot) => {
+                        const topRecords = topSnapshot.val() || {};
+                        localStorage.setItem('snake-top-records', JSON.stringify(Object.values(topRecords)));
+                        console.log('从Firebase加载了 ' + Object.values(topRecords).length + ' 条最高记录');
+
+                        // 读取成就
+                        firebase.database().ref('achievements/' + username).once('value', (achSnapshot) => {
+                            const achievements = achSnapshot.val();
+                            if (achievements) {
+                                localStorage.setItem('snake-achievements-' + username, JSON.stringify(achievements));
+                                console.log('从Firebase加载了成就');
+                            }
+
+                            document.getElementById('auth-error').textContent = '';
+                            this.showGame();
+                        });
+                    });
+                });
+            }, (error) => {
+                document.getElementById('auth-error').textContent = '登录失败: ' + error.message;
+            });
         });
 
-        // 登录
-        document.getElementById('login-btn').addEventListener('click', async () => {
-            console.log('登录按钮点击');
+        // 登录 - 使用 Firebase
+        // 支持回车键登录
+        document.getElementById('login-username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('login-btn').click();
+        });
+        document.getElementById('login-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('login-btn').click();
+        });
 
-            // 检查用户是否输入了 Token
-            const inputToken = document.getElementById('github-token')?.value.trim();
-            if (inputToken) {
-                // 保存用户输入的 Token
-                localStorage.setItem('snake-github-token', inputToken);
-                localStorage.setItem('snake-shared-github-token', inputToken);
-                console.log('用户输入了 Token，保存到本地');
-            }
+        // 加载保存的用户名和密码
+        const savedUsername = localStorage.getItem('snake-remember-username');
+        const savedPassword = localStorage.getItem('snake-remember-password');
+        const rememberMe = localStorage.getItem('snake-remember-me');
+        if (savedUsername) {
+            document.getElementById('login-username').value = savedUsername;
+        }
+        if (savedPassword && rememberMe === 'true') {
+            document.getElementById('login-password').value = savedPassword;
+            document.getElementById('remember-me').checked = true;
+        }
 
-            // 检查输入
+        // 清除保存的用户名和密码
+        document.getElementById('clear-credentials').addEventListener('click', () => {
+            localStorage.removeItem('snake-remember-username');
+            localStorage.removeItem('snake-remember-password');
+            localStorage.removeItem('snake-remember-me');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('remember-me').checked = false;
+            document.getElementById('auth-error').textContent = '已清除保存的凭证';
+            document.getElementById('auth-error').style.color = 'green';
+        });
+
+        document.getElementById('login-btn').addEventListener('click', () => {
+            console.log('登录按钮点击 (Firebase)');
+
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
+            const rememberChecked = document.getElementById('remember-me').checked;
 
             if (!username) {
                 document.getElementById('auth-error').textContent = '请输入用户名';
@@ -1226,75 +1559,83 @@ class AuthSystem {
                 return;
             }
 
-            // 自动获取共享 Token（如果本地没有）
-            await this.fetchSharedTokenConfig();
-
-            // 从 GitHub 加载数据
-            const githubToken = this.getGitHubToken();
-            console.log('GitHub Token:', githubToken);
-
-            // 先加载本地用户数据作为基础
-            this.users = this.loadUsers();
-            console.log('本地用户数:', Object.keys(this.users).length);
-
-            // 再尝试从 GitHub 加载最新用户数据（如果有）
-            if (githubToken) {
-                console.log('登录时从GitHub加载数据...');
-                const githubUsers = await this.loadUsersFromGitHub(githubToken, null);
-                if (githubUsers && Object.keys(githubUsers).length > 0) {
-                    // 合并 GitHub 用户数据到本地（保留本地用户）
-                    this.users = { ...this.users, ...githubUsers };
-                    localStorage.setItem('snake-users', JSON.stringify(this.users));
-                    console.log('合并后用户数:', Object.keys(this.users).length);
-                } else {
-                    console.log('GitHub 上没有用户数据');
-                }
-            }
-
-            console.log('用户名:', username);
-
-            // 检查用户是否存在于本地
-            if (!this.users[username]) {
-                // 如果有 GitHub Token 但用户不存在，提示可能需要注册或同步
-                if (githubToken) {
-                    document.getElementById('auth-error').textContent = '用户未找到，请检查用户名或先注册新账号';
-                } else {
-                    document.getElementById('auth-error').textContent = '用户不存在，请先注册';
-                }
-                return;
-            }
-
-            const result = this.login(username, password);
-            console.log('登录结果:', result);
-            if (result.success) {
-                document.getElementById('auth-error').textContent = '';
-
-                // 登录成功后先获取Token
-                await this.fetchSharedTokenConfig();
-
-                // 检查是否有Token
-                const token = this.getGitHubToken();
-                console.log('登录后Token:', token ? '有' : '无');
-
-                // 如果有Token，立即从GitHub加载数据
-                if (token) {
-                    console.log('开始从GitHub加载数据...');
-                    await this.loadFromGitHubOnLogin();
-                    // 刷新记录显示
-                    if (window.game) {
-                        window.game.displayRecords();
-                    }
-                }
-
-                // 显示游戏界面
-                this.showGame();
+            // 保存用户名和密码（如果记住我被勾选）
+            localStorage.setItem('snake-remember-username', username);
+            if (rememberChecked) {
+                localStorage.setItem('snake-remember-password', password);
+                localStorage.setItem('snake-remember-me', 'true');
             } else {
-                document.getElementById('auth-error').textContent = result.message;
+                localStorage.removeItem('snake-remember-password');
+                localStorage.setItem('snake-remember-me', 'false');
             }
+
+            document.getElementById('auth-error').textContent = '登录中...';
+
+            // 从 Firebase 验证用户
+            firebase.database().ref('users').once('value', (snapshot) => {
+                const users = snapshot.val() || {};
+                const user = users[username];
+
+                if (!user || user.password !== simpleHash(password)) {
+                    document.getElementById('auth-error').textContent = '用户名或密码错误';
+                    return;
+                }
+
+                // 登录成功 - 先清空本地数据
+                console.log('Firebase 登录成功:', username);
+                this.currentUser = username;
+                this.isAdmin = user.isAdmin || false;
+                localStorage.setItem('snake-current-user', username);
+                localStorage.setItem('snake-admin', this.isAdmin ? 'true' : 'false');
+                document.getElementById('auth-error').textContent = '正在同步数据...';
+
+                // 清空本地旧数据，从 Firebase 读取最新数据
+                this.users = users;
+                localStorage.setItem('snake-users', JSON.stringify(users));
+
+                // 读取游戏记录
+                firebase.database().ref('records').once('value', (recSnapshot) => {
+                    const records = recSnapshot.val() || [];
+                    localStorage.setItem('snake-records', JSON.stringify(records));
+                    console.log('从Firebase加载了 ' + records.length + ' 条记录');
+
+                    // 读取最高记录
+                    firebase.database().ref('topRecords').once('value', (topSnapshot) => {
+                        const topRecords = topSnapshot.val() || {};
+                        localStorage.setItem('snake-top-records', JSON.stringify(Object.values(topRecords)));
+                        console.log('从Firebase加载了 ' + Object.values(topRecords).length + ' 条最高记录');
+
+                        // 读取成就
+                        firebase.database().ref('achievements/' + username).once('value', (achSnapshot) => {
+                            const achievements = achSnapshot.val();
+                            if (achievements) {
+                                localStorage.setItem('snake-achievements-' + username, JSON.stringify(achievements));
+                                console.log('从Firebase加载了成就');
+                            }
+
+                            document.getElementById('auth-error').textContent = '';
+                            this.showGame();
+                        });
+                    });
+                });
+            }, (error) => {
+                document.getElementById('auth-error').textContent = '登录失败: ' + error.message;
+            });
         });
 
-        // 注册
-        document.getElementById('register-btn').addEventListener('click', async () => {
+        // 注册 - 使用 Firebase
+        // 支持回车键注册
+        document.getElementById('reg-username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('register-btn').click();
+        });
+        document.getElementById('reg-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('register-btn').click();
+        });
+        document.getElementById('reg-password2').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('register-btn').click();
+        });
+
+        document.getElementById('register-btn').addEventListener('click', () => {
             const username = document.getElementById('reg-username').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
@@ -1313,56 +1654,69 @@ class AuthSystem {
                 return;
             }
 
-            // 自动获取共享 Token（如果本地没有）
-            await this.fetchSharedTokenConfig();
+            document.getElementById('auth-error').textContent = '注册中...';
 
-            // 尝试从 GitHub 同步最新用户数据
-            const githubToken = this.getGitHubToken();
-            if (githubToken) {
-                document.getElementById('auth-error').textContent = '正在同步...';
-                await this.refreshUsers();
-                // 重新加载用户数据
-                this.users = this.loadUsers();
-            } else {
-                // 没有 Token，给出提示
-                document.getElementById('auth-error').textContent = '注意：无法连接云端，将使用本地注册';
-            }
+            // 检查用户名是否已存在于 Firebase
+            firebase.database().ref('users').once('value', (snapshot) => {
+                const users = snapshot.val() || {};
 
-            // 检查用户名是否已存在（从同步后的数据中检查）
-            if (this.users[username]) {
-                document.getElementById('auth-error').textContent = '用户名已存在，请更换';
-                return;
-            }
-
-            const result = this.register(username, password, email);
-            if (result.success) {
-                // 注册成功后自动登录并进入游戏
-                this.currentUser = username;
-                localStorage.setItem('snake-current-user', username);
-
-                // 保存用户数据到 GitHub
-                await this.saveUsers();
-
-                // 重新从 GitHub 同步最新数据
-                const token = this.getGitHubToken();
-                if (token) {
-                    await this.syncRecordsFromGitHub();
-                    if (window.game) {
-                        window.game.displayRecords();
-                    }
+                if (users[username]) {
+                    document.getElementById('auth-error').textContent = '用户名已存在，请更换';
+                    return;
                 }
 
-                // 显示成功并跳转到游戏
-                document.getElementById('auth-error').style.color = 'green';
-                document.getElementById('auth-error').textContent = '注册成功！正在进入游戏...';
+                // 注册到 Firebase
+                const hashedPassword = simpleHash(password);
+                firebase.database().ref('users/' + username).set({
+                    password: hashedPassword,
+                    email: email || '',
+                    createdAt: Date.now()
+                }).then(() => {
+                    console.log('Firebase 注册成功:', username);
+                    this.currentUser = username;
+                    localStorage.setItem('snake-current-user', username);
+                    document.getElementById('auth-error').textContent = '正在同步数据...';
 
-                setTimeout(() => {
-                    this.showGame();
-                }, 500);
-            } else {
-                document.getElementById('auth-error').style.color = 'red';
-                document.getElementById('auth-error').textContent = result.message;
-            }
+                    // 读取所有用户数据
+                    firebase.database().ref('users').once('value', (usersSnapshot) => {
+                        const users = usersSnapshot.val() || {};
+                        localStorage.setItem('snake-users', JSON.stringify(users));
+
+                        // 读取游戏记录
+                        firebase.database().ref('records').once('value', (recSnapshot) => {
+                            const records = recSnapshot.val() || [];
+                            localStorage.setItem('snake-records', JSON.stringify(records));
+
+                            // 读取最高记录
+                            firebase.database().ref('topRecords').once('value', (topSnapshot) => {
+                                const topRecords = topSnapshot.val() || {};
+                                localStorage.setItem('snake-top-records', JSON.stringify(Object.values(topRecords)));
+
+                                // 读取成就
+                                firebase.database().ref('achievements/' + username).once('value', (achSnapshot) => {
+                                    const achievements = achSnapshot.val();
+                                    if (achievements) {
+                                        localStorage.setItem('snake-achievements-' + username, JSON.stringify(achievements));
+                                    }
+
+                                    // 显示成功并跳转到游戏
+                                    document.getElementById('auth-error').style.color = 'green';
+                                    document.getElementById('auth-error').textContent = '注册成功！正在进入游戏...';
+
+                                    setTimeout(() => {
+                                        this.showGame();
+                                    }, 500);
+                                });
+                            });
+                        });
+                    });
+                }).catch((error) => {
+                    document.getElementById('auth-error').style.color = 'red';
+                    document.getElementById('auth-error').textContent = '注册失败: ' + error.message;
+                });
+            }, (error) => {
+                document.getElementById('auth-error').textContent = '检查用户失败: ' + error.message;
+            });
         });
 
         // GitHub 同步
@@ -1508,16 +1862,7 @@ class AuthSystem {
                     <button id="clear-all-btn" class="auth-btn" style="background:#e74c3c;">清空所有数据</button>
                 </div>
                 <div class="admin-section">
-                    <h3>⚙️ 共享 GitHub Token（供所有玩家使用）</h3>
-                    <div style="background:#e8f5e9;padding:15px;border-radius:8px;margin:10px 0;">
-                        <p style="font-size:13px;color:#2e7d32;margin-bottom:10px;">设置共享 Token 后，所有玩家都可以自动同步游戏记录，无需各自输入 Token</p>
-                        <input type="text" id="admin-shared-token" placeholder="输入共享的 GitHub Token" style="padding:8px;width:300px;margin:5px 0;">
-                        <button id="save-shared-token" class="auth-btn" style="padding:8px 15px;width:auto;margin:0;background:#4caf50;">保存共享 Token</button>
-                        <p id="shared-token-admin-status" style="font-size:12px;margin-top:5px;color:#666;"></p>
-                    </div>
-                </div>
-                <div class="admin-section">
-                    <h3>EmailJS 邮件配置</h3>
+                    <h3>📧 EmailJS 邮件配置</h3>
                     <div style="margin-bottom:10px;">
                         <input type="text" id="emailjs-public-key" placeholder="Public Key" style="padding:8px;width:200px;margin:5px 0;">
                         <input type="text" id="emailjs-service-id" placeholder="Service ID" style="padding:8px;width:200px;margin:5px 0;">
@@ -1529,7 +1874,11 @@ class AuthSystem {
                         <li>注册 <a href="https://www.emailjs.com/" target="_blank">EmailJS</a> 账号</li>
                         <li><strong>删除旧服务重建：</strong>如果之前Gmail服务权限不足，先在EmailJS后台删除 Gmail 服务，重新添加</li>
                         <li>添加 Gmail 服务时，必须勾选 <strong>"Send email on your behalf"</strong> 权限</li>
-                        <li>创建 Email Template，变量用: <code>{{to_name}}</code>, <code>{{reset_link}}</code></li>
+                        <li>创建 Email Template，<strong>关键步骤</strong>：<br>
+                            - 点击模板编辑页面右上角的 <strong>"Settings"</strong><br>
+                            - 在 <strong>"To Email"</strong> 字段中输入 <code>{{to_email}}</code><br>
+                            - 保存模板<br>
+                            - 模板正文使用: <code>{{to_name}}</code>, <code>{{reset_code}}</code></li>
                         <li>获取 Public Key（在 Account → API Keys）</li>
                         <li>获取 Service ID（Email Services 中）</li>
                         <li>获取 Template ID（Email Templates 中）</li>
@@ -1539,57 +1888,37 @@ class AuthSystem {
                         必须删除旧的 Gmail 服务，重新连接并授予 <strong>"Send email on your behalf"</strong> 权限
                     </p>
                     <div id="email-config-status" style="margin-top:10px;font-size:12px;"></div>
+                    <div style="margin-top:10px;">
+                        <button id="test-email-btn" class="auth-btn" style="padding:8px 15px;width:auto;margin:0;background:#3498db;">发送测试邮件</button>
+                        <input type="text" id="test-email-address" placeholder="测试收件人邮箱" style="padding:8px;width:180px;margin:5px 0;">
+                    </div>
                 </div>
             </div>
         `;
 
         document.body.appendChild(panel);
-        this.loadAdminData();
         this.loadEmailConfig();
 
-        // 保存共享 Token
-        document.getElementById('save-shared-token').addEventListener('click', async () => {
-            const token = document.getElementById('admin-shared-token').value.trim();
-            const statusEl = document.getElementById('shared-token-admin-status');
-
-            if (!token) {
-                statusEl.textContent = '请输入 Token';
-                statusEl.style.color = 'red';
+        // 测试邮件发送
+        document.getElementById('test-email-btn').addEventListener('click', async () => {
+            const testEmail = document.getElementById('test-email-address').value.trim();
+            if (!testEmail) {
+                alert('请输入测试收件人邮箱');
                 return;
             }
 
-            statusEl.textContent = '正在验证并保存 Token...';
+            const testCode = 'TEST123';
+            document.getElementById('email-config-status').innerHTML = '<span style="color:#3498db;">正在发送测试邮件...</span>';
 
-            try {
-                // 验证 Token
-                const response = await fetch('https://api.github.com/user', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
+            const success = await this.sendPasswordResetEmail(testEmail, '测试用户', testCode);
 
-                if (response.ok) {
-                    const userData = await response.json();
-                    // 保存为共享 Token
-                    localStorage.setItem('snake-shared-github-token', token);
-                    localStorage.setItem('snake-shared-github-user', userData.login);
-
-                    // 同时保存到GitHub Gist
-                    await self.saveSharedTokenToGitHub(token, userData.login);
-
-                    statusEl.textContent = '✓ 共享 Token 已保存到云端！所有玩家将自动使用此 Token。';
-                    statusEl.style.color = 'green';
-                } else {
-                    statusEl.textContent = '✗ Token 无效或已过期';
-                    statusEl.style.color = 'red';
-                }
-            } catch (error) {
-                statusEl.textContent = '✗ 验证失败: ' + error.message;
-                statusEl.style.color = 'red';
+            if (success) {
+                document.getElementById('email-config-status').innerHTML = '<span style="color:green;">✓ 测试邮件发送成功！</span>';
+            } else {
+                document.getElementById('email-config-status').innerHTML = '<span style="color:red;">✗ 测试邮件发送失败，请检查配置</span>';
             }
         });
+        this.loadAdminData();
 
         // 保存邮件配置
         document.getElementById('save-email-config').addEventListener('click', () => {
@@ -1603,7 +1932,10 @@ class AuthSystem {
             }
 
             const config = { publicKey, serviceId, templateId };
+            console.log('=== 保存 EmailJS 配置 ===');
+            console.log('保存的 config:', config);
             localStorage.setItem('snake-emailjs-config', JSON.stringify(config));
+            console.log('localStorage 保存后的值:', localStorage.getItem('snake-emailjs-config'));
 
             // 更新内存中的配置
             EMAILJS_CONFIG.publicKey = publicKey;
@@ -1616,6 +1948,7 @@ class AuthSystem {
             }
 
             document.getElementById('email-config-status').innerHTML = '<span style="color:green;">✓ 配置已保存，邮件功能已启用</span>';
+            alert('配置已保存！Public Key: ' + publicKey);
         });
 
         // 重置用户密码
@@ -1727,7 +2060,7 @@ class AuthSystem {
     loadAdminData() {
         const users = Object.keys(this.users);
 
-        // 显示用户列表（带删除功能）
+        // 显示用户列表（带删除和管理员功能）
         const userList = document.getElementById('user-list');
         if (users.length === 0) {
             userList.innerHTML = '<p>暂无注册用户</p>';
@@ -1735,12 +2068,24 @@ class AuthSystem {
             let html = '<table style="width:100%;border-collapse:collapse;font-size:13px;"><tr style="background:#f5f5f5;"><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">用户名</th><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">邮箱</th><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">注册时间</th><th style="text-align:center;padding:8px;border-bottom:1px solid #ddd;">操作</th></tr>';
             users.forEach(u => {
                 const user = this.users[u];
+                const isAdminUser = user.isAdmin || (user.data && user.data.isAdmin);
+                let buttons = '';
+                if (!isAdminUser) {
+                    buttons += `<button onclick="window.auth.adminSetAdmin('${u}'); window.game.loadAdminData();" style="background:#3498db;color:white;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;font-size:12px;margin-right:4px;">设为管理</button>`;
+                } else if (u !== 'admin') {
+                    buttons += `<button onclick="window.auth.adminRemoveAdmin('${u}'); window.game.loadAdminData();" style="background:#f39c12;color:white;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;font-size:12px;margin-right:4px;">取消管理</button>`;
+                }
+                if (u !== 'admin') {
+                    buttons += `<button onclick="window.auth.adminDeleteUser('${u}'); window.game.loadAdminData();" style="background:#e74c3c;color:white;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;font-size:12px;">删除</button>`;
+                } else {
+                    buttons += `<span style="color:red;font-size:12px;">[管理员]</span>`;
+                }
                 html += `<tr>
                     <td style="padding:8px;border-bottom:1px solid #eee;">${u}</td>
                     <td style="padding:8px;border-bottom:1px solid #eee;">${user.email || '-'}</td>
                     <td style="padding:8px;border-bottom:1px solid #eee;">${user.created ? user.created.substring(0,10) : '-'}</td>
                     <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">
-                        <button onclick="window.auth.adminDeleteUser('${u}'); game.loadAdminData();" style="background:#e74c3c;color:white;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;font-size:12px;">删除</button>
+                        ${buttons}
                     </td>
                 </tr>`;
             });
@@ -2768,10 +3113,31 @@ class SnakeGame {
             clearTimeout(this.speedTimer);
         }
 
-        // 游戏开始前先从GitHub获取最新数据
+        // 游戏开始前先从Firebase获取最新数据
         if (window.auth && window.auth.currentUser) {
-            console.log('=== 游戏开始 - 从GitHub加载最新数据 ===');
-            await window.auth.syncRecordsFromGitHub();
+            console.log('=== 游戏开始 - 从Firebase加载最新数据 ===');
+            const currentUser = window.auth.currentUser;
+
+            // 从Firebase读取最新记录
+            const recSnapshot = await firebase.database().ref('records').once('value');
+            const records = recSnapshot.val() || [];
+            localStorage.setItem('snake-records', JSON.stringify(records));
+            console.log('加载了 ' + records.length + ' 条记录');
+
+            const topSnapshot = await firebase.database().ref('topRecords').once('value');
+            const topRecords = topSnapshot.val() || {};
+            localStorage.setItem('snake-top-records', JSON.stringify(Object.values(topRecords)));
+            console.log('加载了 ' + Object.keys(topRecords).length + ' 条最高记录');
+
+            // 读取成就
+            const achSnapshot = await firebase.database().ref('achievements/' + currentUser).once('value');
+            const achievements = achSnapshot.val();
+            if (achievements) {
+                localStorage.setItem('snake-achievements-' + currentUser, JSON.stringify(achievements));
+                console.log('加载了成就数据');
+            }
+
+            // 刷新显示
             this.displayRecords();
             console.log('=== 游戏开始 - 数据加载完成 ===');
         }
@@ -2933,30 +3299,30 @@ class SnakeGame {
             console.log(`游戏结束！玩家: ${this.playerName}, 分数: ${this.score}`);
         }
 
-        // 保存记录
-        this.saveRecord();
+        // 保存记录（等待完成）
+        await this.saveRecord();
         console.log('=== 游戏结束 - 保存记录完成 ===');
 
-        // 同步到GitHub（如果有登录用户），保存后立即取回最新数据
+        // 立即从 Firebase 读取最新数据并显示（确保多玩家同步）
         const auth = window.auth;
         const currentUser = auth ? auth.currentUser : null;
         if (auth && currentUser) {
-            const token = auth.getGitHubToken();
-            console.log('=== 开始同步到GitHub ===, Token:', token ? '有' : '无');
-            if (!token) {
-                console.log('没有Token，无法同步');
-                this.displayRecords();
-                return;
-            }
-            await auth.saveUsers();
-            console.log('=== 保存到GitHub完成，开始取回数据 ===');
-            await auth.syncRecordsFromGitHub();
-            console.log('=== 从GitHub取回数据完成 ===');
-            // 重新从本地加载记录确保显示最新数据
-            const localRecords = localStorage.getItem('snake-records');
-            console.log('本地记录数:', localRecords ? JSON.parse(localRecords).length : 0);
-            this.displayRecords();
-            console.log('=== 显示已刷新 ===');
+            // 从 Firebase 读取最新记录
+            firebase.database().ref('records').once('value', (snapshot) => {
+                const records = snapshot.val() || [];
+                localStorage.setItem('snake-records', JSON.stringify(records));
+                console.log('从Firebase刷新记录: ' + records.length + ' 条');
+
+                // 读取最新最高记录
+                firebase.database().ref('topRecords').once('value', (topSnapshot) => {
+                    const topRecords = topSnapshot.val() || {};
+                    localStorage.setItem('snake-top-records', JSON.stringify(Object.values(topRecords)));
+                    console.log('从Firebase刷新最高记录: ' + Object.values(topRecords).length + ' 条');
+
+                    this.displayRecords();
+                    console.log('=== 记录显示已刷新 ===');
+                });
+            });
         } else {
             this.displayRecords();
         }
@@ -2976,7 +3342,7 @@ class SnakeGame {
         document.getElementById('current-speed').textContent = this.baseSpeed;
     }
 
-    saveRecord() {
+    async saveRecord() {
         const records = this.loadRecords();
         const topRecords = this.loadTopRecords();
         const currentUser = window.auth ? window.auth.currentUser : null;
@@ -3009,9 +3375,12 @@ class SnakeGame {
                 uniqueTop.push(r);
             }
         });
-        this.saveTopRecords(uniqueTop);
 
-        this.saveRecords(records);
+        // 等待保存到 Firebase 完成
+        await this.saveTopRecords(uniqueTop);
+        await this.saveRecords(records);
+
+        // 保存完成后显示
         this.displayRecords();
     }
 
@@ -3020,11 +3389,24 @@ class SnakeGame {
         return records ? JSON.parse(records) : [];
     }
 
-    saveTopRecords(records) {
+    async saveTopRecords(records) {
         localStorage.setItem('snake-top-records', JSON.stringify(records));
+
+        // 保存到 Firebase（转换为对象格式）
+        const topRecordsObj = {};
+        records.forEach((r, i) => {
+            topRecordsObj['-' + Date.now() + i] = r;
+        });
+        try {
+            await firebase.database().ref('topRecords').set(topRecordsObj);
+            console.log('最高记录已保存到 Firebase');
+        } catch (e) {
+            console.log('保存最高记录到 Firebase 失败:', e.message);
+        }
     }
 
     loadRecords() {
+        // 从本地加载（登录时已从Firebase同步）
         const records = localStorage.getItem('snake-records');
         return records ? JSON.parse(records) : [];
     }
@@ -3039,8 +3421,16 @@ class SnakeGame {
         return allRecords.filter(r => r.username === currentUser);
     }
 
-    saveRecords(records) {
+    async saveRecords(records) {
         localStorage.setItem('snake-records', JSON.stringify(records));
+
+        // 保存到 Firebase 并等待完成
+        try {
+            await firebase.database().ref('records').set(records);
+            console.log('游戏记录已保存到 Firebase');
+        } catch (e) {
+            console.log('保存记录到 Firebase 失败:', e.message);
+        }
     }
 
     savePlayerName(name) {
@@ -3093,7 +3483,7 @@ class SnakeGame {
             allRecordsList.innerHTML = '<div class="record-item">暂无记录</div>';
         } else {
             allRecordsList.innerHTML = '';
-            combinedRecords.slice(0, 10).forEach((record, index) => {
+            combinedRecords.forEach((record, index) => {
                 const recordItem = document.createElement('div');
                 recordItem.className = 'record-item';
                 if (index < 3) recordItem.classList.add('highlight');
@@ -3216,6 +3606,13 @@ class SnakeGame {
         const currentUser = window.auth ? window.auth.currentUser : null;
         const storageKey = currentUser ? `snake-achievements-${currentUser}` : 'snake-achievements';
         localStorage.setItem(storageKey, JSON.stringify(this.achievements));
+
+        // 保存到 Firebase
+        if (currentUser) {
+            firebase.database().ref('achievements/' + currentUser).set(this.achievements)
+                .then(() => console.log('成就已保存到 Firebase'))
+                .catch(e => console.log('保存成就到Firebase失败:', e.message));
+        }
     }
 
     showAchievementNotification(achievement) {
