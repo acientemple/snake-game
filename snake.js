@@ -2758,6 +2758,63 @@ class SnakeGame {
                 this.ctx.fillStyle = gradient;
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                 break;
+            case 'forest':
+                this.ctx.fillStyle = '#e8f5e9';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillStyle = '#c8e6c9';
+                for (let i = 0; i < this.canvas.width; i += 40) {
+                    for (let j = 0; j < this.canvas.height; j += 40) {
+                        this.ctx.beginPath();
+                        this.ctx.arc(i + 20, j + 20, 3, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                }
+                break;
+            case 'ocean':
+                const oceanGrad = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                oceanGrad.addColorStop(0, '#e3f2fd');
+                oceanGrad.addColorStop(1, '#bbdefb');
+                this.ctx.fillStyle = oceanGrad;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                break;
+            case 'sunset':
+                const sunsetGrad = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                sunsetGrad.addColorStop(0, '#ffe0b2');
+                sunsetGrad.addColorStop(0.5, '#ffcc80');
+                sunsetGrad.addColorStop(1, '#ffab91');
+                this.ctx.fillStyle = sunsetGrad;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                break;
+            case 'night':
+                this.ctx.fillStyle = '#1a237e';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                // 使用固定位置的星星，避免每帧闪烁
+                if (!this.nightStars) {
+                    this.nightStars = [];
+                    for (let i = 0; i < 30; i++) {
+                        this.nightStars.push({
+                            x: Math.random() * this.canvas.width,
+                            y: Math.random() * this.canvas.height * 0.7,
+                            r: Math.random() * 1.5 + 0.5
+                        });
+                    }
+                }
+                this.ctx.fillStyle = '#fff';
+                this.nightStars.forEach(star => {
+                    this.ctx.beginPath();
+                    this.ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+                break;
+            case 'pastel':
+                const pastelGrad = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
+                pastelGrad.addColorStop(0, '#f3e5f5');
+                pastelGrad.addColorStop(0.33, '#e8eaf6');
+                pastelGrad.addColorStop(0.66, '#e8f5e9');
+                pastelGrad.addColorStop(1, '#fff3e0');
+                this.ctx.fillStyle = pastelGrad;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                break;
             default: // grid
                 this.ctx.fillStyle = '#ecf0f1';
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -2817,24 +2874,79 @@ class SnakeGame {
         }
     }
 
+    // 绘制网格辅助方法
+    drawGrid(color = '#bdc3c7') {
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = 0.5;
+        for (let i = 0; i <= this.canvas.width; i += this.gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(i, 0);
+            this.ctx.lineTo(i, this.canvas.height);
+            this.ctx.stroke();
+        }
+        for (let i = 0; i <= this.canvas.height; i += this.gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, i);
+            this.ctx.lineTo(this.canvas.width, i);
+            this.ctx.stroke();
+        }
+    }
+
     drawFood(food) {
         const centerX = food.x * this.gridSize + this.gridSize / 2;
         const centerY = food.y * this.gridSize + this.gridSize / 2;
+        const size = this.gridSize;
 
         switch(this.skinSettings.foodStyle) {
             case 'star':
                 this.ctx.fillStyle = '#f1c40f';
-                this.ctx.font = `${this.gridSize}px Arial`;
+                this.ctx.font = `${size}px Arial`;
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
                 this.ctx.fillText('★', centerX, centerY);
                 break;
             case 'heart':
                 this.ctx.fillStyle = '#e91e63';
-                this.ctx.font = `${this.gridSize}px Arial`;
+                this.ctx.font = `${size}px Arial`;
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
                 this.ctx.fillText('♥', centerX, centerY);
+                break;
+            case 'fish':
+                this.ctx.font = `${size - 2}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('🐟', centerX, centerY);
+                break;
+            case 'bug':
+                this.ctx.font = `${size - 2}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this this.ctx.fillText('🐛', centerX, centerY);
+                break;
+            case 'apple':
+                this.ctx.font = `${size - 2}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('🍎', centerX, centerY);
+                break;
+            case 'diamond':
+                this.ctx.font = `${size - 2}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('💎', centerX, centerY);
+                break;
+            case 'candy':
+                this.ctx.font = `${size - 2}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('🍬', centerX, centerY);
+                break;
+            case 'cookie':
+                this.ctx.font = `${size - 2}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('🍪', centerX, centerY);
                 break;
             default: // circle
                 this.ctx.fillStyle = food.type === 'gold' ? '#f1c40f' : '#e74c3c';
@@ -2919,6 +3031,16 @@ class SnakeGame {
                 fillStyle = index === 0 ? '#2980b9' : '#3498db';
             } else if (colorType === 'red') {
                 fillStyle = index === 0 ? '#c0392b' : '#e74c3c';
+            } else if (colorType === 'purple') {
+                fillStyle = index === 0 ? '#8e44ad' : '#9b59b6';
+            } else if (colorType === 'orange') {
+                fillStyle = index === 0 ? '#d35400' : '#e67e22';
+            } else if (colorType === 'pink') {
+                fillStyle = index === 0 ? '#e84393' : '#fd79a8';
+            } else if (colorType === 'yellow') {
+                fillStyle = index === 0 ? '#f39c12' : '#f1c40f';
+            } else if (colorType === 'cyan') {
+                fillStyle = index === 0 ? '#00b894' : '#00cec9';
             } else { // green (default)
                 fillStyle = index === 0 ? '#27ae60' : '#2ecc71';
             }
@@ -3885,6 +4007,11 @@ class SnakeGame {
         const snakeColor = document.querySelector('input[name="snake-color"]:checked').value;
         const foodStyle = document.querySelector('input[name="food-style"]:checked').value;
         const bgStyle = document.querySelector('input[name="bg-style"]:checked').value;
+
+        // 背景改变时重置星星位置
+        if (this.skinSettings && this.skinSettings.bgStyle !== bgStyle) {
+            this.nightStars = null;
+        }
 
         this.skinSettings = {snakeColor, foodStyle, bgStyle};
         localStorage.setItem('snake-skins', JSON.stringify(this.skinSettings));

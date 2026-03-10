@@ -539,6 +539,13 @@ body {
     background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
 }
 
+/* 新增蛇身颜色 */
+.purple-preview { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+.orange-preview { background: linear-gradient(135deg, #e67e22, #d35400); }
+.pink-preview { background: linear-gradient(135deg, #fd79a8, #e84393); }
+.yellow-preview { background: linear-gradient(135deg, #f1c40f, #f39c12); }
+.cyan-preview { background: linear-gradient(135deg, #00cec9, #00b894); }
+
 .food-circle-preview {
     background: radial-gradient(circle, #e74c3c 50%, #c0392b 100%);
     border-radius: 50%;
@@ -556,6 +563,10 @@ body {
     text-shadow: 0 0 10px #e91e63;
 }
 
+/* 新增食物预览 */
+.food-fish-preview, .food-bug-preview, .food-apple-preview, .food-diamond-preview, .food-candy-preview, .food-cookie-preview { font-size: 24px; }
+.food-diamond-preview { text-shadow: 0 0 10px #3498db; }
+
 .bg-grid-preview {
     background: linear-gradient(#bdc3c7 1px, transparent 1px),
                 linear-gradient(90deg, #bdc3c7 1px, transparent 1px),
@@ -570,6 +581,13 @@ body {
 .bg-gradient-preview {
     background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
 }
+
+/* 新增背景预览 */
+.bg-forest-preview { background: linear-gradient(135deg, #a8e6cf 0%, #88d8b0 100%); }
+.bg-ocean-preview { background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%); }
+.bg-sunset-preview { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); }
+.bg-night-preview { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); }
+.bg-pastel-preview { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
 
 /* 音效设置样式 */
 .sound-section {
