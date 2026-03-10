@@ -2370,6 +2370,56 @@ function bindVirtualControls() {
             handleVirtualControl(dir);
         });
     });
+
+    // 绑定手势滑动事件
+    bindSwipeGestures();
+}
+
+// 手势滑动控制
+let touchStartX = 0;
+let touchStartY = 0;
+const SWIPE_THRESHOLD = 30; // 最小滑动距离
+
+function bindSwipeGestures() {
+    const canvas = document.getElementById('game-canvas');
+    if (!canvas) return;
+
+    // 触摸开始
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+    }, { passive: false });
+
+    // 触摸结束
+    canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+
+        // 判断滑动方向
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            // 水平滑动
+            if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
+                if (deltaX > 0) {
+                    handleVirtualControl('right');
+                } else {
+                    handleVirtualControl('left');
+                }
+            }
+        } else {
+            // 垂直滑动
+            if (Math.abs(deltaY) > SWIPE_THRESHOLD) {
+                if (deltaY > 0) {
+                    handleVirtualControl('down');
+                } else {
+                    handleVirtualControl('up');
+                }
+            }
+        }
+    }, { passive: false });
 }
 
 // 处理虚拟控制键方向
@@ -3583,12 +3633,104 @@ class SnakeGame {
 
     toggleFullscreen() {
         const container = document.querySelector('.game-container');
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-            container.classList.add('fullscreen-mode');
+        const isMobile = window.innerWidth < 900 || 'ontouchstart' in window;
+
+        // 尝试多种全屏API以兼容不同浏览器
+        const tryFullscreen = () => {
+            if (!document.fullscreenElement) {
+                const requestMethod = container.requestFullscreen ||
+                                    container.webkitRequestFullscreen ||
+                                    container.msRequestFullscreen ||
+                                    container.mozRequestFullScreen;
+                if (requestMethod) {
+                    requestMethod.call(container);
+                    container.classList.add('fullscreen-mode');
+                    // 移动设备全屏时隐藏多余元素
+                    if (isMobile) {
+                        container.classList.add('mobile-fullscreen');
+                    }
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        const tryExitFullscreen = () => {
+            if (document.fullscreenElement ||
+                document.webkitFullscreenElement ||
+                document.msFullscreenElement ||
+                document.mozFullScreenElement) {
+                const exitMethod = document.exitFullscreen ||
+                                  document.webkitExitFullscreen ||
+                                  document.msExitFullscreen ||
+                                  document.mozCancelFullScreen;
+                if (exitMethod) {
+                    exitMethod.call(document);
+                    container.classList.remove('fullscreen-mode');
+                    container.classList.remove('mobile-fullscreen');
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        if (!tryFullscreen()) {
+            tryExitFullscreen();
+        }
+
+        // 延迟检测方向（等待全屏过渡完成）
+        setTimeout(() => this.checkOrientation(), 100);
+
+        // 监听全屏变化
+        this.setupFullscreenListener();
+    }
+
+    setupFullscreenListener() {
+        const container = document.querySelector('.game-container');
+        const rotateHint = document.getElementById('rotate-hint');
+
+        const handleFullscreenChange = () => {
+            const isFullscreen = document.fullscreenElement ||
+                                document.webkitFullscreenElement ||
+                                document.mozFullScreenElement;
+
+            if (!isFullscreen) {
+                container.classList.remove('fullscreen-mode');
+                container.classList.remove('mobile-fullscreen');
+                if (rotateHint) rotateHint.classList.remove('show');
+            } else {
+                // 检测横竖屏
+                this.checkOrientation();
+            }
+        };
+
+        const handleOrientationChange = () => {
+            if (document.fullscreenElement ||
+                document.webkitFullscreenElement ||
+                document.mozFullScreenElement) {
+                this.checkOrientation();
+            }
+        };
+
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.removeEventListener('orientationchange', handleOrientationChange);
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('orientationchange', handleOrientationChange);
+    }
+
+    checkOrientation() {
+        const container = document.querySelector('.game-container');
+        const rotateHint = document.getElementById('rotate-hint');
+        const isLandscape = window.innerWidth > window.innerHeight;
+
+        if (!isLandscape && container.classList.contains('mobile-fullscreen')) {
+            // 竖屏显示旋转提示
+            if (rotateHint) rotateHint.classList.add('show');
         } else {
-            document.exitFullscreen();
-            container.classList.remove('fullscreen-mode');
+            // 横屏隐藏提示
+            if (rotateHint) rotateHint.classList.remove('show');
         }
     }
 

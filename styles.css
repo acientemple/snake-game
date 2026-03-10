@@ -27,11 +27,17 @@ body {
 .game-container.fullscreen-mode {
     max-width: 100%;
     height: 100vh;
+    height: 100dvh; /* 移动设备动态视口高度 */
     border-radius: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     padding: 10px 20px;
+    overflow: auto;
+}
+
+.game-container.fullscreen-mode.webkit {
+    height: -webkit-fill-available;
 }
 
 .game-container.fullscreen-mode .game-header {
@@ -109,6 +115,127 @@ body {
 
 .game-container.fullscreen-mode .records-container {
     display: none;
+}
+
+/* 全屏模式下虚拟控制键 */
+.game-container.fullscreen-mode .virtual-controls {
+    display: flex;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+}
+
+.game-container.fullscreen-mode .vc-btn {
+    width: 70px;
+    height: 70px;
+    font-size: 30px;
+}
+
+/* 移动设备全屏横屏模式 */
+@media (max-width: 900px) and (orientation: landscape) {
+    .game-container.mobile-fullscreen {
+        height: 100vh;
+        height: 100dvh;
+        padding: 5px 10px;
+    }
+
+    .game-container.mobile-fullscreen .game-header,
+    .game-container.mobile-fullscreen .game-settings,
+    .game-container.mobile-fullscreen .game-stats,
+    .game-container.mobile-fullscreen .records-container {
+        display: none !important;
+    }
+
+    .game-container.mobile-fullscreen .game-canvas-container {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+    }
+
+    .game-container.mobile-fullscreen #game-canvas {
+        max-height: 90vh;
+        max-width: 95vw;
+    }
+
+    .game-container.mobile-fullscreen .game-controls {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 5px;
+        padding: 5px;
+    }
+
+    .game-container.mobile-fullscreen .game-controls button {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+
+    .game-container.mobile-fullscreen .virtual-controls {
+        bottom: 10px;
+    }
+
+    .game-container.mobile-fullscreen .vc-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+}
+
+/* 旋转屏幕提示 */
+.rotate-hint {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.rotate-hint.show {
+    display: flex;
+}
+
+.rotate-icon {
+    font-size: 80px;
+    color: #fff;
+    animation: rotateAnim 1.5s ease-in-out infinite;
+}
+
+.rotate-text {
+    font-size: 24px;
+    color: #fff;
+    text-align: center;
+}
+
+@keyframes rotateAnim {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
+}
+
+/* 竖屏时显示旋转提示 */
+@media (max-width: 900px) and (orientation: portrait) {
+    .game-container.mobile-fullscreen ~ .rotate-hint {
+        display: flex;
+    }
+
+    .game-container.mobile-fullscreen .game-canvas-container {
+        max-height: 50vh;
+    }
+
+    .game-container.mobile-fullscreen .virtual-controls {
+        position: relative;
+        margin-top: 10px;
+    }
 }
 
 /* 正常模式样式 */
