@@ -2312,7 +2312,139 @@ function initGame() {
     document.getElementById('speed-value').textContent = game.getSpeedLabel(speed);
     document.getElementById('current-speed').textContent = speed;
 
+    // 初始化设备检测和虚拟控制键
+    initDeviceDetection();
+
     game.draw();
+}
+
+// 设备检测和虚拟控制键
+function initDeviceDetection() {
+    // 检测是否为触摸屏设备
+    const isTouchDevice = ('ontouchstart' in window) ||
+                          (navigator.maxTouchPoints > 0) ||
+                          (navigator.msMaxTouchPoints > 0);
+
+    // 检测设备类型
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+    const isTablet = /ipad|android|tablet/i.test(userAgent) && !/phone/i.test(userAgent);
+
+    let deviceType = 'desktop';
+    if (isTouchDevice) {
+        deviceType = isTablet ? 'tablet' : 'mobile';
+    }
+
+    console.log(`设备类型: ${deviceType} (触摸: ${isTouchDevice})`);
+
+    // 在移动设备上显示虚拟控制键
+    if (deviceType === 'mobile' || deviceType === 'tablet') {
+        const vc = document.getElementById('virtual-controls');
+        if (vc) {
+            vc.classList.add('show');
+        }
+
+        // 绑定虚拟控制键事件
+        document.querySelectorAll('.vc-btn').forEach(btn => {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const dir = btn.dataset.dir;
+                handleVirtualControl(dir);
+            }, { passive: false });
+
+            // 点击事件作为后备
+            btn.addEventListener('click', (e) => {
+                const dir = btn.dataset.dir;
+                handleVirtualControl(dir);
+            });
+        });
+    }
+
+    // 根据屏幕宽度调整画布大小
+    adjustCanvasSize();
+}
+
+// 处理虚拟控制键方向
+function handleVirtualControl(dir) {
+    if (!window.game) return;
+
+    const game = window.game;
+
+    // 如果游戏未运行，点击开始
+    if (!game.isRunning) {
+        game.start();
+        return;
+    }
+
+    // 如果游戏暂停，点击继续
+    if (game.isPaused) {
+        game.togglePause();
+        return;
+    }
+
+    // 根据方向控制蛇
+    switch(dir) {
+        case 'up':
+            if (game.direction.y === 0) game.direction = {x: 0, y: -1};
+            break;
+        case 'down':
+            if (game.direction.y === 0) game.direction = {x: 0, y: 1};
+            break;
+        case 'left':
+            if (game.direction.x === 0) game.direction = {x: -1, y: 0};
+            break;
+        case 'right':
+            if (game.direction.x === 0) game.direction = {x: 1, y: 0};
+            break;
+    }
+}
+
+// 根据屏幕大小调整画布
+function adjustCanvasSize() {
+    const canvas = document.getElementById('game-canvas');
+    if (!canvas) return;
+
+    const container = canvas.parentElement;
+    const containerWidth = container.clientWidth - 20; // 留出边距
+
+    // 原始尺寸
+    const maxWidth = 800;
+    const maxHeight = 500;
+
+    // 计算缩放比例
+    let scale = 1;
+    if (containerWidth < maxWidth) {
+        scale = containerWidth / maxWidth;
+    }
+
+    // 应用缩放
+    if (scale < 1) {
+        canvas.style.width = (maxWidth * scale) + 'px';
+        canvas.style.height = (maxHeight * scale) + 'px';
+    } else {
+        canvas.style.width = '';
+        canvas.style.height = '';
+    }
+
+    // 监听窗口大小变化
+    window.addEventListener('resize', () => {
+        const canvas = document.getElementById('game-canvas');
+        const container = canvas.parentElement;
+        const containerWidth = container.clientWidth - 20;
+
+        let scale = 1;
+        if (containerWidth < maxWidth) {
+            scale = containerWidth / maxWidth;
+        }
+
+        if (scale < 1) {
+            canvas.style.width = (maxWidth * scale) + 'px';
+            canvas.style.height = (maxHeight * scale) + 'px';
+        } else {
+            canvas.style.width = '';
+            canvas.style.height = '';
+        }
+    });
 }
 
 // 页面加载完成后初始化认证

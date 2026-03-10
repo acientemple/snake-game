@@ -978,3 +978,207 @@ body {
         height: 40px;
     }
 }
+
+/* ==================== 虚拟控制键 ==================== */
+.virtual-controls {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;
+    gap: 5px;
+}
+
+.virtual-controls.show {
+    display: flex;
+}
+
+.vc-row {
+    display: flex;
+    gap: 5px;
+}
+
+.vc-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.vc-btn:active {
+    transform: scale(0.95);
+    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+}
+
+.vc-btn.vc-up, .vc-btn.vc-down {
+    margin: 0 auto;
+}
+
+/* ==================== 响应式布局 ==================== */
+/* 平板设备 */
+@media (max-width: 900px) {
+    .game-container {
+        width: 95%;
+        padding: 15px;
+    }
+
+    #game-canvas {
+        width: 100%;
+        height: auto;
+        max-width: 700px;
+    }
+
+    .game-controls {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .game-controls button {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .stat-item {
+        min-width: 100px;
+        padding: 10px 15px;
+    }
+
+    .records-columns {
+        flex-direction: column;
+    }
+}
+
+/* 手机设备 */
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+
+    .game-container {
+        width: 100%;
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    .game-header h1 {
+        font-size: 24px;
+    }
+
+    .game-header .help-link {
+        font-size: 12px;
+    }
+
+    .player-info {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .player-info input {
+        width: 100%;
+    }
+
+    .game-controls {
+        gap: 5px;
+    }
+
+    .game-controls button {
+        padding: 8px 10px;
+        font-size: 12px;
+        flex: 1 1 45%;
+    }
+
+    .game-settings {
+        padding: 10px;
+    }
+
+    .setting-item {
+        flex: 1 1 100%;
+    }
+
+    #game-canvas {
+        max-width: 100%;
+    }
+
+    .game-stats {
+        gap: 10px;
+    }
+
+    .stat-item {
+        min-width: 80px;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .records-container h2 {
+        font-size: 20px;
+    }
+
+    .records-column h3 {
+        font-size: 16px;
+    }
+
+    .record-item {
+        padding: 8px;
+        font-size: 12px;
+    }
+
+    /* 手机上显示虚拟控制键 */
+    .virtual-controls {
+        display: flex;
+    }
+
+    .modal-content {
+        width: 95%;
+        max-height: 90vh;
+        padding: 15px;
+    }
+
+    .skin-section h3 {
+        font-size: 16px;
+    }
+
+    .skin-options {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .skin-option {
+        padding: 5px;
+    }
+
+    .skin-preview {
+        width: 35px;
+        height: 35px;
+    }
+}
+
+/* 超小屏幕 */
+@media (max-width: 400px) {
+    .game-header h1 {
+        font-size: 20px;
+    }
+
+    .game-controls button {
+        font-size: 11px;
+        padding: 6px 8px;
+    }
+
+    .stat-item {
+        min-width: 60px;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .vc-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+}
