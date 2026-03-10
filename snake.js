@@ -2321,64 +2321,80 @@ function initGame() {
 
 // 设备检测和虚拟控制键
 function initDeviceDetection() {
-    // 检测是否为触摸屏设备
+    // 检测是否为触摸屏设备且屏幕较小（手机或平板）
     const isTouchDevice = ('ontouchstart' in window) ||
                           (navigator.maxTouchPoints > 0) ||
                           (navigator.msMaxTouchPoints > 0);
 
-    // 检测设备类型
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-    const isTablet = /ipad|android|tablet/i.test(userAgent) && !/phone/i.test(userAgent);
+    // 检测设备类型 - 只在小屏幕上显示虚拟控制键
+    const screenWidth = window.innerWidth;
+    const isSmallScreen = screenWidth < 900; // 屏幕宽度小于900px认为是移动设备
 
-    let deviceType = 'desktop';
-    if (isTouchDevice) {
-        deviceType = isTablet ? 'tablet' : 'mobile';
-    }
+    // 同时满足触摸和小屏幕才显示虚拟控制键
+    const showVirtualControls = isTouchDevice && isSmallScreen;
 
-    console.log(`设备类型: ${deviceType} (触摸: ${isTouchDevice})`);
+    console.log(`屏幕宽度: ${screenWidth}, 触摸: ${isTouchDevice}, 显示虚拟控制键: ${showVirtualControls}`);
 
-    // 在移动设备上显示虚拟控制键
-    if (deviceType === 'mobile' || deviceType === 'tablet') {
+    if (showVirtualControls) {
         const vc = document.getElementById('virtual-controls');
         if (vc) {
             vc.classList.add('show');
         }
 
         // 绑定虚拟控制键事件
-        document.querySelectorAll('.vc-btn').forEach(btn => {
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                const dir = btn.dataset.dir;
-                handleVirtualControl(dir);
-            }, { passive: false });
-
-            // 点击事件作为后备
-            btn.addEventListener('click', (e) => {
-                const dir = btn.dataset.dir;
-                handleVirtualControl(dir);
-            });
-        });
+        bindVirtualControls();
     }
 
     // 根据屏幕宽度调整画布大小
     adjustCanvasSize();
 }
 
+// 绑定虚拟控制键事件
+function bindVirtualControls() {
+    document.querySelectorAll('.vc-btn').forEach(btn => {
+        // 触摸事件
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const dir = btn.dataset.dir;
+            console.log('触摸方向:', dir);
+            handleVirtualControl(dir);
+        }, { passive: false });
+
+        // 点击事件作为后备
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const dir = btn.dataset.dir;
+            console.log('点击方向:', dir);
+            handleVirtualControl(dir);
+        });
+    });
+}
+
 // 处理虚拟控制键方向
 function handleVirtualControl(dir) {
+    console.log('handleVirtualControl called, dir:', dir);
+    console.log('window.game:', window.game);
+
     if (!window.game) {
         console.log('游戏未初始化');
+        alert('请先登录或开始游戏');
         return;
     }
 
     const game = window.game;
+    console.log('game.isRunning:', game.isRunning);
 
-    // 如果游戏未运行，点击开始游戏并设置方向
+    // 如果游戏未运行，点击开始游戏
     if (!game.isRunning) {
+        console.log('开始游戏, 方向:', dir);
         game.start();
-        // 设置初始方向
-        setDirection(game, dir);
+        // 延迟一点设置方向，确保游戏已启动
+        setTimeout(() => {
+            setDirection(game, dir);
+            console.log('方向已设置, game.direction:', game.direction);
+        }, 100);
         return;
     }
 
@@ -2390,6 +2406,7 @@ function handleVirtualControl(dir) {
 
     // 根据方向控制蛇
     setDirection(game, dir);
+    console.log('方向已设置, game.direction:', game.direction);
 }
 
 // 设置蛇的方向
