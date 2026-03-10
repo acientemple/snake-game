@@ -3634,16 +3634,47 @@ class SnakeGame {
     toggleFullscreen() {
         const container = document.querySelector('.game-container');
         const isMobile = window.innerWidth < 900 || 'ontouchstart' in window;
+        const isFullscreen = document.fullscreenElement ||
+                            document.webkitFullscreenElement ||
+                            document.msFullscreenElement ||
+                            document.mozFullScreenElement;
+
+        // 尝试锁定屏幕方向到横屏
+        const lockOrientation = async () => {
+            if (isMobile && screen.orientation && screen.orientation.lock) {
+                try {
+                    await screen.orientation.lock('landscape');
+                } catch (e) {
+                    console.log('无法锁定横屏:', e);
+                }
+            }
+        };
+
+        // 解除屏幕方向锁定
+        const unlockOrientation = () => {
+            if (screen.orientation && screen.orientation.unlock) {
+                try {
+                    screen.orientation.unlock();
+                } catch (e) {
+                    console.log('解锁方向失败:', e);
+                }
+            }
+        };
 
         // 尝试多种全屏API以兼容不同浏览器
         const tryFullscreen = () => {
-            if (!document.fullscreenElement) {
+            if (!isFullscreen) {
                 const requestMethod = container.requestFullscreen ||
                                     container.webkitRequestFullscreen ||
                                     container.msRequestFullscreen ||
                                     container.mozRequestFullScreen;
                 if (requestMethod) {
-                    requestMethod.call(container);
+                    requestMethod.call(container).then(() => {
+                        lockOrientation();
+                    }).catch(() => {
+                        // 全屏请求失败，尝试锁定方向作为后备
+                        lockOrientation();
+                    });
                     container.classList.add('fullscreen-mode');
                     // 移动设备全屏时隐藏多余元素
                     if (isMobile) {
@@ -3656,16 +3687,14 @@ class SnakeGame {
         };
 
         const tryExitFullscreen = () => {
-            if (document.fullscreenElement ||
-                document.webkitFullscreenElement ||
-                document.msFullscreenElement ||
-                document.mozFullScreenElement) {
+            if (isFullscreen) {
                 const exitMethod = document.exitFullscreen ||
                                   document.webkitExitFullscreen ||
                                   document.msExitFullscreen ||
                                   document.mozCancelFullScreen;
                 if (exitMethod) {
                     exitMethod.call(document);
+                    unlockOrientation();
                     container.classList.remove('fullscreen-mode');
                     container.classList.remove('mobile-fullscreen');
                     return true;
@@ -3675,6 +3704,7 @@ class SnakeGame {
         };
 
         if (!tryFullscreen()) {
+            unlockOrientation();
             tryExitFullscreen();
         }
 
