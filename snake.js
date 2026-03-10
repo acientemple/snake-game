@@ -1623,6 +1623,23 @@ class AuthSystem {
             });
         });
 
+        // 游客直接进入游戏
+        document.getElementById('guest-btn').addEventListener('click', () => {
+            console.log('游客进入游戏');
+            // 隐藏登录面板
+            document.getElementById('auth-panel').style.display = 'none';
+            // 显示游戏容器
+            document.getElementById('game-container').style.display = 'block';
+            // 设置为游客模式
+            this.currentUser = '游客';
+            this.isAdmin = false;
+            localStorage.setItem('snake-current-user', '游客');
+            localStorage.setItem('snake-admin', 'false');
+            // 初始化游戏
+            this.initGame();
+            console.log('游客模式已启动');
+        });
+
         // 注册 - 使用 Firebase
         // 支持回车键注册
         document.getElementById('reg-username').addEventListener('keypress', (e) => {
