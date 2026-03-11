@@ -2591,10 +2591,14 @@ function initDeviceDetection() {
             vc.classList.add('show');
         }
 
-        // 显示提示（非全屏模式）
+        // 显示提示（非全屏模式），30秒后自动隐藏
         const vcTip = document.getElementById('vc-tip');
         if (vcTip) {
             vcTip.style.display = 'block';
+            // 30秒后自动隐藏提示
+            setTimeout(() => {
+                vcTip.style.display = 'none';
+            }, 30000);
         }
 
         // 绑定虚拟控制键事件
