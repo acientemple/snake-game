@@ -1136,6 +1136,7 @@ class AuthSystem {
         const dialog = document.createElement('div');
         dialog.id = 'change-password-dialog';
         dialog.className = 'modal show';
+        console.log('创建dialog元素');
         dialog.innerHTML = `
             <div class="modal-content" style="max-width:400px;">
                 <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
@@ -1153,6 +1154,11 @@ class AuthSystem {
         `;
 
         document.body.appendChild(dialog);
+        console.log('dialog已添加到body');
+
+        // 调试：检查按钮是否存在
+        const btn = document.getElementById('confirm-change-pass');
+        console.log('按钮存在:', btn, '按钮内容:', btn ? btn.innerHTML : '无');
 
         // 保存邮箱
         document.getElementById('confirm-change-email').addEventListener('click', () => {
