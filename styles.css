@@ -135,6 +135,7 @@ body.fullscreen-body {
 .game-container.fullscreen-mode #game-canvas {
     max-height: 85vh;
     width: auto;
+    pointer-events: auto;
 }
 
 .game-container.fullscreen-mode .game-stats {
@@ -171,13 +172,14 @@ body.fullscreen-body {
     top: 10px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 100;
+    z-index: 200;
     flex-wrap: wrap;
     justify-content: center;
     gap: 5px;
     background: rgba(255,255,255,0.8);
     padding: 5px 15px;
     border-radius: 10px;
+    pointer-events: auto;
 }
 
 .game-container.fullscreen-mode .game-controls button {
@@ -197,6 +199,7 @@ body.fullscreen-body {
     justify-content: center;
     align-items: center;
     z-index: 1;
+    pointer-events: none;
 }
 
 .game-container.fullscreen-mode #game-canvas {
@@ -1238,6 +1241,7 @@ body.fullscreen-body {
     justify-content: center;
     align-items: center;
     padding: 15px;
+    z-index: 50;
 }
 
 .virtual-controls.show {
