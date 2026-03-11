@@ -69,11 +69,9 @@
     <!-- 登录表单 -->
     <div class="admin-login-container active" id="login-form">
         <h1>🐍 管理员登录</h1>
-        <div id="auto-token-status" class="loading">正在自动获取 GitHub 权限...</div>
-        <input type="text" id="admin-username" placeholder="管理员用户名" style="display:none;">
-        <input type="password" id="admin-password" placeholder="管理员密码" style="display:none;">
-        <input type="text" id="github-token" placeholder="GitHub Token (可选)" style="display:none;">
-        <button id="admin-login-btn" style="display:none;">登录</button>
+        <input type="text" id="admin-username" placeholder="管理员用户名">
+        <input type="password" id="admin-password" placeholder="管理员密码">
+        <button id="admin-login-btn">登录</button>
         <p id="login-error" class="error"></p>
         <div class="back-link"><a href="index.html">返回主页</a></div>
         <p class="hint">默认管理员: acientemple / 123456</p>
@@ -84,23 +82,6 @@
         <div class="admin-header">
             <h1>🐍 管理员面板</h1>
             <button class="logout-btn" id="logout-btn">退出登录</button>
-        </div>
-
-        <!-- GitHub 状态 -->
-        <div class="status-bar">
-            <span id="token-status">等待加载...</span>
-            <div>
-                <button class="btn" id="sync-btn">从 GitHub 同步</button>
-                <button class="btn btn-success" id="save-to-github-btn">保存到 GitHub</button>
-            </div>
-        </div>
-
-        <!-- 公开 Token 配置 -->
-        <div class="admin-section">
-            <h2>🔗 公开 Token 配置</h2>
-            <p style="color:#666;font-size:14px;">复制以下内容到公开的 token-config.json 文件（用于自动获取 Token）</p>
-            <textarea id="public-config" style="width:100%;height:80px;padding:10px;font-family:monospace;" readonly></textarea>
-            <button class="btn" id="copy-public-config" style="margin-top:10px;">复制配置</button>
         </div>
 
         <!-- 用户管理 -->
@@ -364,14 +345,6 @@
             return false;
         }
 
-        function showLoginForm() {
-            document.getElementById('auto-token-status').style.display = 'none';
-            document.getElementById('admin-username').style.display = 'block';
-            document.getElementById('admin-password').style.display = 'block';
-            document.getElementById('github-token').style.display = 'block';
-            document.getElementById('admin-login-btn').style.display = 'block';
-        }
-
         // 关闭弹窗
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
@@ -407,32 +380,17 @@
                 window.location.href = 'admin.html?page=manage';
             }
 
-            autoGetGitHubToken().then(result => {
-                if (result.token) {
-                    document.getElementById('auto-token-status').textContent = '✓ 已自动获取 GitHub 权限';
-                    document.getElementById('auto-token-status').className = 'success';
-                } else {
-                    document.getElementById('auto-token-status').textContent = '⚠ 请输入 GitHub Token';
-                    document.getElementById('auto-token-status').className = 'error';
-                }
-                showLoginForm();
-            }).catch(() => {
-                showLoginForm('无法自动获取 GitHub 权限，请手动输入');
-            });
-
-            document.getElementById('admin-login-btn').addEventListener('click', async function() {
+            document.getElementById('admin-login-btn').addEventListener('click', function() {
                 const username = document.getElementById('admin-username').value.trim();
                 const password = document.getElementById('admin-password').value;
-                const token = document.getElementById('github-token').value.trim();
                 const errorEl = document.getElementById('login-error');
-                const btn = this;
 
                 if (!username || !password) {
                     errorEl.textContent = '请输入用户名和密码';
                     return;
                 }
 
-                // 先验证管理员账号
+                // 验证管理员账号
                 const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
                 const user = users[username];
 
@@ -441,57 +399,14 @@
                 const userIsAdmin = user.isAdmin || (user.data && user.data.isAdmin);
                 if (!userIsAdmin) { errorEl.textContent = '您不是管理员'; return; }
 
-                // 如果提供了 Token，先用这个 Token 加载数据
-                if (token) {
-                    btn.textContent = '登录并同步中...';
-                    btn.disabled = true;
-
-                    localStorage.setItem('snake-github-token', token);
-
-                    // 使用提供的 Token 加载数据
-                    const result = await autoGetGitHubToken(token);
-                    console.log('登录时加载结果:', result);
-
-                    if (result.loaded) {
-                        errorEl.textContent = '✓ 登录成功，已从 GitHub 同步数据！';
-                        errorEl.className = 'success';
-                    } else {
-                        // Token 可能无效，但继续登录
-                        try {
-                            const response = await fetch('https://api.github.com/user', {
-                                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
-                            });
-                            if (response.ok) {
-                                const userData = await response.json();
-                                localStorage.setItem('snake-shared-github-user', userData.login);
-                                localStorage.setItem('snake-shared-github-token', token);
-                            }
-                        } catch(e) { console.log('Token验证失败', e); }
-                    }
-                }
-
                 localStorage.setItem('snake-current-user', username);
                 localStorage.setItem('snake-admin', 'true');
 
-                setTimeout(() => {
-                    window.location.href = 'admin.html?page=manage';
-                }, 1000);
+                window.location.href = 'admin.html?page=manage';
             });
         }
 
         async function initAdminPanel() {
-            const tokenStatusEl = document.getElementById('token-status');
-            const savedToken = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
-            const savedUser = localStorage.getItem('snake-shared-github-user');
-
-            if (savedToken && savedUser) {
-                tokenStatusEl.textContent = `✓ 已连接 GitHub，用户: ${savedUser}`;
-                tokenStatusEl.className = 'success';
-            } else {
-                tokenStatusEl.textContent = '⚠ 未连接 GitHub';
-                tokenStatusEl.className = 'error';
-            }
-
             // 加载用户列表
             function loadUsers() {
                 const users = JSON.parse(localStorage.getItem('snake-users') || '{}');
@@ -603,68 +518,6 @@
                 loadRecords();
             };
 
-            // 从 GitHub 同步
-            document.getElementById('sync-btn').addEventListener('click', async function() {
-                const token = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
-                if (!token) { alert('无法获取 GitHub 权限'); return; }
-
-                const btn = this;
-                btn.textContent = '同步中...';
-                btn.disabled = true;
-
-                const data = await loadFromGitHub(token);
-                if (data.users) { localStorage.setItem('snake-users', JSON.stringify(data.users)); loadUsers(); }
-                if (data.records) { localStorage.setItem('snake-records', JSON.stringify(data.records)); loadRecords(); }
-                if (data.badWords) { localStorage.setItem('snake-badwords', JSON.stringify(data.badWords)); }
-
-                btn.textContent = '从 GitHub 同步';
-                btn.disabled = false;
-                alert('同步完成！\n（请刷新页面或手动刷新敏感词列表）');
-            });
-
-            // 保存到 GitHub
-            document.getElementById('save-to-github-btn').addEventListener('click', async function() {
-                const token = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
-                if (!token) { alert('无法获取 GitHub 权限'); return; }
-
-                const btn = this;
-                btn.textContent = '保存中...';
-                btn.disabled = true;
-
-                const success = await saveToGitHub(token);
-
-                btn.textContent = '保存到 GitHub';
-                btn.disabled = false;
-                alert(success ? '保存成功！' : '保存失败');
-
-                // 更新公开配置显示
-                updatePublicConfig();
-            });
-
-            // 更新公开配置显示
-            function updatePublicConfig() {
-                const token = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
-                const user = localStorage.getItem('snake-shared-github-user');
-                if (token) {
-                    const config = {
-                        sharedToken: btoa(token),
-                        sharedUser: user
-                    };
-                    document.getElementById('public-config').value = JSON.stringify(config, null, 2);
-                }
-            }
-            updatePublicConfig();
-
-            // 复制公开配置
-            document.getElementById('copy-public-config').addEventListener('click', function() {
-                const configText = document.getElementById('public-config').value;
-                navigator.clipboard.writeText(configText).then(() => {
-                    alert('已复制到剪贴板！请将内容粘贴到 GitHub 仓库的 token-config.json 文件中');
-                }).catch(() => {
-                    alert('复制失败，请手动复制');
-                });
-            });
-
             // 清空记录
             document.getElementById('clear-records-btn').addEventListener('click', function() {
                 if (!confirm('确定要清空所有游戏记录吗？此操作不可恢复！')) return;
@@ -725,15 +578,6 @@
 
             document.getElementById('refresh-users-btn').addEventListener('click', loadUsers);
             document.getElementById('refresh-records-btn').addEventListener('click', loadRecords);
-
-            // 自动从 GitHub 同步
-            const token = localStorage.getItem('snake-github-token') || localStorage.getItem('snake-shared-github-token');
-            if (token) {
-                const data = await loadFromGitHub(token);
-                if (data.users) localStorage.setItem('snake-users', JSON.stringify(data.users));
-                if (data.records) localStorage.setItem('snake-records', JSON.stringify(data.records));
-                if (data.badWords) localStorage.setItem('snake-badwords', JSON.stringify(data.badWords));
-            }
 
             loadUsers();
             loadRecords();
