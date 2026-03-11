@@ -208,6 +208,9 @@ class AuthSystem {
     async initAuth() {
         console.log('=== 开始初始化认证系统 (Firebase) ===');
 
+        // 加载敏感词（从Firebase同步）
+        await this.loadBadWordsFromFirebase();
+
         // 加载本地用户数据
         this.users = this.loadUsers();
         console.log('本地用户数:', Object.keys(this.users).length);
@@ -1256,9 +1259,33 @@ class AuthSystem {
         return defaultBadWords;
     }
 
-    // 保存敏感词列表
+    // 从Firebase加载敏感词
+    async loadBadWordsFromFirebase() {
+        if (typeof firebase === 'undefined') return;
+        try {
+            const snapshot = await firebase.database().ref('badwords').once('value');
+            const badwords = snapshot.val();
+            if (badwords && Array.isArray(badwords) && badwords.length > 0) {
+                localStorage.setItem('snake-badwords', JSON.stringify(badwords));
+                console.log('从Firebase加载了敏感词:', badwords.length, '个');
+            }
+        } catch (e) {
+            console.log('从Firebase加载敏感词失败:', e.message);
+        }
+    }
+
+    // 保存敏感词列表（同时保存到Firebase）
     saveBadWords(badWords) {
         localStorage.setItem('snake-badwords', JSON.stringify(badWords));
+
+        // 同时保存到Firebase
+        if (typeof firebase !== 'undefined') {
+            firebase.database().ref('badwords').set(badWords).then(() => {
+                console.log('敏感词已保存到Firebase');
+            }).catch(e => {
+                console.log('保存敏感词到Firebase失败:', e.message);
+            });
+        }
     }
 
     // 检查是否包含敏感词
