@@ -3304,14 +3304,14 @@ class SnakeGame {
         switch(this.skinSettings.bgStyle) {
             case 'solid':
                 this.ctx.fillStyle = '#ecf0f1';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height); this.drawGrid();
                 break;
             case 'gradient':
                 const gradient = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
                 gradient.addColorStop(0, '#a8edea');
                 gradient.addColorStop(1, '#fed6e3');
                 this.ctx.fillStyle = gradient;
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height); this.drawGrid();
                 break;
             case 'forest':
                 this.ctx.fillStyle = '#e8f5e9';
@@ -3324,13 +3324,14 @@ class SnakeGame {
                         this.ctx.fill();
                     }
                 }
+                this.drawGrid();
                 break;
             case 'ocean':
                 const oceanGrad = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
                 oceanGrad.addColorStop(0, '#e3f2fd');
                 oceanGrad.addColorStop(1, '#bbdefb');
                 this.ctx.fillStyle = oceanGrad;
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height); this.drawGrid();
                 break;
             case 'sunset':
                 const sunsetGrad = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
@@ -3338,7 +3339,7 @@ class SnakeGame {
                 sunsetGrad.addColorStop(0.5, '#ffcc80');
                 sunsetGrad.addColorStop(1, '#ffab91');
                 this.ctx.fillStyle = sunsetGrad;
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height); this.drawGrid();
                 break;
             case 'night':
                 this.ctx.fillStyle = '#1a237e';
@@ -3360,6 +3361,7 @@ class SnakeGame {
                     this.ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
                     this.ctx.fill();
                 });
+                this.drawGrid();
                 break;
             case 'pastel':
                 const pastelGrad = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
@@ -3368,11 +3370,11 @@ class SnakeGame {
                 pastelGrad.addColorStop(0.66, '#e8f5e9');
                 pastelGrad.addColorStop(1, '#fff3e0');
                 this.ctx.fillStyle = pastelGrad;
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height); this.drawGrid();
                 break;
             default: // grid
                 this.ctx.fillStyle = '#ecf0f1';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height); this.drawGrid();
                 // 绘制网格
                 this.ctx.strokeStyle = '#bdc3c7';
                 this.ctx.lineWidth = 0.5;
