@@ -3901,14 +3901,14 @@ class SnakeGame {
         const isGuest = currentUser === '游客' || localStorage.getItem('snake-current-user') === '游客';
         console.log('保存记录 - currentUser:', currentUser, 'isGuest:', isGuest, 'playerName:', this.playerName);
 
-        // 游客模式下，显示为 "玩家姓名-游客"（如果没有填姓名则显示"游客"）
+        // 游客模式下，显示为 "玩家姓名-游客"（如果没有填姓名则显示"游客-游客"以便过滤）
         let displayName = this.playerName;
         if (isGuest) {
             // 游客模式下总是添加 -游客 后缀
             if (this.playerName && this.playerName.trim() !== '' && this.playerName !== '匿名玩家') {
                 displayName = this.playerName.trim() + '-游客';
             } else {
-                displayName = '游客';
+                displayName = '游客-游客';
             }
         }
 
@@ -3993,9 +3993,13 @@ class SnakeGame {
             return [];
         }
 
-        // 游客模式：根据 playerName 过滤（包含"-游客"后缀的）
+        // 游客模式：根据 playerName 过滤（包含"-游客"后缀的，或者是"游客"）
         if (isGuest) {
-            const guestRecords = allRecords.filter(r => r.playerName && r.playerName.endsWith('-游客'));
+            const guestRecords = allRecords.filter(r => {
+                if (!r.playerName) return false;
+                // 兼容新旧记录：新记录以"-游客"结尾，旧记录为"游客"
+                return r.playerName.endsWith('-游客') || r.playerName === '游客';
+            });
             console.log('getUserRecords - 游客模式，找到', guestRecords.length, '条记录');
             console.log('getUserRecords - 游客记录示例:', guestRecords.slice(0, 2));
             return guestRecords;
