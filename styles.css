@@ -164,9 +164,8 @@ body {
 .game-container.fullscreen-mode .virtual-controls.show {
     display: flex;
     position: fixed;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 10px;
+    bottom: 20px;
     z-index: 100;
     flex-direction: column;
     gap: 5px;
