@@ -1147,9 +1147,9 @@ class AuthSystem {
                 <button id="confirm-change-email" class="auth-btn" style="background:#3498db;margin-bottom:15px;">保存邮箱</button>
                 <hr style="margin:15px 0;">
                 <label style="display:block;margin:10px 0;font-weight:bold;">修改密码</label>
-                <input type="password" id="old-password" placeholder="原密码" style="width:100%;padding:12px;margin:5px 0;border:2px solid #ddd;border-radius:8px;">
-                <input type="password" id="new-password-change" placeholder="新密码（至少3位）" style="width:100%;padding:12px;margin:5px 0;border:2px solid #ddd;border-radius:8px;">
-                <input type="password" id="new-password-confirm" placeholder="确认新密码" style="width:100%;padding:12px;margin:5px 0;border:2px solid #ddd;border-radius:8px;">
+                <input type="password" id="cp-old-password" placeholder="原密码" style="width:100%;padding:12px;margin:5px 0;border:2px solid #ddd;border-radius:8px;">
+                <input type="password" id="cp-new-password" placeholder="新密码（至少3位）" style="width:100%;padding:12px;margin:5px 0;border:2px solid #ddd;border-radius:8px;">
+                <input type="password" id="cp-confirm-password" placeholder="确认新密码" style="width:100%;padding:12px;margin:5px 0;border:2px solid #ddd;border-radius:8px;">
                 <button id="confirm-change-pass" class="auth-btn">确认修改密码</button>
             </div>
         `;
@@ -1171,9 +1171,9 @@ class AuthSystem {
 
         // 修改密码 - 使用onclick
         document.getElementById('confirm-change-pass').onclick = function() {
-            const oldPass = document.getElementById('old-password').value;
-            const newPass = document.getElementById('new-password-change').value;
-            const confirmPass = document.getElementById('new-password-confirm').value;
+            const oldPass = document.getElementById('cp-old-password').value;
+            const newPass = document.getElementById('cp-new-password').value;
+            const confirmPass = document.getElementById('cp-confirm-password').value;
 
             if (!oldPass) {
                 alert('请输入原密码');
