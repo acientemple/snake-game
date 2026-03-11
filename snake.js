@@ -3994,6 +3994,9 @@ class SnakeGame {
                 container.classList.remove('fullscreen-mode');
                 container.classList.remove('mobile-fullscreen');
                 document.getElementById('fullscreen-btn').textContent = '全屏';
+                // 隐藏解锁按钮
+                const unlockBtn = document.getElementById('unlock-orientation-btn');
+                if (unlockBtn) unlockBtn.style.display = 'none';
                 this.checkOrientation();
             }
             return;
@@ -4056,6 +4059,20 @@ class SnakeGame {
                     container.classList.add('mobile-fullscreen');
                 }
                 document.getElementById('fullscreen-btn').textContent = '退出全屏';
+
+                // 显示解锁屏幕按钮（仅移动设备）
+                if (isMobile) {
+                    const unlockBtn = document.getElementById('unlock-orientation-btn');
+                    if (unlockBtn) {
+                        unlockBtn.style.display = 'block';
+                        unlockBtn.onclick = () => {
+                            if (screen.orientation && screen.orientation.unlock) {
+                                screen.orientation.unlock();
+                                unlockBtn.style.display = 'none';
+                            }
+                        };
+                    }
+                }
             }
             this.checkOrientation();
         });
