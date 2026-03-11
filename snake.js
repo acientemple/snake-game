@@ -2841,6 +2841,7 @@ class SnakeGame {
 
         // 皮肤设置
         this.skinSettings = this.loadSkinSettings();
+        this.applyOuterBackground(this.skinSettings.outerBg || 'purple');
 
         // 音效设置
         this.soundSettings = this.loadSoundSettings();
@@ -4895,7 +4896,8 @@ class SnakeGame {
         return saved ? JSON.parse(saved) : {
             snakeColor: 'green',
             foodStyle: 'circle',
-            bgStyle: 'grid'
+            bgStyle: 'grid',
+            outerBg: 'purple'
         };
     }
 
@@ -4903,17 +4905,36 @@ class SnakeGame {
         const snakeColor = document.querySelector('input[name="snake-color"]:checked').value;
         const foodStyle = document.querySelector('input[name="food-style"]:checked').value;
         const bgStyle = document.querySelector('input[name="bg-style"]:checked').value;
+        const outerBg = document.querySelector('input[name="outer-bg"]:checked').value;
 
         // 背景改变时重置星星位置
         if (this.skinSettings && this.skinSettings.bgStyle !== bgStyle) {
             this.nightStars = null;
         }
 
-        this.skinSettings = {snakeColor, foodStyle, bgStyle};
+        this.skinSettings = {snakeColor, foodStyle, bgStyle, outerBg};
         localStorage.setItem('snake-skins', JSON.stringify(this.skinSettings));
+
+        // 应用外围背景
+        this.applyOuterBackground(outerBg);
 
         document.getElementById('skins-panel').classList.remove('show');
         this.draw();
+    }
+
+    // 应用外围背景
+    applyOuterBackground(bgName) {
+        const gradients = {
+            'purple': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            'blue': 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)',
+            'green': 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+            'orange': 'linear-gradient(135deg, #f12711 0%, #f5af19 100%)',
+            'pink': 'linear-gradient(135deg, #ec008c 0%, #fc6767 100%)',
+            'dark': 'linear-gradient(135deg, #232526 0%, #414345 100%)',
+            'black': '#000000',
+            'white': '#ffffff'
+        };
+        document.body.style.background = gradients[bgName] || gradients['purple'];
     }
 
     showSkins() {
@@ -4921,6 +4942,7 @@ class SnakeGame {
         document.querySelector(`input[name="snake-color"][value="${this.skinSettings.snakeColor}"]`).checked = true;
         document.querySelector(`input[name="food-style"][value="${this.skinSettings.foodStyle}"]`).checked = true;
         document.querySelector(`input[name="bg-style"][value="${this.skinSettings.bgStyle}"]`).checked = true;
+        document.querySelector(`input[name="outer-bg"][value="${this.skinSettings.outerBg || 'purple'}"]`).checked = true;
 
         document.getElementById('skins-panel').classList.add('show');
     }
