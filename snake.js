@@ -1,6 +1,7 @@
 // 贪吃蛇游戏核心逻辑 - 增强版
-// 版本: 1.3.1 (2026-03-19)
+// 版本: 1.3.2 (2026-03-19)
 // 更新日志:
+// 1.3.2 - 优化分页显示（首页尾页、省略号）
 // 1.3.1 - 添加按Enter键确认修改密码
 // 1.3.0 - 修复修改密码按钮和输入框ID冲突问题
 // 1.2.0 - 添加敏感词过滤功能
@@ -214,7 +215,7 @@ class AuthSystem {
     // 初始化方法，在 DOM 加载完成后调用
     async initAuth() {
         console.log('=== 开始初始化认证系统 (Firebase) ===');
-        console.log('游戏版本: 1.3.1 (2026-03-19)');
+        console.log('游戏版本: 1.3.2 (2026-03-19)');
 
         // 加载敏感词（从Firebase同步）
         await this.loadBadWordsFromFirebase();
@@ -4479,19 +4480,68 @@ class SnakeGame {
 
     // 创建分页 HTML
     createPaginationHTML(type, currentPage, totalPages) {
-        let html = '<div class="pagination" style="display:flex;justify-content:center;align-items:center;margin-top:15px;gap:10px;">';
+        let html = '<div class="pagination" style="display:flex;justify-content:center;align-items:center;margin-top:15px;gap:5px;flex-wrap:wrap;">';
 
-        // 上一页
+        // 首页
         if (currentPage > 1) {
-            html += `<button class="page-btn" data-type="${type}" data-page="${currentPage - 1}">上一页</button>`;
+            html += `<button class="page-btn" data-type="${type}" data-page="1">首页</button>`;
         }
 
-        // 页码
-        html += `<span style="color:#666;">第 ${currentPage} / ${totalPages} 页</span>`;
+        // 上一页 <
+        if (currentPage > 1) {
+            html += `<button class="page-btn" data-type="${type}" data-page="${currentPage - 1}">&lt;</button>`;
+        }
 
-        // 下一页
+        // 页码（最多显示10个，中间用省略号）
+        const maxPages = 10;
+        let startPage = 1;
+        let endPage = totalPages;
+
+        if (totalPages > maxPages) {
+            const half = Math.floor(maxPages / 2);
+            startPage = Math.max(1, currentPage - half);
+            endPage = Math.min(totalPages, currentPage + half);
+
+            if (currentPage <= half) {
+                endPage = maxPages;
+            } else if (currentPage >= totalPages - half) {
+                startPage = totalPages - maxPages + 1;
+            }
+        }
+
+        // 前面省略号
+        if (startPage > 1) {
+            html += `<button class="page-btn" data-type="${type}" data-page="1">1</button>`;
+            if (startPage > 2) {
+                html += `<span style="color:#999;padding:0 5px;">...</span>`;
+            }
+        }
+
+        // 中间页码
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === currentPage) {
+                html += `<span style="color:#667eea;font-weight:bold;padding:0 8px;">${i}</span>`;
+            } else {
+                html += `<button class="page-btn" data-type="${type}" data-page="${i}">${i}</button>`;
+            }
+        }
+
+        // 后面省略号
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                html += `<span style="color:#999;padding:0 5px;">...</span>`;
+            }
+            html += `<button class="page-btn" data-type="${type}" data-page="${totalPages}">${totalPages}</button>`;
+        }
+
+        // 下一页 >
         if (currentPage < totalPages) {
-            html += `<button class="page-btn" data-type="${type}" data-page="${currentPage + 1}">下一页</button>`;
+            html += `<button class="page-btn" data-type="${type}" data-page="${currentPage + 1}">&gt;</button>`;
+        }
+
+        // 尾页
+        if (currentPage < totalPages) {
+            html += `<button class="page-btn" data-type="${type}" data-page="${totalPages}">尾页</button>`;
         }
 
         html += '</div>';
