@@ -3987,6 +3987,7 @@ class SnakeGame {
                 unlockOrientation();
                 container.classList.remove('fullscreen-mode');
                 container.classList.remove('mobile-fullscreen');
+                document.getElementById('fullscreen-btn').textContent = '全屏';
                 this.checkOrientation();
             }
             return;
@@ -4037,6 +4038,7 @@ class SnakeGame {
                 if (isMobile) {
                     container.classList.add('mobile-fullscreen');
                 }
+                document.getElementById('fullscreen-btn').textContent = '退出全屏';
                 lockOrientation();
             } else {
                 // 全屏API失败，至少锁定方向
@@ -4047,6 +4049,7 @@ class SnakeGame {
                 if (isMobile) {
                     container.classList.add('mobile-fullscreen');
                 }
+                document.getElementById('fullscreen-btn').textContent = '退出全屏';
             }
             this.checkOrientation();
         });
