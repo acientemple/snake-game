@@ -3912,9 +3912,13 @@ class SnakeGame {
             }
         }
 
+        // 登录用户模式下如果没有输入姓名，显示"匿名玩家"
+        const playerNameForRecord = isGuest ? displayName :
+            (this.playerName && this.playerName.trim() !== '' ? this.playerName : '匿名玩家');
+
         const record = {
             username: isGuest ? displayName : (currentUser || this.playerName || '匿名'),
-            playerName: this.isTwoPlayerMode ? (this.p1Score >= this.p2Score ? 'P1' : 'P2') : displayName,
+            playerName: this.isTwoPlayerMode ? (this.p1Score >= this.p2Score ? 'P1' : 'P2') : playerNameForRecord,
             score: this.isTwoPlayerMode ? Math.max(this.p1Score, this.p2Score) : this.score,
             mode: document.getElementById('game-mode').value,
             time: this.gameTime - this.timeRemaining,
