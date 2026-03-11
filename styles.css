@@ -4,6 +4,31 @@
     box-sizing: border-box;
 }
 
+/* 隐藏 iPad Safari 全屏顶部横条提示 */
+::-webkit-full-screen-top-bar {
+    display: none !important;
+}
+
+/* 全屏时隐藏顶部提示区域 */
+.game-container.fullscreen-mode {
+    padding-top: 0 !important;
+}
+
+/* 尝试隐藏 iPad 全屏时的滑动手势提示 */
+@supports (-webkit-touch-callout: none) {
+    .game-container.fullscreen-mode::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background: transparent;
+        z-index: 9999;
+        pointer-events: none;
+    }
+}
+
 body {
     font-family: 'Arial', sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
