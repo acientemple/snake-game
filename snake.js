@@ -1131,6 +1131,7 @@ class AuthSystem {
 
     // 显示修改密码/邮箱对话框
     showChangePasswordDialog() {
+        console.log('showChangePasswordDialog called, currentUser:', this.currentUser);
         const currentEmail = this.users[this.currentUser]?.email || '';
         const dialog = document.createElement('div');
         dialog.id = 'change-password-dialog';
