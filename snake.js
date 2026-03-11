@@ -4028,6 +4028,8 @@ class SnakeGame {
                 document.getElementById('fullscreen-btn').textContent = '全屏';
                 // 恢复body padding
                 document.body.classList.remove('fullscreen-body');
+                // 恢复页面缩放
+                document.body.style.zoom = '1';
                 // 隐藏解锁按钮
                 const unlockBtn = document.getElementById('unlock-orientation-btn');
                 if (unlockBtn) unlockBtn.style.display = 'none';
@@ -4087,6 +4089,8 @@ class SnakeGame {
                 document.getElementById('fullscreen-btn').textContent = '退出全屏';
                 // 移除body padding
                 document.body.classList.add('fullscreen-body');
+                // 放大页面到1.5倍
+                document.body.style.zoom = '1.5';
                 // 确保外围背景显示
                 this.applyOuterBackground(this.skinSettings.outerBg || 'purple');
                 // 清除用户主动退出标志
@@ -4108,6 +4112,8 @@ class SnakeGame {
                 document.getElementById('fullscreen-btn').textContent = '退出全屏';
                 // 移除body padding
                 document.body.classList.add('fullscreen-body');
+                // 放大页面到1.5倍
+                document.body.style.zoom = '1.5';
                 // 确保外围背景显示
                 this.applyOuterBackground(this.skinSettings.outerBg || 'purple');
                 // 清除用户主动退出标志
@@ -4154,6 +4160,8 @@ class SnakeGame {
                 container.classList.remove('fullscreen-mode');
                 container.classList.remove('mobile-fullscreen');
                 document.body.classList.remove('fullscreen-body');
+                // 恢复页面缩放
+                document.body.style.zoom = '1';
                 if (rotateHint) rotateHint.classList.remove('show');
 
                 // iPad 自动恢复全屏（如果不是用户主动退出）
