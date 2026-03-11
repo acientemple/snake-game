@@ -3919,7 +3919,7 @@ class SnakeGame {
             (currentPlayerName && currentPlayerName.trim() !== '' ? currentPlayerName : '匿名玩家');
 
         const record = {
-            username: isGuest ? displayName : (currentUser || this.playerName || '匿名'),
+            username: isGuest ? displayName : (currentPlayerName && currentPlayerName.trim() !== '' ? currentPlayerName : '匿名玩家'),
             playerName: this.isTwoPlayerMode ? (this.p1Score >= this.p2Score ? 'P1' : 'P2') : playerNameForRecord,
             score: this.isTwoPlayerMode ? Math.max(this.p1Score, this.p2Score) : this.score,
             mode: document.getElementById('game-mode').value,
