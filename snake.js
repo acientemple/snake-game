@@ -4250,6 +4250,13 @@ class SnakeGame {
 
         this.saveRecords(filteredRecords);
 
+        // 同时清除永久记录中的匿名玩家记录
+        if (!isGuest) {
+            const topRecords = this.loadTopRecords();
+            const filteredTopRecords = topRecords.filter(r => r.playerName !== '匿名玩家');
+            this.saveTopRecords(filteredTopRecords);
+        }
+
         // 同步到GitHub
         if (window.auth && window.auth.currentUser) {
             await window.auth.saveUsers();
