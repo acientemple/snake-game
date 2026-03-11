@@ -2787,6 +2787,8 @@ function adjustCanvasSize() {
 
 // 页面加载完成后初始化认证
 document.addEventListener('DOMContentLoaded', () => {
+    // 确保缩放重置
+    document.body.style.zoom = '1';
     window.auth = new AuthSystem();
     window.auth.initAuth();
 });
