@@ -1998,6 +1998,15 @@ class AuthSystem {
                         <input type="text" id="test-email-address" placeholder="测试收件人邮箱" style="padding:8px;width:180px;margin:5px 0;">
                     </div>
                 </div>
+                <div class="admin-section">
+                    <h3>🚫 敏感词管理</h3>
+                    <div style="display:flex;gap:10px;margin-bottom:10px;">
+                        <input type="text" id="badword-input" placeholder="输入新敏感词" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:5px;">
+                        <button id="add-badword-btn" class="auth-btn" style="padding:8px 15px;width:auto;margin:0;">添加</button>
+                    </div>
+                    <div id="badword-list" style="max-height:150px;overflow-y:auto;background:white;border:1px solid #ddd;border-radius:5px;padding:10px;margin-bottom:10px;"></div>
+                    <button id="reset-badwords-btn" class="auth-btn" style="background:#e74c3c;padding:8px 15px;width:auto;margin:0;">重置为默认</button>
+                </div>
             </div>
         `;
 
@@ -2024,6 +2033,72 @@ class AuthSystem {
             }
         });
         this.loadAdminData();
+
+        // 敏感词管理功能
+        const self = this;
+        const defaultBadWords = ['傻逼', '傻B', 'SB', '傻b', '傻B', '操', '麻痹', '妈逼', '滚蛋', '去死', '废物', '蠢货', '阳痿', '早泄', '婊子', '妓女', '贱人', '贱货', '狗屎', '垃圾', '笨蛋', '白痴', '智障', '丑八怪', '长得丑', '丑逼', '臭不要脸', '不要脸', '神经病', '精神病', '疯子', '变态', '人渣', '王八', '乌龟', '王八蛋', '龟儿子', '杂种', '野种', '死全家', '全家死光', '断子绝孙', '不得好死', '天打雷劈', '遭雷劈', '下地狱', '畜生', '禽兽', '恶心', '丑陋', '难看', '恶心吧啦', '恶臭', '臭虫', '蛀虫', '寄生虫', '吸血鬼', '败类', '恶棍', '恶霸', '土匪', '强盗', '骗子', '无赖', '痞子', '地痞', '流氓', '痞子', '无赖', '赖皮', '不要脸', '厚颜无耻', '恬不知耻', '臭名昭著', '臭名远扬', '遗臭万年', '臭烘烘', '脏东西', '污秽', '污浊', '腐烂', '腐臭', '腐朽', '腐败', '腐化', '腐蚀', '侵蚀', '腐朽', '腐肉', '腐尸',
+            'fuck', 'fuk', 'fuc', 'f*ck', 'f**k', 'fUCK', 'FUCK', 'fucker', 'fucking', 'fucked', 'fuckwit', 'fuckhead', 'fucktard', 'fucks', 'motherfucker', 'motherfucking', 'bullshit', 'bull shit', 'bullsh*t', 'shit', 'shithead', 'shitty', 'shits', 'shittier', 'shitting', 'shat', 'ass', 'asshole', 'asses', 'asshat', 'assbag', 'assbandit', 'assbanger', 'assclown', 'asscock', 'assface', 'asshead', 'asshopper', 'assjockey', 'asskisser', 'asslick', 'asslicker', 'assmonkey', 'assmunch', 'assmuncher', 'asswipe', 'asswipes', 'bastard', 'bastards', 'bastardized', 'bastardy', 'bitch', 'bitches', 'bitchy', 'bitching', 'bitched', 'bitcher', 'bitchers', 'bitchfest', 'bitchin', 'bitching', 'bitchtits', 'bitchy', 'bitchier', 'bitchiest', 'bitoh', 'cock', 'cocks', 'cockface', 'cockhead', 'cockmunch', 'cockmuncher', 'cocksucker', 'cocksuckers', 'cocksucking', 'cocksucks', 'cocksukka', 'cockwaffle', 'cunt', 'cunts', 'cuntface', 'cuntfucker', 'cunting', 'cuntlick', 'cuntlicker', 'cuntlicking', 'cuntslut', 'damn', 'damned', 'damnit', 'dammit', 'dick', 'dicks', 'dickhead', 'dickheads', 'dickhole', 'dickholes', 'dickjuice', 'dickmilk', 'dickmonger', 'dicksucker', 'dicksucking', 'dicktickler', 'dickwad', 'dickweasel', 'dickweed', 'dickwod', 'dumb', 'dumbass', 'dumbasses', 'dumbbell', 'dumbhead', 'dumbshit', 'freak', 'freaking', 'freaks', 'gayer', 'gayest', 'gaygirl', 'gayguy', 'gayism', 'gaylords', 'gays', 'gaysex', 'goddamn', 'goddamned', 'goddammit', 'goddamn it', 'homo', 'homos', 'honkey', 'honkie', 'honky', 'jackass', 'jackasses', 'jap', 'japs', 'jigaboo', 'jiggaboo', 'jiggerboo', 'jizz', 'jizzed', 'jizzing', 'junkie', 'junkies', 'junky', 'kike', 'kikes', 'kunt', 'kunts', 'kuntweed', 'kwash', 'lameass', 'lame', 'lamer', 'lamest', 'lesbian', 'lesbians', 'lesbo', 'lesbos', 'loser', 'losers', 'louse', 'louses', 'lousier', 'lousiest', 'lousey', 'lousily', 'lousiness', 'lousy', 'lousiest', 'louse', 'masturbate', 'masturbating', 'masturbation', 'mofo', 'mofos', 'moolie', 'moolies', 'moran', 'morans', 'moron', 'morons', 'moronic', 'moronically', 'mothafucka', 'mothafuckas', 'mothafuckaz', 'mothafucked', 'mothafucker', 'mothafuckers', 'mothafuckin', 'mothafucking', 'mothafuckings', 'motherfucka', 'motherfuckas', 'motherfucked', 'motherfucker', 'motherfuckers', 'motherfuckin', 'motherfucking', 'motherfuckings', 'muthafucka', 'muthafuckas', 'muthafuckaz', 'muthafucked', 'muthafucker', 'muthafuckers', 'muthafuckin', 'muthafucking', 'muthafuckings', 'n1gger', 'n1gg3r', 'n1gg4', 'n4gger', 'nazi', 'nazis', 'negro', 'negroes', 'negress', 'negresses', 'nig', 'nigs', 'nigga', 'niggaz', 'nigger', 'niggerhead', 'niggerhole', 'niggers', 'niggle', 'niggles', 'niggling', 'niggor', 'nigguh', 'niggur', 'niglet', 'nignog', 'nip', 'nips', 'nookie', 'nookies', 'numbnuts', 'nutsack', 'orgasm', 'orgasms', 'orgy', 'orgies', 'paki', 'pakis', 'panooch', 'pecker', 'peckers', 'peckerwood', 'pecking', 'peckish', 'pedophile', 'pedophiles', 'pedophilia', 'pedophiliac', 'penis', 'penises', 'piss', 'pissed', 'pisser', 'pissers', 'pisses', 'pissing', 'pissoff', 'piss-off', 'pms', 'pollock', 'pollocks', 'poon', 'poontang', 'poop', 'pooped', 'pooping', 'poops', 'poopy', 'prick', 'pricks', 'prickhead', 'pricking', 'pricksucker', 'pussies', 'pussy', 'pussyfucker', 'pussying', 'queer', 'queers', 'queerdo', 'queerods', 'renob', 'retard', 'retarded', 'retardation', 'retards', 'sadist', 'sadists', 'scag', 'scags', 'scat', 'schlong', 'schlongs', 'screw', 'screwed', 'screwing', 'screws', 'scum', 'scumbag', 'scumbags', 'semen', 'sex', 'sexual', 'sexually', 'shag', 'shagged', 'shagging', 'shags', 'shat', 'shit', 'shitass', 'shitbag', 'shitbags', 'shitbird', 'shitbitch', 'shitbrain', 'shitbrains', 'shitbrick', 'shitbricks', 'shitcunt', 'shitdick', 'shitface', 'shitfaced', 'shithead', 'shitheads', 'shithole', 'shitholes', 'shithouse', 'shiting', 'shitlist', 'shitlists', 'shitload', 'shitloads', 'shitman', 'shitpack', 'shitpans', 'shitraper', 'shits', 'shitshow', 'shitshows', 'shitstain', 'shitstains', 'shitted', 'shitter', 'shitters', 'shitting', 'shitty', 'shiz', 'shiznit', 'skag', 'skags', 'skank', 'skanks', 'skanktard', 'skeet', 'slant', 'slants', 'slanteye', 'slit', 'slits', 'slut', 'sluts', 'slutbag', 'slutbags', 'slutty', 'slutting', 'slutwear', 'slutwork', 'smeg', 'smegma', 'smegmatic', 'snatch', 'snatches', 'sodom', 'sodomize', 'sodomized', 'sodomizes', 'sodomizing', 'sodomy', 'sonofabitch', 'sonofbitch', 'spic', 'spics', 'spik', 'spiks', 'spook', 'spooks', 'stupid', 'stupider', 'stupidest', 'stupidities', 'stupidity', 'suck', 'sucks', 'sucking', 'sucksed', 'sucky', 'suicide', 'suicides', 'tard', 'tards', 'testicle', 'testicles', 'thundercunt', 'tit', 'tits', 'titfuck', 'titfucker', 'titfucks', 'titi', 'tits', 'titty', 'tittyfuck', 'tittyfucker', 'tittyfucks', 'titwank', 'towelhead', 'towelheads', 'tranny', 'trannies', 'transgender', 'transsexuals', 'tubgirl', 'tubgirls', 'turd', 'turds', 'tush', 'tushy', 'twat', 'twats', 'twatwaffle', 'ugly', 'uglies', 'ugliest', 'uglyness', 'unclefucker', 'unclefuckers', 'vagina', 'vaginas', 'vajayjay', 'vajaja', 'vajayjay', 'valve', 'valves', 'wank', 'wanked', 'wanker', 'wankers', 'wanking', 'wanks', 'wankstain', 'wankweed', 'wetback', 'wetbacks', 'whore', 'whores', 'whoreface', 'whorefucker', 'whores', 'whorey', 'wigger', 'wiggers', 'wombat', 'wombats', 'wop', 'wops'];
+
+        function getBadWords() {
+            const stored = localStorage.getItem('snake-badwords');
+            if (stored) {
+                try { return JSON.parse(stored); } catch (e) { return [...defaultBadWords]; }
+            }
+            return [...defaultBadWords];
+        }
+
+        function saveBadWords(badWords) {
+            localStorage.setItem('snake-badwords', JSON.stringify(badWords));
+        }
+
+        function loadBadWords() {
+            const badWords = getBadWords();
+            const listEl = document.getElementById('badword-list');
+            listEl.innerHTML = '';
+            if (badWords.length === 0) {
+                listEl.innerHTML = '<p style="color:#666;">暂无敏感词</p>';
+                return;
+            }
+            badWords.forEach((word, index) => {
+                const div = document.createElement('div');
+                div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:5px;border-bottom:1px solid #eee;';
+                div.innerHTML = `<span>${word}</span><button onclick="deleteBadWord(${index})" style="background:#e74c3c;color:white;border:none;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:12px;">删除</button>`;
+                listEl.appendChild(div);
+            });
+        }
+
+        window.deleteBadWord = function(index) {
+            const badWords = getBadWords();
+            if (!confirm('确定要删除敏感词 "' + badWords[index] + '" 吗？')) return;
+            badWords.splice(index, 1);
+            saveBadWords(badWords);
+            loadBadWords();
+            alert('敏感词已删除');
+        };
+
+        // 添加敏感词
+        document.getElementById('add-badword-btn').addEventListener('click', function() {
+            const input = document.getElementById('badword-input');
+            const newWord = input.value.trim();
+            if (!newWord) { alert('请输入敏感词'); return; }
+            const badWords = getBadWords();
+            if (badWords.includes(newWord)) { alert('敏感词已存在'); return; }
+            badWords.push(newWord);
+            saveBadWords(badWords);
+            input.value = '';
+            loadBadWords();
+            alert('敏感词已添加');
+        });
+
+        // 重置为默认
+        document.getElementById('reset-badwords-btn').addEventListener('click', function() {
+            if (!confirm('确定要重置敏感词为默认列表吗？')) return;
+            saveBadWords([...defaultBadWords]);
+            loadBadWords();
+            alert('敏感词已重置为默认');
+        });
+
+        loadBadWords();
 
         // 保存邮件配置
         document.getElementById('save-email-config').addEventListener('click', () => {
