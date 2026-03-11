@@ -1083,23 +1083,50 @@ class AuthSystem {
     // 登录用户修改自己的密码
     changePassword(oldPassword, newPassword) {
         const username = this.currentUser;
-        const user = this.users[username];
 
-        if (!user) {
-            return { success: false, message: '用户不存在' };
-        }
-
-        if (user.password !== simpleHash(oldPassword)) {
-            return { success: false, message: '原密码错误' };
+        if (!username || username === '游客') {
+            return { success: false, message: '请先登录' };
         }
 
         if (newPassword.length < 3) {
             return { success: false, message: '新密码至少3位' };
         }
 
-        user.password = simpleHash(newPassword);
-        this.saveUsers();
-        return { success: true, message: '密码修改成功' };
+        const self = this;
+
+        // 从Firebase验证密码并修改
+        return new Promise((resolve) => {
+            firebase.database().ref('users').once('value', (snapshot) => {
+                const users = snapshot.val() || {};
+                const user = users[username];
+
+                if (!user) {
+                    resolve({ success: false, message: '用户不存在' });
+                    return;
+                }
+
+                if (user.password !== simpleHash(oldPassword)) {
+                    resolve({ success: false, message: '原密码错误' });
+                    return;
+                }
+
+                // 更新Firebase密码
+                firebase.database().ref('users/' + username + '/password').set(simpleHash(newPassword))
+                    .then(() => {
+                        // 同时更新本地存储
+                        if (self.users[username]) {
+                            self.users[username].password = simpleHash(newPassword);
+                            self.saveUsers();
+                        }
+                        resolve({ success: true, message: '密码修改成功' });
+                    })
+                    .catch(() => {
+                        resolve({ success: false, message: '密码修改失败' });
+                    });
+            }, (error) => {
+                resolve({ success: false, message: '读取用户数据失败: ' + error.message });
+            });
+        });
     }
 
     // 显示修改密码/邮箱对话框
@@ -1149,13 +1176,14 @@ class AuthSystem {
                 return;
             }
 
-            const result = this.changePassword(oldPass, newPass);
-            if (result.success) {
-                alert('密码修改成功！');
-                dialog.remove();
-            } else {
-                alert(result.message);
-            }
+            this.changePassword(oldPass, newPass).then(result => {
+                if (result.success) {
+                    alert('密码修改成功！');
+                    dialog.remove();
+                } else {
+                    alert(result.message);
+                }
+            });
         });
     }
 
