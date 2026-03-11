@@ -1167,25 +1167,42 @@ class AuthSystem {
         });
 
         // 修改密码
-        document.getElementById('confirm-change-pass').addEventListener('click', () => {
-            const oldPass = document.getElementById('old-password').value;
-            const newPass = document.getElementById('new-password-change').value;
-            const confirmPass = document.getElementById('new-password-confirm').value;
+        const confirmPassBtn = document.getElementById('confirm-change-pass');
+        if (confirmPassBtn) {
+            confirmPassBtn.addEventListener('click', () => {
+                console.log('确认修改密码按钮点击');
+                const oldPass = document.getElementById('old-password').value;
+                const newPass = document.getElementById('new-password-change').value;
+                const confirmPass = document.getElementById('new-password-confirm').value;
 
-            if (newPass !== confirmPass) {
-                alert('两次输入的新密码不一致');
-                return;
-            }
-
-            this.changePassword(oldPass, newPass).then(result => {
-                if (result.success) {
-                    alert('密码修改成功！');
-                    dialog.remove();
-                } else {
-                    alert(result.message);
+                if (newPass !== confirmPass) {
+                    alert('两次输入的新密码不一致');
+                    return;
                 }
+
+                if (newPass.length < 3) {
+                    alert('新密码至少3位');
+                    return;
+                }
+
+                console.log('开始修改密码, oldPass:', oldPass ? '已填写' : '未填写', 'newPass:', newPass);
+
+                this.changePassword(oldPass, newPass).then(result => {
+                    console.log('修改密码结果:', result);
+                    if (result.success) {
+                        alert('密码修改成功！');
+                        dialog.remove();
+                    } else {
+                        alert(result.message);
+                    }
+                }).catch(err => {
+                    console.error('修改密码错误:', err);
+                    alert('修改密码失败: ' + err.message);
+                });
             });
-        });
+        } else {
+            console.error('找不到confirm-change-pass按钮');
+        }
     }
 
     login(username, password) {
