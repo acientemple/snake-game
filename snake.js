@@ -1872,7 +1872,9 @@ class AuthSystem {
             const changePassBtn = document.getElementById('change-pass-btn');
             if (changePassBtn) {
                 changePassBtn.addEventListener('click', () => {
-                    this.showChangePasswordDialog();
+                    if (window.auth) {
+                        window.auth.showChangePasswordDialog();
+                    }
                 });
             }
 
