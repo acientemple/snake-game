@@ -32,8 +32,8 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 10px 20px;
-    overflow: auto;
+    padding: 5px 10px;
+    overflow: hidden;
 }
 
 .game-container.fullscreen-mode.webkit {
@@ -41,76 +41,79 @@ body {
 }
 
 .game-container.fullscreen-mode .game-header {
-    margin-bottom: 5px;
+    margin-bottom: 3px;
 }
 
 .game-container.fullscreen-mode .game-header h1 {
-    font-size: 24px;
-    margin-bottom: 5px;
+    font-size: 18px;
+    margin-bottom: 2px;
 }
 
 .game-container.fullscreen-mode .help-link {
-    margin-bottom: 5px;
-    padding: 5px 12px;
-    font-size: 12px;
+    display: none;
 }
 
 .game-container.fullscreen-mode .player-info {
-    margin-top: 5px;
+    margin-top: 2px;
 }
 
 .game-container.fullscreen-mode .player-info input {
-    padding: 5px;
-    width: 120px;
+    padding: 2px;
+    width: 80px;
+    font-size: 12px;
 }
 
 .game-container.fullscreen-mode .game-controls {
-    margin-bottom: 5px;
+    margin-bottom: 3px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .game-container.fullscreen-mode .game-controls button {
-    padding: 6px 14px;
-    font-size: 14px;
+    padding: 4px 10px;
+    font-size: 12px;
 }
 
 .game-container.fullscreen-mode .game-settings {
-    margin-bottom: 5px;
+    margin-bottom: 3px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .game-container.fullscreen-mode .setting-item {
-    gap: 8px;
+    gap: 5px;
 }
 
 .game-container.fullscreen-mode .setting-item label {
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .game-container.fullscreen-mode .setting-item input[type="number"] {
-    width: 60px;
-    padding: 4px;
+    width: 50px;
+    padding: 2px;
 }
 
 .game-container.fullscreen-mode .setting-item input[type="range"] {
-    width: 80px;
+    width: 60px;
 }
 
 .game-container.fullscreen-mode .game-canvas-container {
-    margin-bottom: 5px;
+    margin-bottom: 3px;
 }
 
 .game-container.fullscreen-mode #game-canvas {
-    max-height: 75vh;
+    max-height: 60vh;
     width: auto;
 }
 
 .game-container.fullscreen-mode .game-stats {
-    margin-bottom: 5px;
+    margin-bottom: 3px;
 }
 
 .game-container.fullscreen-mode .stat-item {
-    padding: 6px 12px;
-    min-width: 100px;
-    font-size: 14px;
+    padding: 3px 8px;
+    min-width: 60px;
+    font-size: 12px;
 }
 
 .game-container.fullscreen-mode .records-container {
