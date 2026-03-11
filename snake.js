@@ -2591,6 +2591,12 @@ function initDeviceDetection() {
             vc.classList.add('show');
         }
 
+        // 显示提示（非全屏模式）
+        const vcTip = document.getElementById('vc-tip');
+        if (vcTip) {
+            vcTip.style.display = 'block';
+        }
+
         // 绑定虚拟控制键事件
         bindVirtualControls();
     }
@@ -3997,6 +4003,9 @@ class SnakeGame {
                 // 隐藏解锁按钮
                 const unlockBtn = document.getElementById('unlock-orientation-btn');
                 if (unlockBtn) unlockBtn.style.display = 'none';
+                // 重新显示提示
+                const vcTip = document.getElementById('vc-tip');
+                if (vcTip) vcTip.style.display = 'block';
                 this.checkOrientation();
             }
             return;
@@ -4048,6 +4057,9 @@ class SnakeGame {
                     container.classList.add('mobile-fullscreen');
                 }
                 document.getElementById('fullscreen-btn').textContent = '退出全屏';
+                // 全屏时隐藏提示
+                const vcTip = document.getElementById('vc-tip');
+                if (vcTip) vcTip.style.display = 'none';
                 lockOrientation();
             } else {
                 // 全屏API失败，至少锁定方向
@@ -4059,6 +4071,9 @@ class SnakeGame {
                     container.classList.add('mobile-fullscreen');
                 }
                 document.getElementById('fullscreen-btn').textContent = '退出全屏';
+                // 全屏时隐藏提示
+                const vcTip2 = document.getElementById('vc-tip');
+                if (vcTip2) vcTip2.style.display = 'none';
 
                 // 显示解锁屏幕按钮（仅移动设备）
                 if (isMobile) {
