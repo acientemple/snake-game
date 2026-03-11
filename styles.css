@@ -426,6 +426,8 @@ body.fullscreen-body {
     gap: 12px;
     margin-bottom: 15px;
     flex-wrap: wrap;
+    position: relative;
+    z-index: 100;
 }
 
 .game-controls button {
@@ -620,7 +622,7 @@ body.fullscreen-body {
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 9999;
     left: 0;
     top: 0;
     width: 100%;
