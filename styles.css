@@ -196,6 +196,7 @@ body.fullscreen-body {
     height: 100%;
     justify-content: center;
     align-items: center;
+    z-index: 1;
 }
 
 .game-container.fullscreen-mode #game-canvas {
