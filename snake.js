@@ -4011,8 +4011,11 @@ class SnakeGame {
             return guestRecords;
         }
 
-        // 正常登录用户：根据 username 过滤
-        const userRecords = allRecords.filter(r => r.username === currentUser);
+        // 正常登录用户：根据 username 过滤，同时包含匿名玩家记录
+        const userRecords = allRecords.filter(r => {
+            // 自己的记录或匿名玩家记录
+            return r.username === currentUser || r.playerName === '匿名玩家';
+        });
         console.log('getUserRecords - 正常用户模式，找到', userRecords.length, '条记录');
         return userRecords;
     }
@@ -4234,8 +4237,14 @@ class SnakeGame {
                 return !r.playerName.endsWith('-游客') && r.playerName !== '游客';
             });
         } else {
+            // 登录用户模式：删除自己的记录 + 所有匿名玩家记录
             filteredRecords = allRecords.filter(r => {
-                return (r.username !== userToDelete) && (r.playerName !== userToDelete);
+                // 删除当前用户的记录
+                const isMyRecord = r.username === userToDelete;
+                // 删除所有匿名玩家记录
+                const isAnonymous = r.playerName === '匿名玩家';
+                // 保留不是当前用户也不是匿名玩家的记录
+                return !isMyRecord && !isAnonymous;
             });
         }
 
