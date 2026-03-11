@@ -1713,7 +1713,7 @@ class AuthSystem {
         if (regUsernameInput) {
             regUsernameInput.addEventListener('input', () => {
                 const inputName = regUsernameInput.value.trim();
-                if (inputName && this.checkBadWords(inputName)) {
+                if (inputName && window.auth && window.auth.checkBadWords && window.auth.checkBadWords(inputName)) {
                     regUsernameInput.setCustomValidity('用户名包含敏感词');
                 } else {
                     regUsernameInput.setCustomValidity('');
@@ -1743,7 +1743,7 @@ class AuthSystem {
             }
 
             // 检查敏感词
-            if (this.checkBadWords(username)) {
+            if (window.auth && window.auth.checkBadWords && window.auth.checkBadWords(username)) {
                 document.getElementById('auth-error').textContent = '用户名包含敏感词，请重新输入';
                 return;
             }
