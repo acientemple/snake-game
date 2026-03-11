@@ -2684,7 +2684,18 @@ class SnakeGame {
         // 按钮控制
         document.getElementById('start-btn').addEventListener('click', () => this.start());
         document.getElementById('pause-btn').addEventListener('click', () => this.togglePause());
-        document.getElementById('fullscreen-btn').addEventListener('click', () => this.toggleFullscreen());
+
+        // 全屏按钮 - 移动端需要同时绑定 touchend
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        fullscreenBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.toggleFullscreen();
+        });
+        fullscreenBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.toggleFullscreen();
+        });
+
         document.getElementById('clear-records-btn').addEventListener('click', () => this.clearRecords());
         document.getElementById('achievements-btn').addEventListener('click', () => this.showAchievements());
         document.getElementById('skins-btn').addEventListener('click', () => this.showSkins());
@@ -3639,13 +3650,16 @@ class SnakeGame {
                             document.msFullscreenElement ||
                             document.mozFullScreenElement;
 
+        console.log('全屏切换 - isFullscreen:', isFullscreen, 'isMobile:', isMobile);
+
         // 尝试锁定屏幕方向到横屏
         const lockOrientation = async () => {
             if (isMobile && screen.orientation && screen.orientation.lock) {
                 try {
                     await screen.orientation.lock('landscape');
+                    console.log('横屏锁定成功');
                 } catch (e) {
-                    console.log('无法锁定横屏:', e);
+                    console.log('无法锁定横屏:', e.message);
                 }
             }
         };
@@ -3656,57 +3670,85 @@ class SnakeGame {
                 try {
                     screen.orientation.unlock();
                 } catch (e) {
-                    console.log('解锁方向失败:', e);
+                    console.log('解锁方向失败:', e.message);
                 }
             }
         };
 
-        // 尝试多种全屏API以兼容不同浏览器
-        const tryFullscreen = () => {
-            if (!isFullscreen) {
-                const requestMethod = container.requestFullscreen ||
-                                    container.webkitRequestFullscreen ||
-                                    container.msRequestFullscreen ||
-                                    container.mozRequestFullScreen;
-                if (requestMethod) {
-                    requestMethod.call(container).then(() => {
-                        lockOrientation();
-                    }).catch(() => {
-                        // 全屏请求失败，尝试锁定方向作为后备
-                        lockOrientation();
-                    });
-                    container.classList.add('fullscreen-mode');
-                    // 移动设备全屏时隐藏多余元素
-                    if (isMobile) {
-                        container.classList.add('mobile-fullscreen');
-                    }
-                    return true;
-                }
+        // 退出全屏
+        if (isFullscreen) {
+            const exitMethod = document.exitFullscreen ||
+                              document.webkitExitFullscreen ||
+                              document.msExitFullscreen ||
+                              document.mozCancelFullScreen;
+            if (exitMethod) {
+                exitMethod.call(document);
+                unlockOrientation();
+                container.classList.remove('fullscreen-mode');
+                container.classList.remove('mobile-fullscreen');
+                this.checkOrientation();
             }
-            return false;
-        };
-
-        const tryExitFullscreen = () => {
-            if (isFullscreen) {
-                const exitMethod = document.exitFullscreen ||
-                                  document.webkitExitFullscreen ||
-                                  document.msExitFullscreen ||
-                                  document.mozCancelFullScreen;
-                if (exitMethod) {
-                    exitMethod.call(document);
-                    unlockOrientation();
-                    container.classList.remove('fullscreen-mode');
-                    container.classList.remove('mobile-fullscreen');
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        if (!tryFullscreen()) {
-            unlockOrientation();
-            tryExitFullscreen();
+            return;
         }
+
+        // 进入全屏 - 尝试多种API
+        const tryRequestFullscreen = (method) => {
+            return new Promise((resolve) => {
+                try {
+                    const result = method.call(container);
+                    // webkit 返回 true，其他返回 Promise
+                    if (result && result.then) {
+                        result.then(() => resolve(true)).catch((e) => {
+                            console.log('全屏失败:', e.message);
+                            resolve(false);
+                        });
+                    } else {
+                        resolve(result !== false);
+                    }
+                } catch (e) {
+                    console.log('全屏请求异常:', e.message);
+                    resolve(false);
+                }
+            });
+        };
+
+        // 依次尝试各种全屏API
+        const requestFullscreen = async () => {
+            if (container.requestFullscreen) {
+                if (await tryRequestFullscreen(container.requestFullscreen)) return true;
+            }
+            if (container.webkitRequestFullscreen) {
+                if (await tryRequestFullscreen(container.webkitRequestFullscreen)) return true;
+            }
+            if (container.msRequestFullscreen) {
+                if (await tryRequestFullscreen(container.msRequestFullscreen)) return true;
+            }
+            if (container.mozRequestFullScreen) {
+                if (await tryRequestFullscreen(container.mozRequestFullScreen)) return true;
+            }
+            return false;
+        };
+
+        // 执行全屏请求
+        requestFullscreen().then((success) => {
+            if (success) {
+                container.classList.add('fullscreen-mode');
+                if (isMobile) {
+                    container.classList.add('mobile-fullscreen');
+                }
+                lockOrientation();
+            } else {
+                // 全屏API失败，至少锁定方向
+                console.log('全屏API失败，尝试锁定方向');
+                lockOrientation();
+                // 即使全屏失败，也让容器全屏显示
+                container.classList.add('fullscreen-mode');
+                if (isMobile) {
+                    container.classList.add('mobile-fullscreen');
+                }
+            }
+            this.checkOrientation();
+        });
 
         // 延迟检测方向（等待全屏过渡完成）
         setTimeout(() => this.checkOrientation(), 100);
@@ -4143,14 +4185,15 @@ class SnakeGame {
         // 获取当前用户名
         const currentUser = window.auth ? window.auth.currentUser : null;
         const playerName = document.getElementById('player-name').value;
-        const userToDelete = currentUser || playerName;
+        const isGuest = currentUser === '游客' || localStorage.getItem('snake-current-user') === '游客';
 
-        if (!userToDelete) {
+        if (!currentUser && !playerName && !isGuest) {
             alert('请先登录或输入玩家姓名');
             return;
         }
 
         // 确认一次即可
+        const userToDelete = currentUser || playerName;
         if (!confirm('确定要清除「' + userToDelete + '」的所有游戏记录吗？')) {
             return;
         }
@@ -4158,9 +4201,15 @@ class SnakeGame {
         const allRecords = this.loadRecords();
 
         // 删除该用户的记录
-        const filteredRecords = allRecords.filter(r => {
-            return (r.username !== userToDelete) && (r.playerName !== userToDelete);
-        });
+        let filteredRecords;
+        if (isGuest) {
+            // 游客模式：删除所有 playerName 以 "-游客" 结尾的记录
+            filteredRecords = allRecords.filter(r => !r.playerName || !r.playerName.endsWith('-游客'));
+        } else {
+            filteredRecords = allRecords.filter(r => {
+                return (r.username !== userToDelete) && (r.playerName !== userToDelete);
+            });
+        }
 
         this.saveRecords(filteredRecords);
 
