@@ -4558,14 +4558,49 @@ class SnakeGame {
                 myRecordsList.appendChild(recordItem);
             });
 
-            // 添加分页控件
+            // 添加分页控件（简单样式：上一页/下一页）
             if (myRecords.length > pageSize) {
-                myRecordsList.innerHTML += this.createPaginationHTML('my', this.myRecordsPage, totalMyPages);
+                myRecordsList.innerHTML += this.createSimplePagination('my', this.myRecordsPage, totalMyPages);
             }
         }
     }
 
-    // 创建分页 HTML
+    // 创建简单分页 HTML（我的记录）
+    createSimplePagination(type, currentPage, totalPages) {
+        let html = '<div class="pagination" style="display:flex;justify-content:center;align-items:center;margin-top:15px;gap:10px;">';
+
+        if (currentPage > 1) {
+            html += `<button class="page-btn" data-type="${type}" data-page="${currentPage - 1}">上一页</button>`;
+        }
+
+        html += `<span style="color:#666;">第 ${currentPage} / ${totalPages} 页</span>`;
+
+        if (currentPage < totalPages) {
+            html += `<button class="page-btn" data-type="${type}" data-page="${currentPage + 1}">下一页</button>`;
+        }
+
+        html += '</div>';
+
+        // 添加点击事件
+        setTimeout(() => {
+            document.querySelectorAll('.page-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const btnType = e.target.dataset.type;
+                    const page = parseInt(e.target.dataset.page);
+                    if (btnType === 'all') {
+                        this.allRecordsPage = page;
+                    } else {
+                        this.myRecordsPage = page;
+                    }
+                    this.displayRecords();
+                });
+            });
+        }, 100);
+
+        return html;
+    }
+
+    // 创建分页 HTML（全部玩家记录）
     createPaginationHTML(type, currentPage, totalPages) {
         let html = '<div class="pagination" style="display:flex;justify-content:center;align-items:center;margin-top:15px;gap:5px;flex-wrap:wrap;">';
 
