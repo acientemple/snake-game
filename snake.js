@@ -4221,8 +4221,12 @@ class SnakeGame {
         // 删除该用户的记录
         let filteredRecords;
         if (isGuest) {
-            // 游客模式：删除所有 playerName 以 "-游客" 结尾的记录
-            filteredRecords = allRecords.filter(r => !r.playerName || !r.playerName.endsWith('-游客'));
+            // 游客模式：删除所有游客记录（兼容新旧格式）
+            filteredRecords = allRecords.filter(r => {
+                if (!r.playerName) return true;
+                // 兼容新旧格式：新格式以"-游客"结尾，旧格式为"游客"
+                return !r.playerName.endsWith('-游客') && r.playerName !== '游客';
+            });
         } else {
             filteredRecords = allRecords.filter(r => {
                 return (r.username !== userToDelete) && (r.playerName !== userToDelete);
