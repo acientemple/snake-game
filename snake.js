@@ -4012,6 +4012,7 @@ class SnakeGame {
 
         // 退出全屏
         if (isFullscreen) {
+            this._userExitedFullscreen = true; // 标记用户主动退出
             const exitMethod = document.exitFullscreen ||
                               document.webkitExitFullscreen ||
                               document.msExitFullscreen ||
@@ -4079,6 +4080,9 @@ class SnakeGame {
                     container.classList.add('mobile-fullscreen');
                 }
                 document.getElementById('fullscreen-btn').textContent = '退出全屏';
+                // 清除用户主动退出标志
+                this._userExitedFullscreen = false;
+                this._wasInFullscreen = true;
                 // 全屏时隐藏提示
                 const vcTip = document.getElementById('vc-tip');
                 if (vcTip) vcTip.style.display = 'none';
@@ -4093,6 +4097,9 @@ class SnakeGame {
                     container.classList.add('mobile-fullscreen');
                 }
                 document.getElementById('fullscreen-btn').textContent = '退出全屏';
+                // 清除用户主动退出标志
+                this._userExitedFullscreen = false;
+                this._wasInFullscreen = true;
                 // 全屏时隐藏提示
                 const vcTip2 = document.getElementById('vc-tip');
                 if (vcTip2) vcTip2.style.display = 'none';
@@ -4134,6 +4141,15 @@ class SnakeGame {
                 container.classList.remove('fullscreen-mode');
                 container.classList.remove('mobile-fullscreen');
                 if (rotateHint) rotateHint.classList.remove('show');
+
+                // iPad 自动恢复全屏（如果不是用户主动退出）
+                if (this._wasInFullscreen && !this._userExitedFullscreen) {
+                    console.log('检测到非主动退出，尝试恢复全屏...');
+                    setTimeout(() => {
+                        this.toggleFullscreen();
+                    }, 100);
+                }
+                this._wasInFullscreen = false;
             } else {
                 // 检测横竖屏
                 this.checkOrientation();
