@@ -1636,6 +1636,9 @@ class AuthSystem {
             localStorage.setItem('snake-current-user', '游客');
             localStorage.setItem('snake-admin', 'false');
             // 确保 auth.currentUser 也设置为游客（用于 saveRecord 判断）
+            if (window.auth) {
+                window.auth.currentUser = '游客';
+            }
             this.currentUser = '游客';
             // 初始化游戏
             initGame();
@@ -3901,8 +3904,9 @@ class SnakeGame {
         // 游客模式下，显示为 "玩家姓名-游客"（如果没有填姓名则显示"游客"）
         let displayName = this.playerName;
         if (isGuest) {
-            if (this.playerName && this.playerName !== '匿名玩家') {
-                displayName = this.playerName + '-游客';
+            // 游客模式下总是添加 -游客 后缀
+            if (this.playerName && this.playerName.trim() !== '' && this.playerName !== '匿名玩家') {
+                displayName = this.playerName.trim() + '-游客';
             } else {
                 displayName = '游客';
             }
