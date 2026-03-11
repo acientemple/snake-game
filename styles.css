@@ -153,14 +153,52 @@ body.fullscreen-body {
     font-size: 14px;
 }
 
+/* 全屏模式：只保留功能按钮和信息按钮 */
 .game-container.fullscreen-mode .game-header,
-.game-container.fullscreen-mode .game-controls,
-.game-container.fullscreen-mode .game-settings {
+.game-container.fullscreen-mode .player-info,
+.game-container.fullscreen-mode .game-settings,
+.game-container.fullscreen-mode .records-container,
+.game-container.fullscreen-mode .game-canvas-container {
     display: none;
 }
 
-.game-container.fullscreen-mode .records-container {
-    display: none;
+/* 全屏模式：只显示功能按钮和信息按钮区域 */
+.game-container.fullscreen-mode .game-controls {
+    display: flex !important;
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+    background: rgba(255,255,255,0.8);
+    padding: 5px 15px;
+    border-radius: 10px;
+}
+
+.game-container.fullscreen-mode .game-controls button {
+    padding: 5px 12px;
+    font-size: 12px;
+}
+
+/* 全屏模式：画布容器显示在中间 */
+.game-container.fullscreen-mode .game-canvas-container {
+    display: flex !important;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+}
+
+.game-container.fullscreen-mode #game-canvas {
+    max-width: 100%;
+    max-height: 100%;
 }
 
 /* 虚拟控制键提示 */
