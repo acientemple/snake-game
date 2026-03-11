@@ -1131,15 +1131,16 @@ class AuthSystem {
 
     // 显示修改密码/邮箱对话框
     showChangePasswordDialog() {
-        console.log('showChangePasswordDialog called, currentUser:', this.currentUser);
-        const currentEmail = this.users[this.currentUser]?.email || '';
+        const username = this.currentUser;
+        const currentEmail = this.users[username]?.email || '';
+
+        // 创建弹窗
         const dialog = document.createElement('div');
         dialog.id = 'change-password-dialog';
         dialog.className = 'modal show';
-        console.log('创建dialog元素');
         dialog.innerHTML = `
             <div class="modal-content" style="max-width:400px;">
-                <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+                <span class="close" onclick="document.getElementById('change-password-dialog').remove()">&times;</span>
                 <h3>账号设置</h3>
                 <label style="display:block;margin:10px 0;font-weight:bold;">邮箱</label>
                 <input type="email" id="change-email" placeholder="用于找回密码" value="${currentEmail}" style="width:100%;padding:12px;margin:5px 0;border:2px solid #ddd;border-radius:8px;">
@@ -1154,61 +1155,50 @@ class AuthSystem {
         `;
 
         document.body.appendChild(dialog);
-        console.log('dialog已添加到body');
 
-        // 调试：检查按钮是否存在
-        const btn = document.getElementById('confirm-change-pass');
-        console.log('按钮存在:', btn, '按钮内容:', btn ? btn.innerHTML : '无');
-
-        // 保存邮箱
-        document.getElementById('confirm-change-email').addEventListener('click', () => {
+        // 保存邮箱 - 使用onclick
+        const self = this;
+        document.getElementById('confirm-change-email').onclick = function() {
             const newEmail = document.getElementById('change-email').value.trim();
             if (newEmail && !newEmail.includes('@')) {
                 alert('请输入有效的邮箱地址');
                 return;
             }
-            this.users[this.currentUser].email = newEmail;
-            this.saveUsers();
+            self.users[username].email = newEmail;
+            self.saveUsers();
             alert('邮箱保存成功！');
-        });
+        };
 
-        // 修改密码
-        const confirmPassBtn = document.getElementById('confirm-change-pass');
-        if (confirmPassBtn) {
-            confirmPassBtn.addEventListener('click', () => {
-                console.log('确认修改密码按钮点击');
-                const oldPass = document.getElementById('old-password').value;
-                const newPass = document.getElementById('new-password-change').value;
-                const confirmPass = document.getElementById('new-password-confirm').value;
+        // 修改密码 - 使用onclick
+        document.getElementById('confirm-change-pass').onclick = function() {
+            const oldPass = document.getElementById('old-password').value;
+            const newPass = document.getElementById('new-password-change').value;
+            const confirmPass = document.getElementById('new-password-confirm').value;
 
-                if (newPass !== confirmPass) {
-                    alert('两次输入的新密码不一致');
-                    return;
+            if (!oldPass) {
+                alert('请输入原密码');
+                return;
+            }
+            if (newPass.length < 3) {
+                alert('新密码至少3位');
+                return;
+            }
+            if (newPass !== confirmPass) {
+                alert('两次输入的新密码不一致');
+                return;
+            }
+
+            self.changePassword(oldPass, newPass).then(function(result) {
+                if (result.success) {
+                    alert('密码修改成功！');
+                    document.getElementById('change-password-dialog').remove();
+                } else {
+                    alert(result.message);
                 }
-
-                if (newPass.length < 3) {
-                    alert('新密码至少3位');
-                    return;
-                }
-
-                console.log('开始修改密码, oldPass:', oldPass ? '已填写' : '未填写', 'newPass:', newPass);
-
-                this.changePassword(oldPass, newPass).then(result => {
-                    console.log('修改密码结果:', result);
-                    if (result.success) {
-                        alert('密码修改成功！');
-                        dialog.remove();
-                    } else {
-                        alert(result.message);
-                    }
-                }).catch(err => {
-                    console.error('修改密码错误:', err);
-                    alert('修改密码失败: ' + err.message);
-                });
+            }).catch(function(err) {
+                alert('修改密码失败: ' + err.message);
             });
-        } else {
-            console.error('找不到confirm-change-pass按钮');
-        }
+        };
     }
 
     login(username, password) {
