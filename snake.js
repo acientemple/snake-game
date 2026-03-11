@@ -4085,6 +4085,8 @@ class SnakeGame {
                 document.getElementById('fullscreen-btn').textContent = '退出全屏';
                 // 移除body padding
                 document.body.classList.add('fullscreen-body');
+                // 确保外围背景显示
+                this.applyOuterBackground(this.skinSettings.outerBg || 'purple');
                 // 清除用户主动退出标志
                 this._userExitedFullscreen = false;
                 this._wasInFullscreen = true;
@@ -4104,6 +4106,8 @@ class SnakeGame {
                 document.getElementById('fullscreen-btn').textContent = '退出全屏';
                 // 移除body padding
                 document.body.classList.add('fullscreen-body');
+                // 确保外围背景显示
+                this.applyOuterBackground(this.skinSettings.outerBg || 'purple');
                 // 清除用户主动退出标志
                 this._userExitedFullscreen = false;
                 this._wasInFullscreen = true;

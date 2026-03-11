@@ -41,7 +41,6 @@ body {
 
 body.fullscreen-body {
     padding: 0;
-    background: inherit !important;
 }
 
 .game-container {
