@@ -117,8 +117,8 @@ body {
     display: none;
 }
 
-/* 全屏模式下虚拟控制键 */
-.game-container.fullscreen-mode .virtual-controls {
+/* 全屏模式下虚拟控制键（仅触摸设备显示） */
+.game-container.fullscreen-mode .virtual-controls.show {
     display: flex;
     position: fixed;
     bottom: 20px;
