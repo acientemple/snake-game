@@ -1,4 +1,10 @@
 // 贪吃蛇游戏核心逻辑 - 增强版
+// 版本: 1.3.0 (2026-03-19)
+// 更新日志:
+// 1.3.0 - 修复修改密码按钮和输入框ID冲突问题
+// 1.2.0 - 添加敏感词过滤功能
+// 1.1.0 - 添加Firebase云端同步
+// 1.0.0 - 初始版本
 
 // 简单的哈希函数
 function simpleHash(str) {
@@ -207,6 +213,7 @@ class AuthSystem {
     // 初始化方法，在 DOM 加载完成后调用
     async initAuth() {
         console.log('=== 开始初始化认证系统 (Firebase) ===');
+        console.log('游戏版本: 1.3.0 (2026-03-19)');
 
         // 加载敏感词（从Firebase同步）
         await this.loadBadWordsFromFirebase();
