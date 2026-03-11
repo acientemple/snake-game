@@ -64,6 +64,8 @@ body.fullscreen-body {
     justify-content: center;
     padding: 0;
     overflow: hidden;
+    background: transparent !important;
+    box-shadow: none;
 }
 
 .game-container.fullscreen-mode.webkit {
