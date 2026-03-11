@@ -3901,14 +3901,14 @@ class SnakeGame {
         const isGuest = currentUser === '游客' || localStorage.getItem('snake-current-user') === '游客';
         console.log('保存记录 - currentUser:', currentUser, 'isGuest:', isGuest, 'playerName:', this.playerName);
 
-        // 游客模式下，显示为 "玩家姓名-游客"（如果没有填姓名则显示"游客-游客"以便过滤）
+        // 游客模式下，显示为 "玩家姓名-游客"（如果没有填姓名则显示"游客"）
         let displayName = this.playerName;
         if (isGuest) {
             // 游客模式下总是添加 -游客 后缀
             if (this.playerName && this.playerName.trim() !== '' && this.playerName !== '匿名玩家') {
                 displayName = this.playerName.trim() + '-游客';
             } else {
-                displayName = '游客-游客';
+                displayName = '游客';
             }
         }
 
