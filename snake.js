@@ -2984,11 +2984,34 @@ class SnakeGame {
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         fullscreenBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             this.toggleFullscreen();
         });
         fullscreenBtn.addEventListener('touchend', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             this.toggleFullscreen();
+        });
+
+        // 防止 iPad 下拉菜单退出全屏
+        document.getElementById('game-mode').addEventListener('focus', () => {
+            const container = document.querySelector('.game-container');
+            if (container.classList.contains('fullscreen-mode')) {
+                this._wasInFullscreen = true;
+            }
+        });
+        document.getElementById('game-mode').addEventListener('change', (e) => {
+            this.handleModeChange(e.target.value);
+            // 尝试恢复全屏
+            setTimeout(() => {
+                if (this._wasInFullscreen) {
+                    const container = document.querySelector('.game-container');
+                    if (!container.classList.contains('fullscreen-mode')) {
+                        this.toggleFullscreen();
+                    }
+                    this._wasInFullscreen = false;
+                }
+            }, 100);
         });
 
         document.getElementById('clear-records-btn').addEventListener('click', () => this.clearRecords());
@@ -3002,11 +3025,6 @@ class SnakeGame {
             this.baseSpeed = this.speed;
             document.getElementById('speed-value').textContent = this.getSpeedLabel(this.speed);
             document.getElementById('current-speed').textContent = this.speed;
-        });
-
-        // 游戏模式控制
-        document.getElementById('game-mode').addEventListener('change', (e) => {
-            this.handleModeChange(e.target.value);
         });
 
         // 皮肤保存
