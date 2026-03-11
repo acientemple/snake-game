@@ -1227,6 +1227,53 @@ class AuthSystem {
         return false;
     }
 
+    // 检查玩家姓名是否与已注册用户名冲突（排除当前用户自己）
+    checkPlayerNameConflict(playerName) {
+        if (!playerName || playerName.trim() === '') return false;
+        const name = playerName.trim();
+        // 检查是否与已注册用户名冲突（不包括当前登录用户自己）
+        for (const username in this.users) {
+            if (username !== this.currentUser && username === name) {
+                return true; // 冲突
+            }
+        }
+        return false; // 不冲突
+    }
+
+    // 获取敏感词列表
+    getBadWords() {
+        const defaultBadWords = ['傻逼', '傻B', 'SB', '傻b', '傻B', '操', '麻痹', '妈逼', '滚蛋', '去死', '废物', '蠢货', '阳痿', '早泄', '婊子', '妓女', '贱人', '贱货', '狗屎', '垃圾', '笨蛋', '白痴', '智障', '丑八怪', '长得丑', '丑逼', '臭不要脸', '不要脸', '神经病', '精神病', '疯子', '变态', '人渣', '王八', '乌龟', '王八蛋', '龟儿子', '杂种', '野种', '死全家', '全家死光', '断子绝孙', '不得好死', '天打雷劈', '遭雷劈', '下地狱', '畜生', '禽兽', '恶心', '丑陋', '难看', '恶心吧啦', '恶臭', '臭虫', '蛀虫', '寄生虫', '吸血鬼', '败类', '恶棍', '恶霸', '土匪', '强盗', '骗子', '无赖', '痞子', '地痞', '流氓', '痞子', '无赖', '赖皮', '不要脸', '厚颜无耻', '恬不知耻', '臭名昭著', '臭名远扬', '遗臭万年', '臭烘烘', '脏东西', '污秽', '污浊', '腐烂', '腐臭', '腐朽', '腐败', '腐化', '腐蚀', '侵蚀', '腐朽', '腐肉', '腐尸',
+            // 英文敏感词
+            'fuck', 'fuk', 'fuc', 'f*ck', 'f**k', 'fUCK', 'FUCK', 'fucker', 'fucking', 'fucked', 'fuckwit', 'fuckhead', 'fucktard', 'fucks', 'motherfucker', 'motherfucking', 'bullshit', 'bull shit', 'bullsh*t', 'shit', 'shithead', 'shitty', 'shits', 'shittier', 'shitting', 'shat', 'ass', 'asshole', 'asses', 'asshat', 'assbag', 'assbandit', 'assbanger', 'assclown', 'asscock', 'assface', 'asshat', 'asshead', 'asshopper', 'assjockey', 'asskisser', 'asslick', 'asslicker', 'assmonkey', 'assmunch', 'assmuncher', 'asswipe', 'asswipes', 'bastard', 'bastards', 'bastardized', 'bastardy', 'bitch', 'bitches', 'bitchy', 'bitching', 'bitched', 'bitcher', 'bitchers', 'bitchfest', 'bitchin', 'bitching', 'bitchtits', 'bitchy', 'bitchier', 'bitchiest', 'bitchslap', 'bitchslapping', 'bitoh', 'cock', 'cocks', 'cockface', 'cockhead', 'cockmunch', 'cockmuncher', 'cocksucker', 'cocksuckers', 'cocksucking', 'cocksucks', 'cocksukka', 'cocksucker', 'cockwaffle', 'cunt', 'cunts', 'cuntface', 'cuntfucker', 'cunting', 'cuntlick', 'cuntlicker', 'cuntlicking', 'cuntslut', 'damn', 'damned', 'damnit', 'dammit', 'dick', 'dicks', 'dickhead', 'dickheads', 'dickhole', 'dickholes', 'dickjuice', 'dickmilk', 'dickmonger', 'dicksucker', 'dicksucking', 'dicktickler', 'dickwad', 'dickweasel', 'dickweed', 'dickwod', 'dumb', 'dumbass', 'dumbasses', 'dumbbell', 'dumbhead', 'dumbshit', 'freak', 'freaking', 'freaks', 'gayer', 'gayest', 'gaygirl', 'gayguy', 'gayism', 'gaylords', 'gays', 'gaysex', 'goddamn', 'goddamned', 'goddammit', 'goddamn it', 'homo', 'homos', 'honkey', 'honkie', 'honky', 'jackass', 'jackasses', 'jap', 'japs', 'jigaboo', 'jiggaboo', 'jiggerboo', 'jizz', 'jizzed', 'jizzing', 'junkie', 'junkies', 'junky', 'kike', 'kikes', 'kunt', 'kunts', 'kuntweed', 'kwash', 'lameass', 'lame', 'lamer', 'lamest', 'lesbian', 'lesbians', 'lesbo', 'lesbos', 'loser', 'losers', 'louse', 'louses', 'lousier', 'lousiest', 'lousey', 'lousily', 'lousiness', 'lousy', 'lousiest', 'louse', 'masturbate', 'masturbating', 'masturbation', 'mofo', 'mofos', 'moolie', 'moolies', 'moran', 'morans', 'moron', 'morons', 'moronic', 'moronically', 'mothafucka', 'mothafuckas', 'mothafuckaz', 'mothafucked', 'mothafucker', 'mothafuckers', 'mothafuckin', 'mothafucking', 'mothafuckings', 'motherfucka', 'motherfuckas', 'motherfucked', 'motherfucker', 'motherfuckers', 'motherfuckin', 'motherfucking', 'motherfuckings', 'muthafucka', 'muthafuckas', 'muthafuckaz', 'muthafucked', 'muthafucker', 'muthafuckers', 'muthafuckin', 'muthafucking', 'muthafuckings', 'n1gger', 'n1gg3r', 'n1gg4', 'n4gger', 'nazi', 'nazis', 'negro', 'negroes', 'negress', 'negresses', 'nig', 'nigs', 'nigga', 'niggaz', 'nigger', 'niggerhead', 'niggerhole', 'niggers', 'niggle', 'niggles', 'niggling', 'niggor', 'nigguh', 'niggur', 'niglet', 'nignog', 'nip', 'nips', 'nookie', 'nookies', 'numbnuts', 'nutsack', 'orgasm', 'orgasms', 'orgy', 'orgies', 'paki', 'pakis', 'panooch', 'pecker', 'peckers', 'peckerwood', 'pecking', 'peckish', 'pedophile', 'pedophiles', 'pedophilia', 'pedophiliac', 'penis', 'penises', 'piss', 'pissed', 'pisser', 'pissers', 'pisses', 'pissing', 'pissoff', 'piss-off', 'pms', 'pollock', 'pollocks', 'poon', 'poontang', 'poop', 'pooped', 'pooping', 'poops', 'poopy', 'prick', 'pricks', 'prickhead', 'pricking', 'pricksucker', 'pussies', 'pussy', 'pussyfucker', 'pussying', 'queer', 'queers', 'queerdo', 'queerods', 'renob', 'retard', 'retarded', 'retardation', 'retards', 'sadist', 'sadists', 'scag', 'scags', 'scat', 'schlong', 'schlongs', 'screw', 'screwed', 'screwing', 'screws', 'scum', 'scumbag', 'scumbags', 'semen', 'sex', 'sexual', 'sexually', 'shag', 'shagged', 'shagging', 'shags', 'shat', 'shit', 'shitass', 'shitbag', 'shitbags', 'shitbird', 'shitbitch', 'shitbrain', 'shitbrains', 'shitbrick', 'shitbricks', 'shitcunt', 'shitdick', 'shitface', 'shitfaced', 'shithead', 'shitheads', 'shithole', 'shitholes', 'shithouse', 'shiting', 'shitlist', 'shitlists', 'shitload', 'shitloads', 'shitman', 'shitpack', 'shitpans', 'shitraper', 'shits', 'shitshow', 'shitshows', 'shitstain', 'shitstains', 'shitted', 'shitter', 'shitters', 'shitting', 'shitty', 'shiz', 'shiznit', 'skag', 'skags', 'skank', 'skanks', 'skanktard', 'skeet', 'slant', 'slants', 'slanteye', 'slit', 'slits', 'slut', 'sluts', 'slutbag', 'slutbags', 'slutty', 'slutting', 'slutwear', 'slutwork', 'smeg', 'smegma', 'smegmatic', 'snatch', 'snatches', 'sodom', 'sodomize', 'sodomized', 'sodomizes', 'sodomizing', 'sodomy', 'sonofabitch', 'sonofbitch', 'spic', 'spics', 'spik', 'spiks', 'spook', 'spooks', 'stupid', 'stupider', 'stupidest', 'stupidities', 'stupidity', 'suck', 'sucks', 'sucking', 'sucksed', 'sucky', 'suicide', 'suicides', 'tard', 'tards', 'testicle', 'testicles', 'thundercunt', 'tit', 'tits', 'titfuck', 'titfucker', 'titfucks', 'titi', 'tits', 'titty', 'tittyfuck', 'tittyfucker', 'tittyfucks', 'titwank', 'towelhead', 'towelheads', 'tranny', 'trannies', 'transgender', 'transsexuals', 'tubgirl', 'tubgirls', 'turd', 'turds', 'tush', 'tushy', 'twat', 'twats', 'twatwaffle', 'ugly', 'uglies', 'ugliest', 'uglyness', 'unclefucker', 'unclefuckers', 'vagina', 'vaginas', 'vajayjay', 'vajaja', 'vajayjay', 'valve', 'valves', 'wank', 'wanked', 'wanker', 'wankers', 'wanking', 'wanks', 'wankstain', 'wankweed', 'wetback', 'wetbacks', 'whore', 'whores', 'whoreface', 'whorefucker', 'whores', 'whorey', 'wigger', 'wiggers', 'wombat', 'wombats', 'wop', 'wops'];
+        const stored = localStorage.getItem('snake-badwords');
+        if (stored) {
+            try {
+                return JSON.parse(stored);
+            } catch (e) {
+                return defaultBadWords;
+            }
+        }
+        return defaultBadWords;
+    }
+
+    // 保存敏感词列表
+    saveBadWords(badWords) {
+        localStorage.setItem('snake-badwords', JSON.stringify(badWords));
+    }
+
+    // 检查是否包含敏感词
+    checkBadWords(playerName) {
+        if (!playerName || playerName.trim() === '') return false;
+        const name = playerName.trim().toLowerCase();
+        const badWords = this.getBadWords();
+        for (const word of badWords) {
+            if (name.includes(word.toLowerCase())) {
+                return true; // 包含敏感词
+            }
+        }
+        return false; // 不包含敏感词
+    }
+
     saveUserData(key, value) {
         if (!this.currentUser) return;
         this.users[this.currentUser].data[key] = value;
@@ -1640,6 +1687,8 @@ class AuthSystem {
                 window.auth.currentUser = '游客';
             }
             this.currentUser = '游客';
+            // 清空之前的游客记录（每次新游客会话）
+            localStorage.removeItem('snake-guest-records');
             // 初始化游戏
             initGame();
 
@@ -1658,6 +1707,20 @@ class AuthSystem {
 
         // 注册 - 使用 Firebase
         // 支持回车键注册
+
+        // 注册用户名实时检测敏感词
+        const regUsernameInput = document.getElementById('reg-username');
+        if (regUsernameInput) {
+            regUsernameInput.addEventListener('input', () => {
+                const inputName = regUsernameInput.value.trim();
+                if (inputName && this.checkBadWords(inputName)) {
+                    regUsernameInput.setCustomValidity('用户名包含敏感词');
+                } else {
+                    regUsernameInput.setCustomValidity('');
+                }
+            });
+        }
+
         document.getElementById('reg-username').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') document.getElementById('register-btn').click();
         });
@@ -1678,6 +1741,13 @@ class AuthSystem {
                 document.getElementById('auth-error').textContent = '请输入用户名';
                 return;
             }
+
+            // 检查敏感词
+            if (this.checkBadWords(username)) {
+                document.getElementById('auth-error').textContent = '用户名包含敏感词，请重新输入';
+                return;
+            }
+
             if (!password || password.length < 3) {
                 document.getElementById('auth-error').textContent = '密码至少3位';
                 return;
@@ -2688,6 +2758,41 @@ class SnakeGame {
         document.getElementById('start-btn').addEventListener('click', () => this.start());
         document.getElementById('pause-btn').addEventListener('click', () => this.togglePause());
 
+        // 玩家姓名输入时实时检测冲突和敏感词
+        const playerNameInput = document.getElementById('player-name');
+        if (playerNameInput) {
+            playerNameInput.addEventListener('input', () => {
+                const auth = window.auth;
+                if (!auth || !auth.currentUser || auth.currentUser === '游客') return;
+
+                const inputName = playerNameInput.value.trim();
+                if (inputName && inputName !== '匿名玩家' && inputName !== auth.currentUser) {
+                    // 检测敏感词
+                    if (auth.checkBadWords && auth.checkBadWords(inputName)) {
+                        playerNameInput.setCustomValidity('姓名包含敏感词，请重新输入！');
+                    } else if (auth.checkPlayerNameConflict && auth.checkPlayerNameConflict(inputName)) {
+                        playerNameInput.setCustomValidity('与其它注册用户名称冲突！');
+                    } else {
+                        playerNameInput.setCustomValidity('');
+                    }
+                } else {
+                    playerNameInput.setCustomValidity('');
+                }
+            });
+
+            // 表单提交时检测
+            playerNameInput.addEventListener('invalid', () => {
+                if (playerNameInput.validity.customError) {
+                    const msg = playerNameInput.validationMessage;
+                    if (msg.includes('敏感词')) {
+                        alert('姓名包含敏感词，请重新输入！');
+                    } else {
+                        alert('与其它注册用户名称冲突！');
+                    }
+                }
+            });
+        }
+
         // 全屏按钮 - 移动端需要同时绑定 touchend
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         fullscreenBtn.addEventListener('click', (e) => {
@@ -3547,9 +3652,31 @@ class SnakeGame {
             this.initSinglePlayerMode(mode);
         }
 
+        // 检查玩家姓名是否包含敏感词
+        const currentPlayerName = document.getElementById('player-name').value;
+        const auth = window.auth;
+
+        if (currentPlayerName && currentPlayerName.trim() !== '' && currentPlayerName.trim() !== '匿名玩家') {
+            if (auth && auth.checkBadWords && auth.checkBadWords(currentPlayerName)) {
+                alert('姓名包含敏感词，请重新输入！');
+                return;
+            }
+        }
+
+        // 检查玩家姓名是否与已注册用户名冲突
+        const currentUser = auth ? auth.currentUser : null;
+        const isGuest = currentUser === '游客' || localStorage.getItem('snake-current-user') === '游客';
+
+        if (!isGuest && currentPlayerName && currentPlayerName.trim() !== '' && currentPlayerName.trim() !== '匿名玩家') {
+            if (auth && auth.checkPlayerNameConflict && auth.checkPlayerNameConflict(currentPlayerName)) {
+                alert('与其它注册用户名称冲突！');
+                return;
+            }
+        }
+
         this.isRunning = true;
         this.isPaused = false;
-        this.playerName = document.getElementById('player-name').value || '匿名玩家';
+        this.playerName = currentPlayerName || '匿名玩家';
 
         // 更新UI
         document.getElementById('start-btn').textContent = '重新开始';
@@ -3896,6 +4023,7 @@ class SnakeGame {
         const topRecords = this.loadTopRecords();
         const auth = window.auth;
         const currentUser = auth ? auth.currentUser : null;
+        const currentPlayerName = document.getElementById('player-name').value;
 
         // 判断是否是游客模式
         const isGuest = currentUser === '游客' || localStorage.getItem('snake-current-user') === '游客';
@@ -3914,7 +4042,6 @@ class SnakeGame {
 
         // 登录用户模式下如果没有输入姓名，显示"匿名玩家"
         // 注意：从输入框实时获取值，因为 showGame 会自动填充用户名
-        const currentPlayerName = document.getElementById('player-name').value;
         const playerNameForRecord = isGuest ? displayName :
             (currentPlayerName && currentPlayerName.trim() !== '' ? currentPlayerName : '匿名玩家');
 
@@ -3952,6 +4079,24 @@ class SnakeGame {
         // 等待保存到 Firebase 完成
         await this.saveTopRecords(uniqueTop);
         await this.saveRecords(records);
+
+        // 同时保存到"我的记录"（单独的存储）
+        if (isGuest) {
+            // 游客：保存到游客记录存储
+            const guestRecords = JSON.parse(localStorage.getItem('snake-guest-records') || '[]');
+            guestRecords.push(record);
+            guestRecords.sort((a, b) => b.score - a.score);
+            if (guestRecords.length > 50) guestRecords.splice(50);
+            localStorage.setItem('snake-guest-records', JSON.stringify(guestRecords));
+        } else {
+            // 登录用户：保存到我的记录存储
+            const myRecordsKey = 'snake-my-records-' + currentUser;
+            const myRecords = JSON.parse(localStorage.getItem(myRecordsKey) || '[]');
+            myRecords.push(record);
+            myRecords.sort((a, b) => b.score - a.score);
+            if (myRecords.length > 50) myRecords.splice(50);
+            localStorage.setItem(myRecordsKey, JSON.stringify(myRecords));
+        }
 
         // 保存完成后显示
         this.displayRecords();
@@ -3999,23 +4144,16 @@ class SnakeGame {
             return [];
         }
 
-        // 游客模式：根据 playerName 过滤（包含"-游客"后缀的，或者是"游客"）
+        // 游客模式：从单独的游客记录存储中读取
         if (isGuest) {
-            const guestRecords = allRecords.filter(r => {
-                if (!r.playerName) return false;
-                // 兼容新旧记录：新记录以"-游客"结尾，旧记录为"游客"
-                return r.playerName.endsWith('-游客') || r.playerName === '游客';
-            });
+            const guestRecords = JSON.parse(localStorage.getItem('snake-guest-records') || '[]');
             console.log('getUserRecords - 游客模式，找到', guestRecords.length, '条记录');
-            console.log('getUserRecords - 游客记录示例:', guestRecords.slice(0, 2));
             return guestRecords;
         }
 
-        // 正常登录用户：根据 username 过滤，同时包含匿名玩家记录
-        const userRecords = allRecords.filter(r => {
-            // 自己的记录或匿名玩家记录
-            return r.username === currentUser || r.playerName === '匿名玩家';
-        });
+        // 登录用户：从单独的我的记录存储中读取
+        const myRecordsKey = 'snake-my-records-' + currentUser;
+        const userRecords = JSON.parse(localStorage.getItem(myRecordsKey) || '[]');
         console.log('getUserRecords - 正常用户模式，找到', userRecords.length, '条记录');
         return userRecords;
     }
@@ -4221,46 +4359,18 @@ class SnakeGame {
 
         // 确认一次即可
         const userToDelete = currentUser || playerName;
-        if (!confirm('确定要清除「' + userToDelete + '」的所有游戏记录吗？')) {
+        if (!confirm('确定要清除「' + userToDelete + '」的游戏记录吗？')) {
             return;
         }
 
-        const allRecords = this.loadRecords();
-
-        // 删除该用户的记录
-        let filteredRecords;
+        // 清除我的记录（不影响全部玩家记录）
         if (isGuest) {
-            // 游客模式：删除所有游客记录（兼容新旧格式）
-            filteredRecords = allRecords.filter(r => {
-                if (!r.playerName) return true;
-                // 兼容新旧格式：新格式以"-游客"结尾，旧格式为"游客"
-                return !r.playerName.endsWith('-游客') && r.playerName !== '游客';
-            });
+            // 游客模式：清空游客记录存储
+            localStorage.removeItem('snake-guest-records');
         } else {
-            // 登录用户模式：删除自己的记录 + 所有匿名玩家记录
-            filteredRecords = allRecords.filter(r => {
-                // 删除当前用户的记录
-                const isMyRecord = r.username === userToDelete;
-                // 删除所有匿名玩家记录
-                const isAnonymous = r.playerName === '匿名玩家';
-                // 保留不是当前用户也不是匿名玩家的记录
-                return !isMyRecord && !isAnonymous;
-            });
-        }
-
-        this.saveRecords(filteredRecords);
-
-        // 同时清除永久记录中的匿名玩家记录
-        if (!isGuest) {
-            const topRecords = this.loadTopRecords();
-            const filteredTopRecords = topRecords.filter(r => r.playerName !== '匿名玩家');
-            this.saveTopRecords(filteredTopRecords);
-        }
-
-        // 同步到GitHub
-        if (window.auth && window.auth.currentUser) {
-            await window.auth.saveUsers();
-            await window.auth.syncRecordsFromGitHub();
+            // 登录用户：清空该用户的记录（用单独的存储）
+            const myRecordsKey = 'snake-my-records-' + currentUser;
+            localStorage.removeItem(myRecordsKey);
         }
 
         this.displayRecords();
