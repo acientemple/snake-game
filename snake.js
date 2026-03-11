@@ -3921,6 +3921,7 @@ class SnakeGame {
             date: new Date().toLocaleString('zh-CN')
         };
 
+        console.log('saveRecord - 保存的记录:', JSON.stringify(record));
         records.push(record);
         records.sort((a, b) => b.score - a.score);
         if (records.length > 50) {
@@ -3982,19 +3983,28 @@ class SnakeGame {
         const allRecords = this.loadRecords();
         const auth = window.auth;
         const currentUser = auth ? auth.currentUser : null;
+        const isGuest = currentUser === '游客' || localStorage.getItem('snake-current-user') === '游客';
+
+        console.log('getUserRecords - currentUser:', currentUser, 'isGuest:', isGuest, 'totalRecords:', allRecords.length);
 
         // 未登录且非游客模式时返回空
         if (!currentUser && localStorage.getItem('snake-current-user') !== '游客') {
+            console.log('getUserRecords - 未登录且非游客模式，返回空');
             return [];
         }
 
         // 游客模式：根据 playerName 过滤（包含"-游客"后缀的）
-        if (currentUser === '游客' || localStorage.getItem('snake-current-user') === '游客') {
-            return allRecords.filter(r => r.playerName && r.playerName.endsWith('-游客'));
+        if (isGuest) {
+            const guestRecords = allRecords.filter(r => r.playerName && r.playerName.endsWith('-游客'));
+            console.log('getUserRecords - 游客模式，找到', guestRecords.length, '条记录');
+            console.log('getUserRecords - 游客记录示例:', guestRecords.slice(0, 2));
+            return guestRecords;
         }
 
         // 正常登录用户：根据 username 过滤
-        return allRecords.filter(r => r.username === currentUser);
+        const userRecords = allRecords.filter(r => r.username === currentUser);
+        console.log('getUserRecords - 正常用户模式，找到', userRecords.length, '条记录');
+        return userRecords;
     }
 
     async saveRecords(records) {
