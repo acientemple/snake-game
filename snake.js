@@ -2565,19 +2565,25 @@ function initGame() {
 
 // 设备检测和虚拟控制键
 function initDeviceDetection() {
-    // 检测是否为触摸屏设备且屏幕较小（手机或平板）
+    // 检测是否为触摸屏设备
     const isTouchDevice = ('ontouchstart' in window) ||
                           (navigator.maxTouchPoints > 0) ||
                           (navigator.msMaxTouchPoints > 0);
 
-    // 检测设备类型 - 只在小屏幕上显示虚拟控制键
+    // 检测是否为 iPad
+    const isIPad = /iPad/i.test(navigator.userAgent) ||
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    console.log(`设备检测: iPad=${isIPad}, maxTouchPoints=${navigator.maxTouchPoints}, userAgent=${navigator.userAgent}`);
+
+    // 检测设备类型 - 平板或手机都显示虚拟控制键
     const screenWidth = window.innerWidth;
-    const isSmallScreen = screenWidth < 900; // 屏幕宽度小于900px认为是移动设备
+    const isSmallScreen = screenWidth < 1100; // 屏幕宽度小于1100px认为是移动/平板设备
 
-    // 同时满足触摸和小屏幕才显示虚拟控制键
-    const showVirtualControls = isTouchDevice && isSmallScreen;
+    // iPad 或满足触摸和小屏幕条件时显示虚拟控制键
+    const showVirtualControls = isTouchDevice && (isSmallScreen || isIPad);
 
-    console.log(`屏幕宽度: ${screenWidth}, 触摸: ${isTouchDevice}, 显示虚拟控制键: ${showVirtualControls}`);
+    console.log(`屏幕宽度: ${screenWidth}, 触摸: ${isTouchDevice}, iPad: ${isIPad}, 显示虚拟控制键: ${showVirtualControls}`);
 
     if (showVirtualControls) {
         const vc = document.getElementById('virtual-controls');
