@@ -1878,15 +1878,21 @@ class AuthSystem {
             });
         });
 
-        // GitHub 同步
-        document.getElementById('sync-btn').addEventListener('click', () => {
-            this.syncToGitHub();
-        });
+        // GitHub 同步（仅admin页面）
+        const syncBtn = document.getElementById('sync-btn');
+        if (syncBtn) {
+            syncBtn.addEventListener('click', () => {
+                this.syncToGitHub();
+            });
+        }
 
-        // GitHub 下载
-        document.getElementById('download-btn').addEventListener('click', () => {
-            this.downloadFromGitHub();
-        });
+        // GitHub 下载（仅admin页面）
+        const downloadBtn = document.getElementById('download-btn');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => {
+                this.downloadFromGitHub();
+            });
+        }
 
         // 检查是否已登录
         if (this.isLoggedIn()) {
