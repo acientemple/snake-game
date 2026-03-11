@@ -1,0 +1,17 @@
+{
+    "name": "贪吃蛇游戏",
+    "short_name": "贪吃蛇",
+    "description": "一款好玩的贪吃蛇游戏",
+    "start_url": "/snake-game/",
+    "display": "standalone",
+    "background_color": "#667eea",
+    "theme_color": "#667eea",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐍</text></svg>",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}
