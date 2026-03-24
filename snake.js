@@ -4282,6 +4282,21 @@ class SnakeGame {
         document.getElementById('current-speed').textContent = this.baseSpeed;
     }
 
+    // 获取玩家地区（通过IP定位）
+    async getPlayerRegion() {
+        try {
+            const res = await fetch('https://ip-api.com/json/');
+            const data = await res.json();
+            if (data.status === 'success') {
+                // 返回格式：省份, 国家（如 "浙江, 中国" 或 "California, United States"）
+                return `${data.regionName}, ${data.country}`;
+            }
+        } catch (e) {
+            console.log('获取地区失败:', e.message);
+        }
+        return '未知';
+    }
+
     async saveRecord() {
         const records = this.loadRecords();
         const topRecords = this.loadTopRecords();
@@ -4309,13 +4324,17 @@ class SnakeGame {
         const playerNameForRecord = isGuest ? displayName :
             (currentPlayerName && currentPlayerName.trim() !== '' ? currentPlayerName : '匿名玩家');
 
+        // 获取玩家地区
+        const region = await this.getPlayerRegion();
+
         const record = {
             username: isGuest ? displayName : (currentPlayerName && currentPlayerName.trim() !== '' ? currentPlayerName : '匿名玩家'),
             playerName: this.isTwoPlayerMode ? (this.p1Score >= this.p2Score ? 'P1' : 'P2') : playerNameForRecord,
             score: this.isTwoPlayerMode ? Math.max(this.p1Score, this.p2Score) : this.score,
             mode: document.getElementById('game-mode').value,
             time: this.gameTime - this.timeRemaining,
-            date: new Date().toLocaleString('zh-CN')
+            date: new Date().toLocaleString('zh-CN'),
+            region: region
         };
 
         console.log('saveRecord - 保存的记录:', JSON.stringify(record));
@@ -4514,8 +4533,9 @@ class SnakeGame {
                 const isTop = topRecords.find(tr => tr.score === record.score && tr.date === record.date);
                 const badge = isTop ? ' 🏆' : '';
 
+                const region = record.region || '';
                 recordItem.innerHTML = `
-                    <strong>${username}${badge}</strong> - <span style="color:#667eea;">${modeName}</span><br>
+                    <strong>${username}${badge}</strong> - <span style="color:#667eea;">${modeName}</span> ${region ? `<span style="color:#999;font-size:0.9em;">📍${region}</span>` : ''}<br>
                     分数: ${record.score} | 时间: ${record.time}s | ${record.date}
                 `;
                 allRecordsList.appendChild(recordItem);
@@ -4558,8 +4578,9 @@ class SnakeGame {
                 const isTop = topRecords.find(tr => tr.score === record.score && tr.date === record.date);
                 const badge = isTop ? ' 🏆' : '';
 
+                const region = record.region || '';
                 recordItem.innerHTML = `
-                    <strong>${username}${badge}</strong> - <span style="color:#667eea;">${modeName}</span><br>
+                    <strong>${username}${badge}</strong> - <span style="color:#667eea;">${modeName}</span> ${region ? `<span style="color:#999;font-size:0.9em;">📍${region}</span>` : ''}<br>
                     分数: ${record.score} | 时间: ${record.time}s | ${record.date}
                 `;
                 myRecordsList.appendChild(recordItem);
