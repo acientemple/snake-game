@@ -4285,11 +4285,11 @@ class SnakeGame {
     // 获取玩家地区（通过IP定位）
     async getPlayerRegion() {
         try {
-            const res = await fetch('https://ip-api.com/json/');
+            const res = await fetch('https://ipwho.is/');
             const data = await res.json();
-            if (data.status === 'success') {
-                // 返回格式：省份, 国家（如 "浙江, 中国" 或 "California, United States"）
-                return `${data.regionName}, ${data.country}`;
+            if (data.success) {
+                // 返回格式：城市, 国家（如 "Jinhua, China" 或 "California, United States"）
+                return `${data.city}, ${data.country}`;
             }
         } catch (e) {
             console.log('获取地区失败:', e.message);
