@@ -9,7 +9,17 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/index.html)",
       "Bash(cd D:/work/OneDrive/Desktop/projects/snake-game && sed -i 's/this.downloadFromGitHub\\(\\);$/this.downloadFromGitHub\\(\\);/' snake.js)",
       "WebFetch(domain:acientemple.github.io)",
-      "Bash(cd \"D:\\\\work\\\\OneDrive\\\\Desktop\\\\projects\\\\snake-game\" && sed -i \"s/this.ctx.fillRect\\(0, 0, this.canvas.width, this.canvas.height\\);$/this.ctx.fillRect\\(0, 0, this.canvas.width, this.canvas.height\\); this.drawGrid\\(\\);/g\" snake.js)"
+      "Bash(cd \"D:\\\\work\\\\OneDrive\\\\Desktop\\\\projects\\\\snake-game\" && sed -i \"s/this.ctx.fillRect\\(0, 0, this.canvas.width, this.canvas.height\\);$/this.ctx.fillRect\\(0, 0, this.canvas.width, this.canvas.height\\); this.drawGrid\\(\\);/g\" snake.js)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git tag:*)",
+      "Bash(which vercel:*)",
+      "Bash(npm install:*)",
+      "Bash(vercel:*)",
+      "Bash(cd:*)",
+      "Bash(curl -s \"https://ip-api.com/json/\")",
+      "WebSearch",
+      "Bash(curl -s \"https://raw.githubusercontent.com/punkpeye/awesome-mcp-servers/main/README.md\")"
     ]
   }
 }

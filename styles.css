@@ -1458,3 +1458,236 @@ body.fullscreen-body {
         font-size: 20px;
     }
 }
+
+/* ============================================
+   多人游戏样式
+   ============================================ */
+
+/* 选项卡按钮 */
+#multiplayer-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 10px 15px;
+    border: none;
+    background: #e0e0e0;
+    color: #333;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.tab-btn:hover {
+    background: #d0d0d0;
+}
+
+.tab-btn.active {
+    background: #667eea;
+    color: white;
+}
+
+/* 选项卡内容 */
+.tab-content {
+    display: none;
+    padding: 15px 0;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* 房间设置 */
+.room-settings {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.room-settings h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.room-settings .setting-item {
+    margin-bottom: 10px;
+}
+
+.room-settings label {
+    display: inline-block;
+    width: 100px;
+    color: #555;
+}
+
+.room-settings input,
+.room-settings select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* 房间列表 */
+.room-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.room-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.room-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.room-name {
+    font-weight: bold;
+    color: #333;
+}
+
+.room-host,
+.room-players {
+    font-size: 13px;
+    color: #666;
+}
+
+.join-room-btn {
+    padding: 8px 15px;
+    font-size: 13px;
+}
+
+.empty-hint {
+    text-align: center;
+    color: #888;
+    padding: 30px;
+}
+
+/* 等待大厅 */
+.lobby-info {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.lobby-info h3 {
+    margin-top: 0;
+}
+
+.lobby-info p {
+    margin: 5px 0;
+}
+
+.player-list {
+    margin-bottom: 15px;
+}
+
+.player-list h3 {
+    margin-bottom: 10px;
+}
+
+.player-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.player-list li {
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.player-name {
+    flex: 1;
+}
+
+.host-badge {
+    background: #ffd700;
+    color: #333;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+.you-badge {
+    background: #667eea;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+.lobby-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.lobby-actions button {
+    flex: 1;
+}
+
+/* 多人游戏结算 */
+#mp-result-content {
+    text-align: center;
+}
+
+.mp-result-scores {
+    margin-bottom: 20px;
+}
+
+.mp-result-scores h3 {
+    margin-bottom: 15px;
+}
+
+.mp-player-score {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.mp-total-score {
+    margin-top: 20px;
+    padding: 15px;
+    background: #667eea;
+    color: white;
+    border-radius: 8px;
+}
+
+.mp-total-score h3 {
+    margin: 0;
+}
+
+/* 游戏中的多人玩家指示器 */
+.mp-players-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+}

@@ -2849,8 +2849,40 @@ class SnakeGame {
         // 音频上下文
         this.audioContext = null;
 
+        // 初始化多人游戏管理器
+        this.initMultiplayer();
+
         // 绑定事件监听器
         this.bindEvents();
+    }
+
+    // 初始化多人游戏
+    initMultiplayer() {
+        // 获取当前用户名
+        let currentUsername = '游客';
+        const auth = window.auth;
+        if (auth && auth.currentUser) {
+            currentUsername = auth.currentUser;
+        }
+
+        if (window.multiplayerManager) {
+            window.multiplayerManager.init(currentUsername);
+        }
+
+        // 监听游戏模式变化，切换到多人模式时打开面板
+        const gameModeSelect = document.getElementById('game-mode');
+        gameModeSelect.addEventListener('change', () => {
+            if (gameModeSelect.value === 'multiplayer') {
+                // 检查是否已登录
+                const auth = window.auth;
+                if (!auth || !auth.currentUser || auth.currentUser === '游客') {
+                    alert('请先登录后再进入多人模式');
+                    gameModeSelect.value = 'classic';
+                    return;
+                }
+                window.multiplayerManager.openPanel();
+            }
+        });
     }
 
     bindEvents() {
@@ -5009,3 +5041,696 @@ class SnakeGame {
         document.getElementById('sound-panel').classList.add('show');
     }
 }
+
+// ============================================
+// 多人游戏管理器
+// ============================================
+class MultiplayerManager {
+    constructor() {
+        this.currentRoomId = null;
+        this.currentPlayer = null;
+        this.isHost = false;
+        this.roomStatus = 'idle'; // idle, waiting, playing
+        this.gameState = null;
+        this.snakes = []; // 本地玩家的蛇
+        this.food = null;
+        this.direction = {x: 1, y: 0};
+        this.score = 0;
+        this.alive = true;
+        this.unlistenRoom = null;
+        this.unlistenGameState = null;
+        this.gameLoopTimer = null;
+        this.lastTick = 0;
+
+        // 蛇颜色列表（4人）
+        this.snakeColors = [
+            {head: '#27ae60', body: '#2ecc71'}, // 绿色
+            {head: '#3498db', body: '#5dade2'}, // 蓝色
+            {head: '#e74c3c', body: '#ec7063'}, // 红色
+            {head: '#9b59b6', body: '#af7ac5'}  // 紫色
+        ];
+    }
+
+    // 初始化
+    init(currentUsername) {
+        this.currentPlayer = currentUsername;
+        this.bindUIEvents();
+    }
+
+    // 绑定UI事件
+    bindUIEvents() {
+        // 关闭按钮
+        document.getElementById('close-multiplayer').onclick = () => this.closePanel();
+        document.getElementById('close-multiplayer-result').onclick = () => this.closeResultPanel();
+
+        // 选项卡切换
+        document.querySelectorAll('#multiplayer-tabs .tab-btn').forEach(btn => {
+            btn.onclick = () => this.switchTab(btn.dataset.tab);
+        });
+
+        // 创建房间
+        document.getElementById('btn-create-room').onclick = () => this.createRoom();
+
+        // 加入房间
+        document.getElementById('btn-join-room').onclick = () => this.joinRoom();
+
+        // 刷新房间列表
+        document.getElementById('btn-refresh-rooms').onclick = () => this.refreshRoomList();
+
+        // 开始游戏（房主）
+        document.getElementById('btn-start-game').onclick = () => this.startGame();
+
+        // 离开房间
+        document.getElementById('btn-leave-room').onclick = () => this.leaveRoom();
+
+        // 返回大厅
+        document.getElementById('btn-return-to-lobby').onclick = () => this.returnToLobby();
+
+        // 退出多人模式
+        document.getElementById('btn-exit-multiplayer').onclick = () => this.exitMultiplayer();
+    }
+
+    // 打开面板
+    openPanel() {
+        document.getElementById('multiplayer-panel').classList.add('show');
+        this.switchTab('create');
+        this.refreshRoomList();
+    }
+
+    // 关闭面板
+    closePanel() {
+        document.getElementById('multiplayer-panel').classList.remove('show');
+    }
+
+    // 关闭结算面板
+    closeResultPanel() {
+        document.getElementById('multiplayer-result-panel').classList.remove('show');
+    }
+
+    // 切换选项卡
+    switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+        document.querySelectorAll('#multiplayer-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+
+        document.getElementById('tab-' + tabName).style.display = 'block';
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+        if (tabName === 'list') {
+            this.refreshRoomList();
+        }
+    }
+
+    // 创建房间
+    async createRoom() {
+        const settings = {
+            gridSize: parseInt(document.getElementById('mp-grid-size').value),
+            speed: parseInt(document.getElementById('mp-speed').value),
+            gameTime: parseInt(document.getElementById('mp-game-time').value),
+            targetScore: parseInt(document.getElementById('mp-target-score').value)
+        };
+
+        try {
+            const roomId = await RoomManager.createRoom(this.currentPlayer, settings);
+            this.currentRoomId = roomId;
+            this.isHost = true;
+            this.roomStatus = 'waiting';
+
+            this.showWaitingLobby();
+            this.listenToRoom();
+        } catch (error) {
+            document.getElementById('create-room-error').textContent = '创建房间失败: ' + error.message;
+        }
+    }
+
+    // 加入房间
+    async joinRoom() {
+        const roomId = document.getElementById('join-room-id').value.trim();
+        if (!roomId) {
+            document.getElementById('join-room-error').textContent = '请输入房间ID';
+            return;
+        }
+
+        try {
+            const result = await RoomManager.joinRoom(roomId, this.currentPlayer);
+            if (!result.success) {
+                document.getElementById('join-room-error').textContent = result.error;
+                return;
+            }
+
+            this.currentRoomId = roomId;
+            this.isHost = false;
+            this.roomStatus = 'waiting';
+
+            this.showWaitingLobby();
+            this.listenToRoom();
+        } catch (error) {
+            document.getElementById('join-room-error').textContent = '加入房间失败: ' + error.message;
+        }
+    }
+
+    // 刷新房间列表
+    async refreshRoomList() {
+        const rooms = await RoomManager.getWaitingRooms();
+        const listEl = document.getElementById('room-list');
+
+        if (rooms.length === 0) {
+            listEl.innerHTML = '<p class="empty-hint">暂无等待中的房间</p>';
+            return;
+        }
+
+        listEl.innerHTML = rooms.map(room => `
+            <div class="room-card" data-room-id="${room.roomId}">
+                <div class="room-info">
+                    <span class="room-name">房间: ${room.roomId.slice(0, 8)}...</span>
+                    <span class="room-host">房主: ${room.host}</span>
+                    <span class="room-players">玩家: ${room.players.length}/4</span>
+                </div>
+                <button class="join-room-btn auth-btn" data-room-id="${room.roomId}">加入</button>
+            </div>
+        `).join('');
+
+        // 绑定加入按钮事件
+        listEl.querySelectorAll('.join-room-btn').forEach(btn => {
+            btn.onclick = async () => {
+                document.getElementById('join-room-id').value = btn.dataset.roomId;
+                this.joinRoom();
+            };
+        });
+    }
+
+    // 显示等待大厅
+    showWaitingLobby() {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+        document.getElementById('waiting-lobby').style.display = 'block';
+
+        document.getElementById('lobby-room-id').textContent = this.currentRoomId;
+        this.updateLobbyInfo();
+    }
+
+    // 更新大厅信息
+    updateLobbyInfo() {
+        RoomManager.getRoom(this.currentRoomId).then(room => {
+            if (!room) return;
+
+            document.getElementById('lobby-host').textContent = room.host;
+            document.getElementById('lobby-status').textContent = room.status === 'waiting' ? '等待中...' : '游戏中...';
+            document.getElementById('player-count').textContent = room.players.length;
+
+            // 更新玩家列表
+            const playersEl = document.getElementById('players-in-room');
+            playersEl.innerHTML = room.players.map((p, i) => `
+                <li>
+                    <span class="player-name">${p}</span>
+                    ${p === room.host ? '<span class="host-badge">房主</span>' : ''}
+                    ${p === this.currentPlayer ? '<span class="you-badge">你</span>' : ''}
+                </li>
+            `).join('');
+
+            // 房主显示开始按钮
+            const startBtn = document.getElementById('btn-start-game');
+            if (this.isHost && room.players.length >= 1 && room.status === 'waiting') {
+                startBtn.style.display = 'block';
+            } else {
+                startBtn.style.display = 'none';
+            }
+        });
+    }
+
+    // 监听房间变化
+    listenToRoom() {
+        this.unlistenRoom = RoomManager.onRoomChange(this.currentRoomId, (room) => {
+            if (!room) {
+                // 房间被删除
+                this.showMessage('房间已解散');
+                this.exitMultiplayer();
+                return;
+            }
+
+            this.updateLobbyInfo();
+
+            // 如果游戏开始了
+            if (room.status === 'playing' && this.roomStatus !== 'playing') {
+                this.roomStatus = 'playing';
+                this.startMultiplayerGame();
+            }
+        });
+    }
+
+    // 开始游戏
+    async startGame() {
+        try {
+            await RoomManager.startGame(this.currentRoomId);
+        } catch (error) {
+            this.showMessage('开始游戏失败: ' + error.message);
+        }
+    }
+
+    // 开始多人游戏
+    async startMultiplayerGame() {
+        this.closePanel();
+
+        // 初始化游戏状态
+        const gameState = await RoomManager.getGameState(this.currentRoomId);
+        if (!gameState) {
+            this.showMessage('游戏状态获取失败');
+            return;
+        }
+
+        this.gameState = gameState;
+        this.roomStatus = 'playing';
+
+        // 初始化蛇
+        const mySnake = gameState.snakes.find(s => s.playerId === this.currentPlayer);
+        if (mySnake) {
+            this.direction = mySnake.direction;
+            this.score = mySnake.score;
+            this.alive = mySnake.alive;
+        }
+
+        // 初始化画布
+        this.initCanvas();
+
+        // 监听游戏状态
+        this.unlistenGameState = RoomManager.onGameStateChange(this.currentRoomId, (state) => {
+            if (!state) return;
+            this.gameState = state;
+
+            // 更新食物
+            this.food = state.food;
+
+            // 更新分数
+            const mySnake = state.snakes.find(s => s.playerId === this.currentPlayer);
+            if (mySnake) {
+                this.score = mySnake.score;
+                this.alive = mySnake.alive;
+            }
+
+            // 检查游戏结束
+            if (state.status === 'finished') {
+                this.endMultiplayerGame(state.winner);
+            }
+        });
+
+        // 启动游戏循环
+        this.startGameLoop();
+
+        // 显示游戏
+        this.showGameUI();
+    }
+
+    // 初始化画布
+    initCanvas() {
+        const room = this.gameState;
+        if (!room) return;
+
+        // 设置画布大小
+        const canvas = document.getElementById('game-canvas');
+        const gridSize = 20;
+        const width = 800;
+        const height = 500;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // 初始化所有蛇的位置
+        this.snakes = room.snakes.map((s, index) => ({
+            playerId: s.playerId,
+            playerIndex: s.playerIndex,
+            body: [
+                {x: 10 + index * 5, y: 10 + index * 3}
+            ],
+            color: this.snakeColors[index],
+            direction: s.direction,
+            score: 0,
+            alive: true
+        }));
+
+        // 生成第一个食物
+        this.generateFood();
+    }
+
+    // 生成食物
+    generateFood() {
+        const gridSize = 20;
+        const maxX = Math.floor(800 / gridSize);
+        const maxY = Math.floor(500 / gridSize);
+
+        let valid = false;
+        let x, y;
+
+        while (!valid) {
+            x = Math.floor(Math.random() * maxX);
+            y = Math.floor(Math.random() * maxY);
+            valid = true;
+
+            // 检查是否与任何蛇重叠
+            for (const snake of this.snakes) {
+                for (const segment of snake.body) {
+                    if (segment.x === x && segment.y === y) {
+                        valid = false;
+                        break;
+                    }
+                }
+                if (!valid) break;
+            }
+        }
+
+        this.food = {x, y};
+    }
+
+    // 显示游戏UI
+    showGameUI() {
+        document.getElementById('game-container').style.display = 'block';
+        document.querySelector('.game-controls').style.display = 'none';
+        document.querySelector('.game-settings').style.display = 'none';
+
+        // 显示多人游戏分数
+        const statsEl = document.querySelector('.game-stats');
+        statsEl.innerHTML = `
+            <div class="stat-item">
+                <span>队伍分数:</span>
+                <span id="mp-score">0</span>
+            </div>
+            <div class="stat-item">
+                <span>玩家:</span>
+                <span id="mp-players">${this.gameState?.snakes?.length || 0}/4</span>
+            </div>
+        `;
+
+        // 绑定方向控制
+        this.bindControls();
+    }
+
+    // 绑定控制
+    bindControls() {
+        document.onkeydown = (e) => {
+            if (this.roomStatus !== 'playing') return;
+
+            const key = e.key.toLowerCase();
+            let newDir = null;
+
+            switch(key) {
+                case 'w': case 'arrowup':    newDir = {x: 0, y: -1}; break;
+                case 's': case 'arrowdown':  newDir = {x: 0, y: 1}; break;
+                case 'a': case 'arrowleft':   newDir = {x: -1, y: 0}; break;
+                case 'd': case 'arrowright': newDir = {x: 1, y: 0}; break;
+            }
+
+            if (newDir) {
+                // 不能反向移动
+                if ((newDir.x !== -this.direction.x || newDir.y !== -this.direction.y) &&
+                    (newDir.x !== this.direction.x || newDir.y !== this.direction.y)) {
+                    this.direction = newDir;
+                    RoomManager.updatePlayerDirection(this.currentRoomId, this.currentPlayer, newDir);
+                }
+            }
+        };
+    }
+
+    // 游戏循环
+    startGameLoop() {
+        const fps = 10; // 10fps 同步
+        const interval = 1000 / fps;
+
+        const loop = () => {
+            if (this.roomStatus !== 'playing') return;
+
+            this.multiplayerUpdate();
+            this.multiplayerDraw();
+
+            this.gameLoopTimer = setTimeout(loop, interval);
+        };
+
+        loop();
+    }
+
+    // 停止游戏循环
+    stopGameLoop() {
+        if (this.gameLoopTimer) {
+            clearTimeout(this.gameLoopTimer);
+            this.gameLoopTimer = null;
+        }
+    }
+
+    // 多人游戏更新
+    multiplayerUpdate() {
+        if (!this.gameState) return;
+
+        // 从游戏状态更新所有蛇的位置
+        for (const remoteSnake of this.gameState.snakes) {
+            const localSnake = this.snakes.find(s => s.playerId === remoteSnake.playerId);
+            if (localSnake) {
+                localSnake.direction = remoteSnake.direction;
+                localSnake.score = remoteSnake.score;
+                localSnake.alive = remoteSnake.alive;
+            }
+        }
+
+        // 检查食物碰撞（只有本地玩家）
+        const mySnake = this.snakes.find(s => s.playerId === this.currentPlayer);
+        if (mySnake && this.food) {
+            const head = mySnake.body[0];
+            if (head.x === this.food.x && head.y === this.food.y) {
+                // 吃到食物
+                mySnake.body.push({...head});
+                this.score += 10;
+                this.generateFood();
+
+                // 更新服务器食物状态
+                RoomManager.updateFood(this.currentRoomId, this.food);
+            }
+        }
+
+        // 移动所有蛇
+        for (const snake of this.snakes) {
+            if (!snake.alive) continue;
+
+            const head = snake.body[0];
+            const newHead = {
+                x: head.x + snake.direction.x,
+                y: head.y + snake.direction.y
+            };
+
+            // 边界检测
+            const gridSize = 20;
+            const maxX = 800 / gridSize;
+            const maxY = 500 / gridSize;
+
+            if (newHead.x < 0 || newHead.x >= maxX || newHead.y < 0 || newHead.y >= maxY) {
+                // 撞墙：回到起点，惩罚
+                snake.body = [{x: 10, y: 10}];
+                continue;
+            }
+
+            // 自身碰撞检测
+            for (let i = 0; i < snake.body.length; i++) {
+                if (newHead.x === snake.body[i].x && newHead.y === snake.body[i].y) {
+                    // 撞到自己：缩短蛇身
+                    snake.body = snake.body.slice(0, Math.max(1, snake.body.length - 5));
+                    break;
+                }
+            }
+
+            snake.body.unshift(newHead);
+            snake.body.pop();
+        }
+    }
+
+    // 多人游戏绘制
+    multiplayerDraw() {
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 20;
+
+        // 清空画布
+        ctx.fillStyle = '#ecf0f1';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 绘制网格
+        ctx.strokeStyle = '#bdc3c7';
+        ctx.lineWidth = 0.5;
+        for (let x = 0; x <= canvas.width; x += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= canvas.height; y += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+
+        // 绘制食物
+        if (this.food) {
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(
+                this.food.x * gridSize + gridSize / 2,
+                this.food.y * gridSize + gridSize / 2,
+                gridSize / 2 - 2,
+                0,
+                Math.PI * 2
+            );
+            ctx.fill();
+        }
+
+        // 绘制所有蛇
+        for (const snake of this.snakes) {
+            if (!snake.alive) continue;
+
+            // 绘制蛇身
+            for (let i = snake.body.length - 1; i >= 0; i--) {
+                const segment = snake.body[i];
+                ctx.fillStyle = i === 0 ? snake.color.head : snake.color.body;
+                ctx.fillRect(
+                    segment.x * gridSize + 1,
+                    segment.y * gridSize + 1,
+                    gridSize - 2,
+                    gridSize - 2
+                );
+            }
+        }
+
+        // 更新分数显示
+        const totalScore = this.snakes.reduce((sum, s) => sum + s.score, 0);
+        document.getElementById('mp-score').textContent = totalScore;
+    }
+
+    // 结束多人游戏
+    async endMultiplayerGame(winner) {
+        this.stopGameLoop();
+        this.roomStatus = 'finished';
+
+        if (this.unlistenGameState) {
+            RoomManager.offGameStateChange(this.currentRoomId);
+        }
+
+        // 计算总分数
+        const totalScore = this.snakes.reduce((sum, s) => sum + s.score, 0);
+        const players = this.gameState?.snakes || [];
+
+        // 显示结算面板
+        const resultContent = document.getElementById('mp-result-content');
+        resultContent.innerHTML = `
+            <div class="mp-result-scores">
+                <h3>最终成绩</h3>
+                ${players.map(p => `
+                    <div class="mp-player-score">
+                        <span class="player-name">${p.playerId}</span>
+                        <span class="player-score">${p.score} 分</span>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="mp-total-score">
+                <h3>队伍总分: ${totalScore}</h3>
+            </div>
+        `;
+
+        document.getElementById('multiplayer-result-panel').classList.add('show');
+    }
+
+    // 返回大厅
+    async returnToLobby() {
+        this.closeResultPanel();
+
+        try {
+            await RoomManager.returnToLobby(this.currentRoomId);
+            this.roomStatus = 'waiting';
+            this.showWaitingLobby();
+            this.listenToRoom();
+        } catch (error) {
+            this.showMessage('返回大厅失败: ' + error.message);
+            this.exitMultiplayer();
+        }
+    }
+
+    // 离开房间
+    async leaveRoom() {
+        if (this.roomStatus === 'playing') {
+            // 游戏中的玩家只能退出
+            this.exitMultiplayer();
+            return;
+        }
+
+        try {
+            const result = await RoomManager.leaveRoom(this.currentRoomId, this.currentPlayer);
+            this.cleanup();
+            this.showGameSelector();
+        } catch (error) {
+            this.showMessage('离开房间失败: ' + error.message);
+        }
+    }
+
+    // 退出多人模式
+    exitMultiplayer() {
+        this.cleanup();
+        this.showGameSelector();
+    }
+
+    // 清理
+    cleanup() {
+        this.stopGameLoop();
+
+        if (this.unlistenRoom) {
+            RoomManager.offRoomChange(this.currentRoomId);
+        }
+        if (this.unlistenGameState) {
+            RoomManager.offGameStateChange(this.currentRoomId);
+        }
+
+        this.currentRoomId = null;
+        this.isHost = false;
+        this.roomStatus = 'idle';
+        this.gameState = null;
+        this.snakes = [];
+
+        // 恢复原始控制
+        if (window.game && window.game.bindEvents) {
+            window.game.bindEvents();
+        }
+    }
+
+    // 显示游戏选择界面
+    showGameSelector() {
+        document.getElementById('game-container').style.display = 'block';
+        document.querySelector('.game-controls').style.display = 'flex';
+        document.querySelector('.game-settings').style.display = 'block';
+
+        // 恢复游戏记录显示
+        const statsEl = document.querySelector('.game-stats');
+        statsEl.innerHTML = `
+            <div class="stat-item">
+                <span>分数:</span>
+                <span id="score">0</span>
+            </div>
+            <div class="stat-item" id="time-stat">
+                <span>剩余时间:</span>
+                <span id="time-remaining">0</span>
+            </div>
+            <div class="stat-item" id="combo-stat" style="display: none;">
+                <span>连击:</span>
+                <span id="combo-count">0</span>
+            </div>
+            <div class="stat-item" id="p2-score-stat" style="display: none;">
+                <span>P2分数:</span>
+                <span id="p2-score">0</span>
+            </div>
+            <div class="stat-item" id="speed-stat">
+                <span>速度:</span>
+                <span id="current-speed">5</span>
+            </div>
+        `;
+
+        this.closePanel();
+    }
+
+    // 显示消息
+    showMessage(msg) {
+        alert(msg);
+    }
+}
+
+// 全局多人游戏管理器
+window.multiplayerManager = new MultiplayerManager();
