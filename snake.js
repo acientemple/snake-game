@@ -5161,6 +5161,13 @@ class MultiplayerManager {
 
             this.showWaitingLobby();
             this.listenToRoom();
+
+            // 定期刷新以显示其他加入的玩家
+            setInterval(() => {
+                if (this.roomStatus === 'waiting') {
+                    this.updateLobbyInfo();
+                }
+            }, 2000);
         } catch (error) {
             document.getElementById('create-room-error').textContent = '创建房间失败: ' + error.message;
         }
@@ -5181,12 +5188,17 @@ class MultiplayerManager {
                 return;
             }
 
+            console.log('成功加入房间:', roomId);
             this.currentRoomId = roomId;
             this.isHost = false;
             this.roomStatus = 'waiting';
 
             this.showWaitingLobby();
             this.listenToRoom();
+
+            // 多次刷新确保看到其他玩家
+            setTimeout(() => this.updateLobbyInfo(), 500);
+            setTimeout(() => this.updateLobbyInfo(), 1500);
         } catch (error) {
             document.getElementById('join-room-error').textContent = '加入房间失败: ' + error.message;
         }
@@ -5231,12 +5243,26 @@ class MultiplayerManager {
         // 更新输入框中的房间ID
         document.getElementById('join-room-id').value = this.currentRoomId;
         this.updateLobbyInfo();
+
+        // 注册页面离开事件
+        window.onbeforeunload = () => {
+            if (this.currentRoomId && this.roomStatus !== 'playing') {
+                RoomManager.leaveRoom(this.currentRoomId, this.currentPlayer);
+            }
+        };
     }
 
     // 更新大厅信息
     updateLobbyInfo() {
+        if (!this.currentRoomId) return;
+
         RoomManager.getRoom(this.currentRoomId).then(room => {
-            if (!room) return;
+            if (!room) {
+                console.log('房间不存在或已被删除');
+                return;
+            }
+
+            console.log('更新大厅信息:', room);
 
             document.getElementById('lobby-host').textContent = room.host;
             document.getElementById('lobby-status').textContent = room.status === 'waiting' ? '等待中...' : '游戏中...';
@@ -5244,7 +5270,7 @@ class MultiplayerManager {
 
             // 更新玩家列表
             const playersEl = document.getElementById('players-in-room');
-            playersEl.innerHTML = room.players.map((p, i) => `
+            playersEl.innerHTML = room.players.map((p) => `
                 <li>
                     <span class="player-name">${p}</span>
                     ${p === room.host ? '<span class="host-badge">房主</span>' : ''}
@@ -5259,6 +5285,8 @@ class MultiplayerManager {
             } else {
                 startBtn.style.display = 'none';
             }
+        }).catch(error => {
+            console.error('获取房间信息失败:', error);
         });
     }
 
