@@ -213,17 +213,33 @@ const RoomManager = {
         await database.ref('rooms/' + roomId).update({ status: 'playing' });
         // 初始化游戏状态
         const room = await this.getRoom(roomId);
+
+        // 蛇的起始位置
+        const startPositions = [
+            {x: 10, y: 10, direction: {x: 1, y: 0}},
+            {x: 30, y: 10, direction: {x: -1, y: 0}},
+            {x: 10, y: 18, direction: {x: 1, y: 0}},
+            {x: 30, y: 18, direction: {x: -1, y: 0}}
+        ];
+
         const gameState = {
             roomId,
             tick: 0,
-            snakes: room.players.map((username, index) => ({
-                playerId: username,
-                playerIndex: index,
-                body: [],
-                direction: { x: 1, y: 0 },
-                score: 0,
-                alive: true
-            })),
+            snakes: room.players.map((username, index) => {
+                const pos = startPositions[index] || startPositions[0];
+                const body = [];
+                for (let i = 0; i < 3; i++) {
+                    body.push({x: pos.x - i, y: pos.y});
+                }
+                return {
+                    playerId: username,
+                    playerIndex: index,
+                    body: body,
+                    direction: pos.direction,
+                    score: 0,
+                    alive: true
+                };
+            }),
             food: null,
             status: 'playing',
             winner: null,

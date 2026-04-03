@@ -5310,19 +5310,22 @@ class MultiplayerManager {
         // 初始化画布
         this.initCanvas();
 
-        // 监听游戏状态
+        // 监听游戏状态（用于同步其他玩家数据和游戏结束）
         this.unlistenGameState = RoomManager.onGameStateChange(this.currentRoomId, (state) => {
             if (!state) return;
             this.gameState = state;
 
-            // 更新食物
-            this.food = state.food;
-
-            // 更新分数
-            const mySnake = state.snakes.find(s => s.playerId === this.currentPlayer);
-            if (mySnake) {
-                this.score = mySnake.score;
-                this.alive = mySnake.alive;
+            // 只同步其他玩家的蛇位置和分数
+            // 不覆盖本地食物（本地游戏循环处理）
+            for (const remoteSnake of state.snakes) {
+                if (remoteSnake.playerId !== this.currentPlayer) {
+                    const localSnake = this.snakes.find(s => s.playerId === remoteSnake.playerId);
+                    if (localSnake) {
+                        localSnake.direction = remoteSnake.direction;
+                        localSnake.score = remoteSnake.score;
+                        localSnake.alive = remoteSnake.alive;
+                    }
+                }
             }
 
             // 检查游戏结束
@@ -5352,17 +5355,15 @@ class MultiplayerManager {
         canvas.width = width;
         canvas.height = height;
 
-        // 初始化所有蛇的位置
+        // 使用 Firebase 中的蛇数据来初始化
         this.snakes = room.snakes.map((s, index) => ({
             playerId: s.playerId,
             playerIndex: s.playerIndex,
-            body: [
-                {x: 10 + index * 5, y: 10 + index * 3}
-            ],
+            body: s.body || [{x: 10 + index * 5, y: 10 + index * 3}],
             color: this.snakeColors[index],
-            direction: s.direction,
-            score: 0,
-            alive: true
+            direction: s.direction || {x: 1, y: 0},
+            score: s.score || 0,
+            alive: s.alive !== false
         }));
 
         // 生成第一个食物
