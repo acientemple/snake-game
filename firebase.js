@@ -119,23 +119,31 @@ const RoomManager = {
 
     // 加入房间
     async joinRoom(roomId, username) {
+        console.log('RoomManager.joinRoom:', roomId, username);
         const roomRef = database.ref('rooms/' + roomId);
-        const snapshot = await roomRef.once('value');
-        const room = snapshot.val();
+        try {
+            const snapshot = await roomRef.once('value');
+            const room = snapshot.val();
+            console.log('Room data:', room);
 
-        if (!room) {
-            return { success: false, error: '房间不存在' };
-        }
-        if (room.players.length >= 4) {
-            return { success: false, error: '房间已满' };
-        }
-        if (room.players.includes(username)) {
-            return { success: false, error: '已在房间中' };
-        }
+            if (!room) {
+                return { success: false, error: '房间不存在' };
+            }
+            if (room.players.length >= 4) {
+                return { success: false, error: '房间已满' };
+            }
+            if (room.players.includes(username)) {
+                return { success: false, error: '已在房间中' };
+            }
 
-        const newPlayers = [...room.players, username];
-        await roomRef.update({ players: newPlayers });
-        return { success: true };
+            const newPlayers = [...room.players, username];
+            await roomRef.update({ players: newPlayers });
+            console.log('Successfully joined room');
+            return { success: true };
+        } catch (error) {
+            console.error('Join room error:', error);
+            return { success: false, error: error.message };
+        }
     },
 
     // 离开房间

@@ -5151,9 +5151,13 @@ class MultiplayerManager {
 
         try {
             const roomId = await RoomManager.createRoom(this.currentPlayer, settings);
+            console.log('Room created with ID:', roomId);
             this.currentRoomId = roomId;
             this.isHost = true;
             this.roomStatus = 'waiting';
+
+            // 更新输入框显示房间ID，方便复制
+            document.getElementById('join-room-id').value = roomId;
 
             this.showWaitingLobby();
             this.listenToRoom();
@@ -5224,6 +5228,8 @@ class MultiplayerManager {
         document.getElementById('waiting-lobby').style.display = 'block';
 
         document.getElementById('lobby-room-id').textContent = this.currentRoomId;
+        // 更新输入框中的房间ID
+        document.getElementById('join-room-id').value = this.currentRoomId;
         this.updateLobbyInfo();
     }
 
