@@ -5411,7 +5411,7 @@ class MultiplayerManager {
         document.querySelector('.game-controls').style.display = 'none';
         document.querySelector('.game-settings').style.display = 'none';
 
-        // 显示多人游戏分数
+        // 显示多人游戏分数和退出按钮
         const statsEl = document.querySelector('.game-stats');
         statsEl.innerHTML = `
             <div class="stat-item">
@@ -5422,10 +5422,23 @@ class MultiplayerManager {
                 <span>玩家:</span>
                 <span id="mp-players">${this.gameState?.snakes?.length || 0}/4</span>
             </div>
+            <div class="stat-item">
+                <button id="btn-exit-game" class="auth-btn guest-btn" style="padding:5px 10px;font-size:12px;">退出游戏</button>
+            </div>
         `;
+
+        // 绑定退出游戏按钮
+        document.getElementById('btn-exit-game').onclick = () => this.exitGame();
 
         // 绑定方向控制
         this.bindControls();
+    }
+
+    // 退出游戏（游戏中）
+    exitGame() {
+        if (confirm('确定要退出游戏吗？')) {
+            this.exitMultiplayer();
+        }
     }
 
     // 绑定控制
