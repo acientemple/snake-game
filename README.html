@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃蛇游戏 - 使用说明</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.1em; opacity: 0.9; }
+        .content { padding: 30px; }
+        .section {
+            margin-bottom: 35px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #667eea;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section h3 {
+            color: #333;
+            font-size: 1.2em;
+            margin: 20px 0 15px 0;
+        }
+        .step-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .step-num {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .step-content { flex: 1; }
+        .step-title { font-weight: 600; color: #333; margin-bottom: 5px; }
+        .step-desc { color: #666; font-size: 0.95em; }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .feature-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+        .feature-item:hover { transform: translateY(-3px); }
+        .feature-icon { font-size: 2.5em; margin-bottom: 10px; }
+        .feature-title { font-weight: 600; color: #333; margin-bottom: 5px; }
+        .feature-desc { font-size: 0.85em; color: #666; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover { background: #f8f9fa; }
+        .icon { font-size: 1.3em; text-align: center; }
+        .icon-col { width: 60px; text-align: center; }
+        .note {
+            background: #fff8e6;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #ffa500;
+        }
+        .note-title { font-weight: 600; color: #cc8500; margin-bottom: 5px; }
+        .note-content { color: #665500; }
+        .tip {
+            background: #e8f5e9;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #4caf50;
+        }
+        .tip-title { font-weight: 600; color: #2e7d32; margin-bottom: 5px; }
+        .tip-content { color: #1b5e20; }
+        .warning {
+            background: #ffebee;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #f44336;
+        }
+        .warning-title { font-weight: 600; color: #c62828; margin-bottom: 5px; }
+        .warning-content { color: #b71c1c; }
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+        }
+        .achievement-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+        .achievement-item:hover { transform: translateY(-3px); }
+        .achievement-item.locked { opacity: 0.6; }
+        .achievement-icon { font-size: 2em; margin-bottom: 8px; }
+        .achievement-name { font-weight: 600; color: #333; font-size: 0.9em; }
+        .achievement-desc { font-size: 0.75em; color: #666; margin-top: 5px; }
+        .mode-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        .mode-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+            border: 2px solid transparent;
+        }
+        .mode-card:hover { transform: translateY(-3px); }
+        .mode-card.active { border-color: #667eea; }
+        .mode-icon { font-size: 2.5em; margin-bottom: 10px; }
+        .mode-name { font-weight: 600; color: #333; margin-bottom: 8px; }
+        .mode-desc { font-size: 0.85em; color: #666; }
+        .skin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .skin-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .skin-item:hover { transform: scale(1.05); }
+        .skin-item.selected { border-color: #667eea; }
+        .skin-preview { width: 40px; height: 40px; margin: 0 auto 8px; border-radius: 6px; }
+        .skin-name { font-size: 0.8em; color: #666; }
+        .color-green { background: linear-gradient(135deg, #4caf50, #81c784); }
+        .color-blue { background: linear-gradient(135deg, #2196f3, #64b5f6); }
+        .color-red { background: linear-gradient(135deg, #f44336, #e57373); }
+        .color-purple { background: linear-gradient(135deg, #9c27b0, #ba68c8); }
+        .color-orange { background: linear-gradient(135deg, #ff9800, #ffb74d); }
+        .color-pink { background: linear-gradient(135deg, #e91e63, #f06292); }
+        .color-yellow { background: linear-gradient(135deg, #ffeb3b, #fff176); }
+        .color-cyan { background: linear-gradient(135deg, #00bcd4, #4dd0e1); }
+        .color-rainbow { background: linear-gradient(135deg, red, orange, yellow, green, blue, indigo, violet); }
+        .food-circle { background: #ff5722; border-radius: 50%; }
+        .food-star { background: #ffd700; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+        .food-heart { background: #e91e63; clip-path: path('M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'); }
+        .version-list { margin-top: 20px; }
+        .version-item {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .version-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .version-num {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .version-date { color: #999; font-size: 0.9em; }
+        .version-desc { color: #666; line-height: 1.8; }
+        .version-desc li { margin: 5px 0; }
+        .btn-demo {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 3px;
+            font-size: 0.9em;
+        }
+        .touch-area {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .touch-demo {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            min-width: 200px;
+        }
+        .touch-title { font-weight: 600; color: #333; margin-bottom: 10px; }
+        .touch-keys { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+        .key {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-family: monospace;
+            font-weight: 600;
+            color: #333;
+        }
+        .key.active { background: #667eea; color: white; border-color: #667eea; }
+        .virtual-demo {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            display: inline-block;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .vc-grid { display: grid; grid-template-columns: repeat(3, 50px); gap: 5px; justify-content: center; }
+        .vc-btn-demo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+        }
+        .back-link:hover { background: rgba(255,255,255,0.3); }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← 返回游戏</a>
+
+    <div class="container">
+        <div class="header">
+            <h1>🐍 贪吃蛇游戏</h1>
+            <p>新手入门指南 · 快速上手</p>
+        </div>
+
+        <div class="content">
+            <!-- 快速开始 -->
+            <div class="section">
+                <h2>🚀 快速开始</h2>
+
+                <div class="step-box">
+                    <h3 style="margin-top:0;">5步开始游戏</h3>
+
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div class="step-content">
+                            <div class="step-title">输入玩家姓名</div>
+                            <div class="step-desc">在顶部输入框输入你的名字，匿名也能玩，但登录后可保存记录</div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <div class="step-content">
+                            <div class="step-title">选择游戏模式</div>
+                            <div class="step-desc">经典模式 / 限时挑战 / 无尽模式 / 双人对战</div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div class="step-content">
+                            <div class="step-title">设置游戏速度</div>
+                            <div class="step-desc">拖动滑块调整速度，从🐢龟（最慢）到⚡光（最快）</div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-num">4</div>
+                        <div class="step-content">
+                            <div class="step-title">开始游戏</div>
+                            <div class="step-desc">点击「开始游戏」按钮或按空格键</div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-num">5</div>
+                        <div class="step-content">
+                            <div class="step-title">控制蛇移动</div>
+                            <div class="step-desc">使用方向键或WASD键控制方向，吃到食物得分</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tip">
+                    <div class="tip-title">💡 新手提示</div>
+                    <div class="tip-content">首次游戏建议选择「经典模式」，速度调到3-5级，熟悉操作后再挑战更高难度！</div>
+                </div>
+            </div>
+
+            <!-- 控制方式 -->
+            <div class="section">
+                <h2>⌨️ 控制方式</h2>
+
+                <h3>🖥️ 电脑/键盘控制</h3>
+                <table>
+                    <tr>
+                        <th>按键</th>
+                        <th>功能</th>
+                        <th>说明</th>
+                    </tr>
+                    <tr>
+                        <td><span class="key">↑</span> <span class="key">W</span></td>
+                        <td>向上移动</td>
+                        <td>控制蛇向上爬</td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">↓</span> <span class="key">S</span></td>
+                        <td>向下移动</td>
+                        <td>控制蛇向下爬</td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">←</span> <span class="key">A</span></td>
+                        <td>向左移动</td>
+                        <td>控制蛇向左爬</td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">→</span> <span class="key">D</span></td>
+                        <td>向右移动</td>
+                        <td>控制蛇向右爬</td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">空格</span></td>
+                        <td>暂停/继续</td>
+                        <td>暂停或继续游戏</td>
+                    </tr>
+                    <tr>
+                        <td><span class="key">F</span></td>
+                        <td>全屏切换</td>
+                        <td>进入/退出全屏模式</td>
+                    </tr>
+                </table>
+
+                <h3>📱 触摸屏/平板控制</h3>
+                <div class="touch-area">
+                    <div class="touch-demo">
+                        <div class="touch-title">🖐️ 滑动操作</div>
+                        <p style="color:#666;font-size:0.9em;">在游戏区域快速滑动<br>即可切换方向</p>
+                    </div>
+                    <div class="touch-demo">
+                        <div class="touch-title">🎮 虚拟按钮</div>
+                        <p style="color:#666;font-size:0.9em;">全屏时显示方向按钮<br>点击即可控制</p>
+                        <div class="virtual-demo" style="margin-top:10px;">
+                            <div class="vc-grid">
+                                <div></div>
+                                <div class="vc-btn-demo">▲</div>
+                                <div></div>
+                                <div class="vc-btn-demo">◀</div>
+                                <div class="vc-btn-demo">▼</div>
+                                <div class="vc-btn-demo">▶</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>⚔️ 双人对战</h3>
+                <table>
+                    <tr>
+                        <th>玩家</th>
+                        <th>移动按键</th>
+                        <th>位置</th>
+                    </tr>
+                    <tr>
+                        <td>P1 🐍</td>
+                        <td><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></td>
+                        <td>左边区域</td>
+                    </tr>
+                    <tr>
+                        <td>P2 🐍</td>
+                        <td><span class="key">↑</span><span class="key">←</span><span class="key">↓</span><span class="key">→</span></td>
+                        <td>右边区域</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 游戏模式 -->
+            <div class="section">
+                <h2>🎮 游戏模式</h2>
+
+                <div class="mode-cards">
+                    <div class="mode-card">
+                        <div class="mode-icon">🏠</div>
+                        <div class="mode-name">经典模式</div>
+                        <div class="mode-desc">最传统玩法<br>可设置游戏时间<br>可启用道具</div>
+                    </div>
+                    <div class="mode-card">
+                        <div class="mode-icon">⏰</div>
+                        <div class="mode-name">限时挑战</div>
+                        <div class="mode-desc">60/90/120秒<br>限定时间内<br>获取最高分</div>
+                    </div>
+                    <div class="mode-card">
+                        <div class="mode-icon">♾️</div>
+                        <div class="mode-name">无尽模式</div>
+                        <div class="mode-desc">无时间限制<br>每吃5个速度+1<br>挑战极限</div>
+                    </div>
+                    <div class="mode-card">
+                        <div class="mode-icon">⚔️</div>
+                        <div class="mode-name">双人对战</div>
+                        <div class="mode-desc">双人同屏<br>先撞墙者输<br>对战好友</div>
+                    </div>
+                </div>
+
+                <div class="note">
+                    <div class="note-title">💡 模式选择建议</div>
+                    <div class="note-content">
+                        新手推荐「经典模式」- 熟悉游戏规则<br>
+                        追求刺激选「无尽模式」- 无限成长<br>
+                        朋友聚会玩「双人对战」- 竞技乐趣
+                    </div>
+                </div>
+            </div>
+
+            <!-- 道具系统 -->
+            <div class="section">
+                <h2>🎁 道具系统</h2>
+
+                <h3>食物类（得分）</h3>
+                <table>
+                    <tr>
+                        <th class="icon-col">图标</th>
+                        <th>名称</th>
+                        <th>效果</th>
+                    </tr>
+                    <tr>
+                        <td class="icon">🍎</td>
+                        <td>普通食物</td>
+                        <td>得分 <strong>10 + 速度×2</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="icon">⭐</td>
+                        <td>金色食物</td>
+                        <td>额外<strong>+50分</strong></td>
+                    </tr>
+                </table>
+
+                <h3>⚠️ 障碍类（扣分）</h3>
+                <table>
+                    <tr>
+                        <th class="icon-col">图标</th>
+                        <th>名称</th>
+                        <th>效果</th>
+                    </tr>
+                    <tr>
+                        <td class="icon">💣</td>
+                        <td>炸弹</td>
+                        <td><strong>-20分</strong>，蛇身<strong>缩短2节</strong></td>
+                    </tr>
+                </table>
+
+                <h3>🚀 加速类（永久提速）</h3>
+                <table>
+                    <tr>
+                        <th class="icon-col">图标</th>
+                        <th>名称</th>
+                        <th>效果</th>
+                    </tr>
+                    <tr>
+                        <td class="icon">🚗</td>
+                        <td>汽车</td>
+                        <td>速度 <strong>+1</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="icon">🚄</td>
+                        <td>高铁</td>
+                        <td>速度 <strong>+2</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="icon">✈️</td>
+                        <td>飞机</td>
+                        <td>速度 <strong>+3</strong></td>
+                    </tr>
+                </table>
+
+                <h3>🐢 减速类（永久降速）</h3>
+                <table>
+                    <tr>
+                        <th class="icon-col">图标</th>
+                        <th>名称</th>
+                        <th>效果</th>
+                    </tr>
+                    <tr>
+                        <td class="icon">🐌</td>
+                        <td>蜗牛</td>
+                        <td>速度 <strong>-1</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="icon">🐨</td>
+                        <td>考拉</td>
+                        <td>速度 <strong>-2</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="icon">🐢</td>
+                        <td>乌龟</td>
+                        <td>速度 <strong>-3</strong></td>
+                    </tr>
+                </table>
+
+                <h3>🛡️ 特殊类</h3>
+                <table>
+                    <tr>
+                        <th class="icon-col">图标</th>
+                        <th>名称</th>
+                        <th>效果</th>
+                    </tr>
+                    <tr>
+                        <td class="icon">🛡️</td>
+                        <td>无敌</td>
+                        <td>获得<strong>1次撞墙不死</strong>机会</td>
+                    </tr>
+                    <tr>
+                        <td class="icon">👻</td>
+                        <td>幽灵</td>
+                        <td>获得<strong>1次撞自己不死</strong>机会</td>
+                    </tr>
+                </table>
+
+                <div class="warning">
+                    <div class="warning-title">⚠️ 重要说明</div>
+                    <div class="warning-content">
+                        加速/减速道具是<strong>永久改变本局基础速度</strong>，游戏重启后恢复。
+                        无敌和幽灵道具只有<strong>1次机会</strong>，使用后消失。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 皮肤系统 -->
+            <div class="section">
+                <h2>🎨 皮肤系统</h2>
+                <p>点击「皮肤」按钮自定义游戏外观，保存后永久生效！</p>
+
+                <h3>🐍 蛇身颜色</h3>
+                <div class="skin-grid">
+                    <div class="skin-item selected">
+                        <div class="skin-preview color-green"></div>
+                        <div class="skin-name">绿色</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-preview color-blue"></div>
+                        <div class="skin-name">蓝色</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-preview color-red"></div>
+                        <div class="skin-name">红色</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-preview color-purple"></div>
+                        <div class="skin-name">紫色</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-preview color-orange"></div>
+                        <div class="skin-name">橙色</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-preview color-pink"></div>
+                        <div class="skin-name">粉色</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-preview color-yellow"></div>
+                        <div class="skin-name">黄色</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-preview color-cyan"></div>
+                        <div class="skin-name">青色</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-preview color-rainbow"></div>
+                        <div class="skin-name">彩虹</div>
+                    </div>
+                </div>
+
+                <h3>🍎 食物样式</h3>
+                <div class="skin-grid">
+                    <div class="skin-item selected">
+                        <div class="skin-preview food-circle"></div>
+                        <div class="skin-name">圆形</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-preview food-star" style="background:#ffd700;"></div>
+                        <div class="skin-name">星星</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-preview food-heart" style="background:#e91e63;"></div>
+                        <div class="skin-name">爱心</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">🐟 鱼</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">🐛 虫</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">🍎 苹果</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">💎 宝石</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">🍬 糖果</div>
+                    </div>
+                </div>
+
+                <h3>🏞️ 背景样式</h3>
+                <div class="skin-grid">
+                    <div class="skin-item selected">
+                        <div class="skin-name">网格</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">纯色</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">渐变</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">🌲 森林</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">🌊 海洋</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">🌅 夕阳</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">🌙 夜晚</div>
+                    </div>
+                    <div class="skin-item">
+                        <div class="skin-name">🌸 柔和</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 成就系统 -->
+            <div class="section">
+                <h2>🏆 成就系统</h2>
+                <p>点击「成就」按钮查看进度，完成条件即可解锁成就！</p>
+
+                <div class="achievement-grid">
+                    <div class="achievement-item">
+                        <div class="achievement-icon">🍎</div>
+                        <div class="achievement-name">初试身手</div>
+                        <div class="achievement-desc">首次吃到食物</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">🔥</div>
+                        <div class="achievement-name">连击达人</div>
+                        <div class="achievement-desc">连续吃10个食物</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">⭐</div>
+                        <div class="achievement-name">初露头角</div>
+                        <div class="achievement-desc">突破100分</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">🌟</div>
+                        <div class="achievement-name">高分选手</div>
+                        <div class="achievement-desc">突破500分</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">👑</div>
+                        <div class="achievement-name">大神级别</div>
+                        <div class="achievement-desc">突破1000分</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">⚡</div>
+                        <div class="achievement-name">速度之王</div>
+                        <div class="achievement-desc">速度达到10级</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">🎮</div>
+                        <div class="achievement-name">小试牛刀</div>
+                        <div class="achievement-desc">完成10局游戏</div>
+                    </div>
+                    <div class="achievement-item">
+                        <div class="achievement-icon">🏆</div>
+                        <div class="achievement-name">资深玩家</div>
+                        <div class="achievement-desc">完成50局游戏</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 云端同步 -->
+            <div class="section">
+                <h2>☁️ 账号与云端同步</h2>
+
+                <h3>为什么需要登录？</h3>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">保存记录</div>
+                        <div class="feature-desc">游戏记录永久保存</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🏅</div>
+                        <div class="feature-title">同步成就</div>
+                        <div class="feature-desc">成就在多设备同步</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🎨</div>
+                        <div class="feature-title">保存皮肤</div>
+                        <div class="feature-desc">个性化设置云端保存</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">👥</div>
+                        <div class="feature-title">排行榜</div>
+                        <div class="feature-desc">查看所有玩家成绩</div>
+                    </div>
+                </div>
+
+                <h3>登录/注册</h3>
+                <div class="step-box">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div class="step-content">
+                            <div class="step-title">注册账号</div>
+                            <div class="step-desc">输入用户名（至少3位）和密码，点击「注册」</div>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <div class="step-content">
+                            <div class="step-title">记住密码</div>
+                            <div class="step-desc">勾选「记住用户名和密码」，下次自动登录</div>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div class="step-content">
+                            <div class="step-title">开始游戏</div>
+                            <div class="step-desc">登录后数据自动同步，玩耍自动保存</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="note">
+                    <div class="note-title">💡 游客模式</div>
+                    <div class="note-content">
+                        不注册也能玩！但游戏记录只保存在当前设备，换设备就看不到了。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 常见问题 -->
+            <div class="section">
+                <h2>❓ 常见问题</h2>
+
+                <h3>游戏操作</h3>
+                <table>
+                    <tr>
+                        <th>问题</th>
+                        <th>解答</th>
+                    </tr>
+                    <tr>
+                        <td>如何暂停游戏？</td>
+                        <td>按空格键或点击「暂停」按钮</td>
+                    </tr>
+                    <tr>
+                        <td>如何全屏游戏？</td>
+                        <td>按 F 键或点击「全屏」按钮</td>
+                    </tr>
+                    <tr>
+                        <td>道具在哪里？</td>
+                        <td>经典模式下勾选「启用道具」</td>
+                    </tr>
+                </table>
+
+                <h3>数据相关</h3>
+                <table>
+                    <tr>
+                        <th>问题</th>
+                        <th>解答</th>
+                    </tr>
+                    <tr>
+                        <td>记录会自动保存吗？</td>
+                        <td>是的，游戏结束后自动保存到云端</td>
+                    </tr>
+                    <tr>
+                        <td>如何清除我的记录？</td>
+                        <td>点击「清除我的记录」按钮</td>
+                    </tr>
+                    <tr>
+                        <td>如何修改密码？</td>
+                        <td>登录后点击用户名进行修改</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 版本历史 -->
+            <div class="section">
+                <h2>📜 版本历史</h2>
+                <p>以下是各版本的主要更新内容：</p>
+
+                <div class="version-list">
+                    <div class="version-item">
+                        <div class="version-header">
+                            <span class="version-num">v1.5.0</span>
+                            <span class="version-date">2026-03-11</span>
+                        </div>
+                        <ul class="version-desc">
+                            <li>使用说明书全面更新：图文并茂，重点突出，简单易懂</li>
+                            <li>新增快速开始5步指南</li>
+                            <li>详细控制方式说明（键盘/触摸/双人对战）</li>
+                            <li>完整道具系统、皮肤系统展示</li>
+                            <li>版本历史记录</li>
+                        </ul>
+                    </div>
+
+                    <div class="version-item">
+                        <div class="version-header">
+                            <span class="version-num">v1.4.0</span>
+                            <span class="version-date">2026-03-11</span>
+                        </div>
+                        <ul class="version-desc">
+                            <li>全屏模式优化：游戏界面最大化，按钮不遮挡游戏区域</li>
+                            <li>移除页面缩放功能，改为自适应布局</li>
+                            <li>全屏模式下隐藏不需要的元素，专注游戏体验</li>
+                        </ul>
+                    </div>
+
+                    <div class="version-item">
+                        <div class="version-header">
+                            <span class="version-num">v1.3.0</span>
+                            <span class="version-date">2026-03-11</span>
+                        </div>
+                        <ul class="version-desc">
+                            <li>新增PWA支持，可添加到手机桌面</li>
+                            <li>新增iPad虚拟控制键和全屏支持</li>
+                            <li>新增外围背景颜色设置</li>
+                            <li>所有背景样式添加网格效果</li>
+                            <li>游戏记录分页优化</li>
+                        </ul>
+                    </div>
+
+                    <div class="version-item">
+                        <div class="version-header">
+                            <span class="version-num">v1.2.0</span>
+                            <span class="version-date">2026-03-07</span>
+                        </div>
+                        <ul class="version-desc">
+                            <li>新增成就系统</li>
+                            <li>新增皮肤系统（蛇身颜色、食物样式、背景）</li>
+                            <li>新增音效系统</li>
+                            <li>新增双人对战模式</li>
+                        </ul>
+                    </div>
+
+                    <div class="version-item">
+                        <div class="version-header">
+                            <span class="version-num">v1.1.0</span>
+                            <span class="version-date">2026-03-07</span>
+                        </div>
+                        <ul class="version-desc">
+                            <li>新增云端同步功能</li>
+                            <li>新增用户注册登录系统</li>
+                            <li>新增游戏模式（经典/限时/无尽）</li>
+                            <li>新增道具系统</li>
+                        </ul>
+                    </div>
+
+                    <div class="version-item">
+                        <div class="version-header">
+                            <span class="version-num">v1.0.0</span>
+                            <span class="version-date">2026-03-04</span>
+                        </div>
+                        <ul class="version-desc">
+                            <li>初始版本</li>
+                            <li>基础贪吃蛇玩法</li>
+                            <li>键盘控制</li>
+                            <li>本地记录</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

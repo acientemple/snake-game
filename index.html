@@ -2,40 +2,158 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#667eea">
     <title>贪吃蛇游戏</title>
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body>
-    <div class="game-container">
+    <!-- 成就提示 -->
+    <div id="achievement-notification" class="achievement-notification"></div>
+
+    <!-- 登录/注册面板 -->
+    <div id="auth-panel" class="modal show">
+        <div class="modal-content auth-content">
+            <h2>🐍 贪吃蛇游戏</h2>
+            <div id="login-form">
+                <h3>登录</h3>
+                <input type="text" id="login-username" placeholder="用户名">
+                <input type="password" id="login-password" placeholder="密码">
+                <label class="remember-me">
+                    <input type="checkbox" id="remember-me">
+                    记住用户名和密码
+                    <button type="button" id="clear-credentials" class="clear-credentials-btn">清除</button>
+                </label>
+                <button id="login-btn" class="auth-btn">登录</button>
+                <button id="guest-btn" class="auth-btn guest-btn">游客进入</button>
+                <p>还没有账号？<a href="#" id="show-register">注册</a></p>
+                <p><a href="#" id="show-admin">管理员入口</a></p>
+                <p><a href="#" id="show-forgot">忘记密码？</a></p>
+            </div>
+            <div id="admin-form" style="display:none;">
+                <h3>👑 管理员登录</h3>
+                <input type="text" id="admin-username" placeholder="管理员用户名">
+                <input type="password" id="admin-password" placeholder="管理员密码">
+                <button id="admin-login-btn" class="auth-btn">登录</button>
+                <p><a href="#" id="show-user-login">返回用户登录</a> | <a href="#" id="show-forgot-from-admin">忘记密码？</a></p>
+            </div>
+            <div id="register-form" style="display:none;">
+                <h3>注册</h3>
+                <input type="text" id="reg-username" placeholder="用户名">
+                <input type="email" id="reg-email" placeholder="邮箱（选填，用于找回密码）">
+                <input type="password" id="reg-password" placeholder="密码">
+                <input type="password" id="reg-password2" placeholder="确认密码">
+                <button id="register-btn" class="auth-btn">注册</button>
+                <p>已有账号？<a href="#" id="show-login">登录</a></p>
+            </div>
+            <div id="forgot-form" style="display:none;">
+                <h3>找回密码</h3>
+                <div id="forgot-step1">
+                    <input type="text" id="forgot-username" placeholder="用户名">
+                    <input type="email" id="forgot-email" placeholder="注册时填写的邮箱">
+                    <button id="forgot-btn" class="auth-btn">发送重置链接</button>
+                </div>
+                <div id="forgot-step2" style="display:none;">
+                    <p>验证码已发送到您的邮箱</p>
+                    <input type="text" id="reset-code-input" placeholder="输入收到的验证码">
+                    <button id="use-link-btn" class="auth-btn">验证</button>
+                </div>
+                <div id="forgot-step3" style="display:none;">
+                    <input type="password" id="new-password-input" placeholder="新密码">
+                    <input type="password" id="new-password-confirm" placeholder="确认新密码">
+                    <button id="confirm-reset-btn" class="auth-btn">确认重置</button>
+                </div>
+                <p><a href="#" id="show-user-login2">返回登录</a></p>
+            </div>
+            <p id="auth-error" class="error"></p>
+        </div>
+    </div>
+
+    <div class="game-container" style="display:none;" id="game-container">
         <div class="game-header">
             <h1>贪吃蛇游戏</h1>
+            <a href="README.html" target="_blank" class="help-link">📖 使用说明</a>
             <div class="player-info">
                 <label for="player-name">玩家姓名:</label>
-                <input type="text" id="player-name" placeholder="输入您的名字">
+                <input type="text" id="player-name" placeholder="输入您的名字" list="player-names">
+                <datalist id="player-names"></datalist>
             </div>
         </div>
 
         <div class="game-controls">
             <button id="start-btn">开始游戏</button>
-            <button id="pause-btn">暂停</button>
+            <button id="pause-btn" disabled>暂停</button>
             <button id="fullscreen-btn">全屏</button>
+            <button id="achievements-btn">成就</button>
+            <button id="skins-btn">皮肤</button>
+            <button id="sound-btn">音效</button>
         </div>
 
         <div class="game-settings">
             <div class="setting-item">
+                <label for="game-mode">游戏模式:</label>
+                <select id="game-mode">
+                    <option value="classic">经典模式</option>
+                    <option value="timed">限时挑战</option>
+                    <option value="endless">无尽模式</option>
+                    <option value="battle">双人对战</option>
+                    <option value="multiplayer">多人合作</option>
+                </select>
+            </div>
+            <div class="setting-item" id="time-limit-container">
+                <label for="time-limit">时限(秒):</label>
+                <select id="time-limit">
+                    <option value="60">60秒</option>
+                    <option value="90">90秒</option>
+                    <option value="120">120秒</option>
+                </select>
+            </div>
+            <div class="setting-item" id="classic-time-container">
                 <label for="game-time">游戏时间 (秒):</label>
                 <input type="number" id="game-time" value="0" min="0" max="300">
             </div>
             <div class="setting-item">
                 <label for="game-speed">游戏速度:</label>
-                <input type="range" id="game-speed" min="1" max="10" value="5">
-                <span id="speed-value">5</span>
+                <input type="range" id="game-speed" min="1" max="20" value="5">
+                <span id="speed-value">🐢 龟</span>
+            </div>
+            <div class="setting-item" id="powerups-container">
+                <label>
+                    <input type="checkbox" id="enable-powerups" checked> 启用道具
+                </label>
             </div>
         </div>
 
         <div class="game-canvas-container">
-            <canvas id="game-canvas" width="600" height="400"></canvas>
+            <canvas id="game-canvas" width="800" height="500"></canvas>
+        </div>
+
+        <!-- 虚拟控制键 - 仅在触摸屏设备显示 -->
+        <div class="virtual-controls" id="virtual-controls">
+            <div class="vc-tip" id="vc-tip" style="display:none;">全屏模式适合虚拟控制键操作；手势操作请退出全屏模式！！！</div>
+            <button id="unlock-orientation-btn" class="unlock-btn" style="display:none;">🔓 解锁屏幕</button>
+            <div class="vc-cross">
+                <div class="vc-row vc-row-top">
+                    <button class="vc-btn vc-up" data-dir="up">▲</button>
+                </div>
+                <div class="vc-row vc-row-middle">
+                    <button class="vc-btn vc-left" data-dir="left">◀</button>
+                    <button class="vc-btn vc-down" data-dir="down">▼</button>
+                    <button class="vc-btn vc-right" data-dir="right">▶</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 旋转屏幕提示 -->
+        <div id="rotate-hint" class="rotate-hint">
+            <div class="rotate-icon">↻</div>
+            <div class="rotate-text">请旋转屏幕横屏玩更爽</div>
         </div>
 
         <div class="game-stats">
@@ -43,19 +161,399 @@
                 <span>分数:</span>
                 <span id="score">0</span>
             </div>
-            <div class="stat-item">
+            <div class="stat-item" id="time-stat">
                 <span>剩余时间:</span>
                 <span id="time-remaining">0</span>
+            </div>
+            <div class="stat-item" id="combo-stat" style="display: none;">
+                <span>连击:</span>
+                <span id="combo-count">0</span>
+            </div>
+            <div class="stat-item" id="p2-score-stat" style="display: none;">
+                <span>P2分数:</span>
+                <span id="p2-score">0</span>
+            </div>
+            <div class="stat-item" id="speed-stat">
+                <span>速度:</span>
+                <span id="current-speed">5</span>
             </div>
         </div>
 
         <div class="records-container">
             <h2>游戏记录</h2>
-            <button id="clear-records-btn">清除记录</button>
-            <div id="records-list"></div>
+            <div class="records-columns">
+                <div class="records-column">
+                    <h3>全部玩家记录</h3>
+                    <div id="records-list-all"></div>
+                </div>
+                <div class="records-column">
+                    <h3>我的记录</h3>
+                    <button id="clear-records-btn">清除我的记录</button>
+                    <div id="records-list-mine"></div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="snake.js"></script>
+    <!-- 成就面板 -->
+    <div id="achievements-panel" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🏆 成就系统</h2>
+            <div id="achievements-list" class="achievements-grid"></div>
+        </div>
+    </div>
+
+    <!-- 皮肤面板 -->
+    <div id="skins-panel" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🎨 皮肤系统</h2>
+            <div class="skin-section">
+                <h3>蛇身颜色</h3>
+                <div class="skin-options" id="snake-color-options">
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="green" checked>
+                        <span class="skin-preview green-preview"></span>
+                        <span>绿色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="blue">
+                        <span class="skin-preview blue-preview"></span>
+                        <span>蓝色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="red">
+                        <span class="skin-preview red-preview"></span>
+                        <span>红色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="rainbow">
+                        <span class="skin-preview rainbow-preview"></span>
+                        <span>彩虹</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="purple">
+                        <span class="skin-preview purple-preview"></span>
+                        <span>紫色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="orange">
+                        <span class="skin-preview orange-preview"></span>
+                        <span>橙色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="pink">
+                        <span class="skin-preview pink-preview"></span>
+                        <span>粉色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="yellow">
+                        <span class="skin-preview yellow-preview"></span>
+                        <span>黄色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="cyan">
+                        <span class="skin-preview cyan-preview"></span>
+                        <span>青色</span>
+                    </label>
+                </div>
+            </div>
+            <div class="skin-section">
+                <h3>食物样式</h3>
+                <div class="skin-options" id="food-style-options">
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="circle" checked>
+                        <span class="skin-preview food-circle-preview"></span>
+                        <span>圆形</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="star">
+                        <span class="skin-preview food-star-preview">★</span>
+                        <span>星星</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="heart">
+                        <span class="skin-preview food-heart-preview">♥</span>
+                        <span>爱心</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="fish">
+                        <span class="skin-preview food-fish-preview">🐟</span>
+                        <span>小鱼</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="bug">
+                        <span class="skin-preview food-bug-preview">🐛</span>
+                        <span>毛毛虫</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="apple">
+                        <span class="skin-preview food-apple-preview">🍎</span>
+                        <span>苹果</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="diamond">
+                        <span class="skin-preview food-diamond-preview">💎</span>
+                        <span>宝石</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="candy">
+                        <span class="skin-preview food-candy-preview">🍬</span>
+                        <span>糖果</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="cookie">
+                        <span class="skin-preview food-cookie-preview">🍪</span>
+                        <span>饼干</span>
+                    </label>
+                </div>
+            </div>
+            <div class="skin-section">
+                <h3>背景样式</h3>
+                <div class="skin-options" id="bg-style-options">
+                    <label class="skin-option">
+                        <input type="radio" name="bg-style" value="grid" checked>
+                        <span class="skin-preview bg-grid-preview"></span>
+                        <span>网格</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="bg-style" value="solid">
+                        <span class="skin-preview bg-solid-preview"></span>
+                        <span>纯色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="bg-style" value="gradient">
+                        <span class="skin-preview bg-gradient-preview"></span>
+                        <span>渐变</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="bg-style" value="forest">
+                        <span class="skin-preview bg-forest-preview"></span>
+                        <span>森林</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="bg-style" value="ocean">
+                        <span class="skin-preview bg-ocean-preview"></span>
+                        <span>海洋</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="bg-style" value="sunset">
+                        <span class="skin-preview bg-sunset-preview"></span>
+                        <span>夕阳</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="bg-style" value="night">
+                        <span class="skin-preview bg-night-preview"></span>
+                        <span>夜晚</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="bg-style" value="pastel">
+                        <span class="skin-preview bg-pastel-preview"></span>
+                        <span>柔和</span>
+                    </label>
+                </div>
+            </div>
+            <div class="skin-section">
+                <h3>外围背景</h3>
+                <div class="skin-options" id="outer-bg-options">
+                    <label class="skin-option">
+                        <input type="radio" name="outer-bg" value="purple" checked>
+                        <span class="skin-preview" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></span>
+                        <span>紫色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="outer-bg" value="blue">
+                        <span class="skin-preview" style="background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);"></span>
+                        <span>蓝色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="outer-bg" value="green">
+                        <span class="skin-preview" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);"></span>
+                        <span>绿色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="outer-bg" value="orange">
+                        <span class="skin-preview" style="background: linear-gradient(135deg, #f12711 0%, #f5af19 100%);"></span>
+                        <span>橙色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="outer-bg" value="pink">
+                        <span class="skin-preview" style="background: linear-gradient(135deg, #ec008c 0%, #fc6767 100%);"></span>
+                        <span>粉色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="outer-bg" value="dark">
+                        <span class="skin-preview" style="background: linear-gradient(135deg, #232526 0%, #414345 100%);"></span>
+                        <span>暗色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="outer-bg" value="black">
+                        <span class="skin-preview" style="background: #000000;"></span>
+                        <span>黑色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="outer-bg" value="white">
+                        <span class="skin-preview" style="background: #ffffff; border:1px solid #ccc;"></span>
+                        <span>白色</span>
+                    </label>
+                </div>
+            </div>
+            <button id="save-skins-btn" class="save-btn">保存设置</button>
+        </div>
+    </div>
+
+    <!-- 音效面板 -->
+    <div id="sound-panel" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🔊 音效设置</h2>
+            <div class="sound-section">
+                <label class="sound-option">
+                    <input type="checkbox" id="sound-enabled" checked>
+                    <span>启用音效</span>
+                </label>
+            </div>
+            <div class="sound-section">
+                <label class="sound-option">
+                    <input type="checkbox" id="bgm-enabled">
+                    <span>背景音乐</span>
+                </label>
+            </div>
+            <div class="sound-section">
+                <label class="sound-option">
+                    <input type="checkbox" id="eat-sound" checked>
+                    <span>吃到食物音效</span>
+                </label>
+            </div>
+            <div class="sound-section">
+                <label class="sound-option">
+                    <input type="checkbox" id="powerup-sound" checked>
+                    <span>道具触发音效</span>
+                </label>
+            </div>
+            <div class="sound-section">
+                <label class="sound-option">
+                    <input type="checkbox" id="gameover-sound" checked>
+                    <span>游戏结束音效</span>
+                </label>
+            </div>
+            <button id="save-sound-btn" class="save-btn">保存设置</button>
+        </div>
+    </div>
+
+    <!-- 多人游戏房间面板 -->
+    <div id="multiplayer-panel" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" id="close-multiplayer">&times;</span>
+            <h2>👥 多人合作模式</h2>
+
+            <!-- 房间选项卡 -->
+            <div id="multiplayer-tabs">
+                <button class="tab-btn active" data-tab="create">创建房间</button>
+                <button class="tab-btn" data-tab="join">加入房间</button>
+                <button class="tab-btn" data-tab="list">房间列表</button>
+            </div>
+
+            <!-- 创建房间 -->
+            <div id="tab-create" class="tab-content active">
+                <div class="room-settings">
+                    <h3>房间设置</h3>
+                    <div class="setting-item">
+                        <label for="mp-grid-size">网格大小:</label>
+                        <select id="mp-grid-size">
+                            <option value="20">20x20</option>
+                            <option value="25">25x25</option>
+                            <option value="30">30x30</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="mp-speed">游戏速度:</label>
+                        <select id="mp-speed">
+                            <option value="5">普通</option>
+                            <option value="8">快速</option>
+                            <option value="10">极速</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="mp-game-time">游戏时间:</label>
+                        <select id="mp-game-time">
+                            <option value="60">60秒</option>
+                            <option value="120">120秒</option>
+                            <option value="180">180秒</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="mp-target-score">目标分数:</label>
+                        <input type="number" id="mp-target-score" value="500" min="100" max="2000" step="100">
+                    </div>
+                </div>
+                <button id="btn-create-room" class="auth-btn">创建房间</button>
+                <p id="create-room-error" class="error"></p>
+            </div>
+
+            <!-- 加入房间 -->
+            <div id="tab-join" class="tab-content">
+                <div class="setting-item">
+                    <label for="join-room-id">房间ID:</label>
+                    <input type="text" id="join-room-id" placeholder="输入房间ID">
+                </div>
+                <button id="btn-join-room" class="auth-btn">加入房间</button>
+                <p id="join-room-error" class="error"></p>
+            </div>
+
+            <!-- 房间列表 -->
+            <div id="tab-list" class="tab-content">
+                <button id="btn-refresh-rooms" class="auth-btn">刷新列表</button>
+                <div id="room-list" class="room-list">
+                    <p class="empty-hint">暂无等待中的房间</p>
+                </div>
+            </div>
+
+            <!-- 等待大厅 -->
+            <div id="waiting-lobby" class="tab-content" style="display: none;">
+                <div class="lobby-info">
+                    <h3>房间: <span id="lobby-room-id"></span></h3>
+                    <p>房主: <span id="lobby-host"></span></p>
+                    <p>状态: <span id="lobby-status">等待中...</span></p>
+                </div>
+                <div class="player-list">
+                    <h3>玩家列表 (<span id="player-count">0</span>/4)</h3>
+                    <ul id="players-in-room"></ul>
+                </div>
+                <div class="lobby-actions">
+                    <button id="btn-start-game" class="auth-btn" style="display: none;">开始游戏</button>
+                    <button id="btn-leave-room" class="auth-btn guest-btn">离开房间</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 多人游戏结算面板 -->
+    <div id="multiplayer-result-panel" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-multiplayer-result">&times;</span>
+            <h2>🎉 游戏结束!</h2>
+            <div id="mp-result-content"></div>
+            <button id="btn-return-to-lobby" class="auth-btn">返回大厅</button>
+            <button id="btn-exit-multiplayer" class="auth-btn guest-btn">退出多人模式</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="firebase.js"></script>
+    <script src="snake.js?v=1.3.3"></script>
+    <script>
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then((registration) => {
+                    console.log('Service Worker 注册成功:', registration.scope);
+                })
+                .catch((error) => {
+                    console.log('Service Worker 注册失败:', error);
+                });
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试</title>
+</head>
+<body>
+    <h1>Firebase 测试</h1>
+    <div id="output" style="white-space: pre-wrap; font-family: monospace;"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script>
+        const output = document.getElementById('output');
+
+        function log(msg) {
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        const firebaseConfig = {
+            projectId: "snake-game-6e39e",
+            databaseURL: "https://snake-game-6e39e-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+
+        log('1. 初始化 Firebase...');
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            log('   Firebase 初始化成功');
+
+            const db = firebase.database();
+            log('2. 读取 users...');
+
+            db.ref('users').once('value', function(snapshot) {
+                const users = snapshot.val();
+                log('   用户数据: ' + JSON.stringify(users));
+
+                // 测试登录
+                const username = 'henry';
+                const password = 'henry';
+
+                function simpleHash(str) {
+                    let hash = 0;
+                    for (let i = 0; i < str.length; i++) {
+                        const char = str.charCodeAt(i);
+                        hash = ((hash << 5) - hash) + char;
+                        hash = hash & hash;
+                    }
+                    return hash.toString(16);
+                }
+
+                const hashed = simpleHash(password);
+                log('3. 测试登录: ' + username + ' / ' + password);
+                log('   哈希后: ' + hashed);
+                log('   数据库密码: ' + users[username].password);
+                log('   匹配: ' + (hashed === users[username].password));
+
+                if (hashed === users[username].password) {
+                    log('\n✅ 登录成功!');
+                } else {
+                    log('\n❌ 登录失败');
+                }
+            }, function(error) {
+                log('   错误: ' + error.message);
+            });
+        } catch (e) {
+            log('   错误: ' + e.message);
+        }
+    </script>
+</body>
+</html>

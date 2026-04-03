@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>直接测试</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            projectId: "snake-game-6e39e",
+            databaseURL: "https://snake-game-6e39e-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
+    <script src="snake.js?v=20240320"></script>
+</head>
+<body>
+    <div id="test-result" style="padding: 20px; background: #ffffcc; margin: 10px;"></div>
+
+    <script>
+        function test() {
+            const result = document.getElementById('test-result');
+            const btn = document.getElementById('start-btn');
+            result.innerHTML = 'start-btn: ' + (btn ? '存在' : '不存在');
+
+            if (btn) {
+                btn.onclick = function() {
+                    alert('按钮可以点击!');
+                };
+            }
+        }
+
+        setTimeout(test, 2000);
+    </script>
+
+    <!-- 正常游戏内容 -->
+    ...
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>简单测试</title>
+</head>
+<body>
+    <h1>简单测试</h1>
+    <button id="test-btn">测试按钮</button>
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('test-btn').addEventListener('click', function() {
+            document.getElementById('output').innerHTML = '按钮被点击了!';
+            alert('弹窗 works!');
+        });
+    </script>
+</body>
+</html>

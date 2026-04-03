@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃蛇游戏</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            projectId: "snake-game-6e39e",
+            databaseURL: "https://snake-game-6e39e-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
+</head>
+<body>
+    <!-- 成就提示 -->
+    <div id="achievement-notification" class="achievement-notification"></div>
+
+    <!-- 登录/注册面板 -->
+    <div id="auth-panel" class="modal show">
+        <div class="modal-content auth-content">
+            <h2>🐍 贪吃蛇游戏</h2>
+            <div id="login-form">
+                <h3>登录</h3>
+                <input type="text" id="login-username" placeholder="用户名">
+                <input type="password" id="login-password" placeholder="密码">
+                <button id="login-btn" class="auth-btn">登录</button>
+                <p>还没有账号？<a href="#" id="show-register">注册</a></p>
+                <p><a href="#" id="show-admin">管理员入口</a></p>
+                <p><a href="#" id="show-forgot" style="font-size:12px;color:#666;">忘记密码？</a></p>
+                <!-- 隐藏的按钮元素，用于JS事件绑定 -->
+                <button id="confirm-change-pass" style="display:none;"></button>
+            </div>
+            <div id="admin-form" style="display:none;">
+                <h3>👑 管理员登录</h3>
+                <input type="text" id="admin-username" placeholder="管理员用户名">
+                <input type="password" id="admin-password" placeholder="管理员密码">
+                <button id="admin-login-btn" class="auth-btn">登录</button>
+                <p><a href="#" id="show-user-login">返回用户登录</a></p>
+            </div>
+            <div id="register-form" style="display:none;">
+                <h3>注册</h3>
+                <input type="text" id="reg-username" placeholder="用户名">
+                <input type="email" id="reg-email" placeholder="邮箱（选填，用于找回密码）">
+                <input type="password" id="reg-password" placeholder="密码">
+                <input type="password" id="reg-password2" placeholder="确认密码">
+                <button id="register-btn" class="auth-btn">注册</button>
+                <p>已有账号？<a href="#" id="show-login">登录</a></p>
+            </div>
+            <div id="forgot-form" style="display:none;">
+                <h3>找回密码</h3>
+                <div id="forgot-step1">
+                    <p style="color:#666;font-size:14px;margin:10px 0;">请输入注册时填写的用户名和邮箱，重置链接将发送到您的邮箱</p>
+                    <input type="text" id="forgot-username" placeholder="用户名">
+                    <input type="email" id="forgot-email" placeholder="注册的邮箱">
+                    <button id="forgot-btn" class="auth-btn">发送重置邮件</button>
+                </div>
+                <div id="forgot-step2" style="display:none;">
+                    <p style="color:green;margin:15px 0;text-align:center;font-size:18px;">✓ 邮件已发送！</p>
+                    <p style="color:#666;font-size:14px;margin:10px 0;">重置链接已发送到您的邮箱<br>请查收邮件并点击链接重置密码</p>
+                    <div style="background:#f5f5f5;padding:15px;border-radius:8px;margin:15px 0;">
+                        <p style="color:#999;font-size:12px;">演示说明：由于是静态网页，重置链接直接显示（实际会发送到邮箱）</p>
+                        <p id="reset-link" style="background:#fff;padding:10px;word-break:break-all;font-size:12px;border-radius:5px;margin-top:10px;cursor:pointer;border:1px dashed #ccc;" title="点击打开链接" onclick="window.open(this.innerText)"></p>
+                    </div>
+                    <p style="color:#667eea;font-size:14px;">请打开上述链接重置密码</p>
+                    <button id="use-link-btn" class="auth-btn" style="margin-top:10px;">我已打开链接</button>
+                </div>
+                <div id="forgot-step3" style="display:none;">
+                    <h4>重置密码</h4>
+                    <input type="password" id="new-password-input" placeholder="输入新密码（至少3位）">
+                    <input type="password" id="new-password-confirm" placeholder="确认新密码">
+                    <button id="confirm-reset-btn" class="auth-btn">确认重置</button>
+                </div>
+                <p><a href="#" id="show-user-login2">返回登录</a></p>
+            </div>
+            <div id="github-sync" style="display:none;">
+                <hr>
+                <h4>GitHub 云同步（可选）</h4>
+                <input type="text" id="github-token" placeholder="GitHub Personal Access Token">
+                <p class="hint">创建 Token: GitHub → Settings → Developer settings → Personal access tokens → Generate new token (需要 gist 权限)</p>
+                <button id="sync-btn" class="auth-btn">同步到 GitHub</button>
+                <button id="download-btn" class="auth-btn" style="margin-left:10px;">从 GitHub 下载</button>
+            </div>
+            <!-- EmailJS 配置说明 -->
+            <div id="email-config" style="display:none;margin-top:15px;">
+                <hr>
+                <h4>邮件配置（可选）</h4>
+                <p class="hint">要启用邮件发送，请在 snake.js 中配置 EmailJS：<br>
+                1. 注册 <a href="https://www.emailjs.com/" target="_blank">EmailJS</a><br>
+                2. 创建 Email Service 和 Template<br>
+                3. 在代码中替换 EMAILJS_CONFIG 的配置</p>
+            </div>
+            <p id="auth-error" class="error"></p>
+        </div>
+    </div>
+
+    <div class="game-container" style="display:none;" id="game-container">
+        <div class="game-header">
+            <h1>贪吃蛇游戏</h1>
+            <a href="README.md" target="_blank" class="help-link">📖 使用说明</a>
+            <div class="player-info">
+                <label for="player-name">玩家姓名:</label>
+                <input type="text" id="player-name" placeholder="输入您的名字" list="player-names">
+                <datalist id="player-names"></datalist>
+            </div>
+        </div>
+
+        <div class="game-controls">
+            <button id="start-btn">开始游戏</button>
+            <button id="pause-btn" disabled>暂停</button>
+            <button id="fullscreen-btn">全屏</button>
+            <button id="achievements-btn">成就</button>
+            <button id="skins-btn">皮肤</button>
+            <button id="sound-btn">音效</button>
+        </div>
+
+        <div class="game-settings">
+            <div class="setting-item">
+                <label for="game-mode">游戏模式:</label>
+                <select id="game-mode">
+                    <option value="classic">经典模式</option>
+                    <option value="timed">限时挑战</option>
+                    <option value="endless">无尽模式</option>
+                    <option value="battle">双人对战</option>
+                </select>
+            </div>
+            <div class="setting-item" id="time-limit-container">
+                <label for="time-limit">时限(秒):</label>
+                <select id="time-limit">
+                    <option value="60">60秒</option>
+                    <option value="90">90秒</option>
+                    <option value="120">120秒</option>
+                </select>
+            </div>
+            <div class="setting-item" id="classic-time-container">
+                <label for="game-time">游戏时间 (秒):</label>
+                <input type="number" id="game-time" value="0" min="0" max="300">
+            </div>
+            <div class="setting-item">
+                <label for="game-speed">游戏速度:</label>
+                <input type="range" id="game-speed" min="1" max="10" value="5">
+                <span id="speed-value">5</span>
+            </div>
+            <div class="setting-item" id="powerups-container">
+                <label>
+                    <input type="checkbox" id="enable-powerups" checked> 启用道具
+                </label>
+            </div>
+        </div>
+
+        <div class="game-canvas-container">
+            <canvas id="game-canvas" width="800" height="500"></canvas>
+        </div>
+
+        <div class="game-stats">
+            <div class="stat-item">
+                <span>分数:</span>
+                <span id="score">0</span>
+            </div>
+            <div class="stat-item" id="time-stat">
+                <span>剩余时间:</span>
+                <span id="time-remaining">0</span>
+            </div>
+            <div class="stat-item" id="combo-stat" style="display: none;">
+                <span>连击:</span>
+                <span id="combo-count">0</span>
+            </div>
+            <div class="stat-item" id="p2-score-stat" style="display: none;">
+                <span>P2分数:</span>
+                <span id="p2-score">0</span>
+            </div>
+            <div class="stat-item" id="speed-stat">
+                <span>速度:</span>
+                <span id="current-speed">5</span>
+            </div>
+        </div>
+
+        <div class="records-container">
+            <h2>游戏记录</h2>
+            <div class="records-columns">
+                <div class="records-column">
+                    <h3>全部玩家记录</h3>
+                    <div id="records-list-all"></div>
+                </div>
+                <div class="records-column">
+                    <h3>我的记录</h3>
+                    <button id="clear-records-btn" onclick="clearMyRecords()">清除我的记录</button>
+<script>function clearMyRecords(){ if(!window.game){alert('请先登录');return;} window.game.clearRecords(); }</script>
+                    <div id="records-list-mine"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成就面板 -->
+    <div id="achievements-panel" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🏆 成就系统</h2>
+            <div id="achievements-list" class="achievements-grid"></div>
+        </div>
+    </div>
+
+    <!-- 皮肤面板 -->
+    <div id="skins-panel" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🎨 皮肤系统</h2>
+            <div class="skin-section">
+                <h3>蛇身颜色</h3>
+                <div class="skin-options" id="snake-color-options">
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="green" checked>
+                        <span class="skin-preview green-preview"></span>
+                        <span>绿色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="blue">
+                        <span class="skin-preview blue-preview"></span>
+                        <span>蓝色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="red">
+                        <span class="skin-preview red-preview"></span>
+                        <span>红色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="snake-color" value="rainbow">
+                        <span class="skin-preview rainbow-preview"></span>
+                        <span>彩虹</span>
+                    </label>
+                </div>
+            </div>
+            <div class="skin-section">
+                <h3>食物样式</h3>
+                <div class="skin-options" id="food-style-options">
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="circle" checked>
+                        <span class="skin-preview food-circle-preview"></span>
+                        <span>圆形</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="star">
+                        <span class="skin-preview food-star-preview">★</span>
+                        <span>星星</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="food-style" value="heart">
+                        <span class="skin-preview food-heart-preview">♥</span>
+                        <span>爱心</span>
+                    </label>
+                </div>
+            </div>
+            <div class="skin-section">
+                <h3>背景样式</h3>
+                <div class="skin-options" id="bg-style-options">
+                    <label class="skin-option">
+                        <input type="radio" name="bg-style" value="grid" checked>
+                        <span class="skin-preview bg-grid-preview"></span>
+                        <span>网格</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="bg-style" value="solid">
+                        <span class="skin-preview bg-solid-preview"></span>
+                        <span>纯色</span>
+                    </label>
+                    <label class="skin-option">
+                        <input type="radio" name="bg-style" value="gradient">
+                        <span class="skin-preview bg-gradient-preview"></span>
+                        <span>渐变</span>
+                    </label>
+                </div>
+            </div>
+            <button id="save-skins-btn" class="save-btn">保存设置</button>
+        </div>
+    </div>
+
+    <!-- 音效面板 -->
+    <div id="sound-panel" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🔊 音效设置</h2>
+            <div class="sound-section">
+                <label class="sound-option">
+                    <input type="checkbox" id="sound-enabled" checked>
+                    <span>启用音效</span>
+                </label>
+            </div>
+            <div class="sound-section">
+                <label class="sound-option">
+                    <input type="checkbox" id="bgm-enabled">
+                    <span>背景音乐</span>
+                </label>
+            </div>
+            <div class="sound-section">
+                <label class="sound-option">
+                    <input type="checkbox" id="eat-sound" checked>
+                    <span>吃到食物音效</span>
+                </label>
+            </div>
+            <div class="sound-section">
+                <label class="sound-option">
+                    <input type="checkbox" id="powerup-sound" checked>
+                    <span>道具触发音效</span>
+                </label>
+            </div>
+            <div class="sound-section">
+                <label class="sound-option">
+                    <input type="checkbox" id="gameover-sound" checked>
+                    <span>游戏结束音效</span>
+                </label>
+            </div>
+            <button id="save-sound-btn" class="save-btn">保存设置</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="snake.js"></script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>完整测试</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        canvas { border: 2px solid #27ae60; display: block; margin: 10px auto; }
+        #game-container { display: none; }
+        .show { display: block !important; }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div id="auth-panel" class="show">
+        <h2>登录</h2>
+        用户名: <input id="username" value="henry"><br>
+        密码: <input id="password" value="henry"><br>
+        <button id="login-btn">登录</button>
+        <p id="msg"></p>
+    </div>
+
+    <div id="game-container">
+        <h1>贪吃蛇游戏</h1>
+        分数: <span id="score">0</span>
+        <canvas id="canvas" width="400" height="400"></canvas>
+        <button id="start-btn">开始游戏</button>
+    </div>
+
+    <script>
+    // Firebase
+    firebase.initializeApp({ projectId: "snake-game-6e39e", databaseURL: "https://snake-game-6e39e-default-rtdb.asia-southeast1.firebasedatabase.app/" });
+
+    // 简单哈希
+    function simpleHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash = hash & hash;
+        }
+        return hash.toString(16);
+    }
+
+    // 贪吃蛇游戏类
+    class SnakeGame {
+        constructor(canvas) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext('2d');
+            this.gridSize = 20;
+            this.snake = [{x: 10, y: 10}];
+            this.direction = {x: 1, y: 0};
+            this.food = {x: 15, y: 15};
+            this.score = 0;
+            this.isRunning = false;
+            this.interval = null;
+        }
+
+        start() {
+            if (this.isRunning) return;
+            this.isRunning = true;
+            this.interval = setInterval(() => this.update(), 100);
+            console.log('游戏开始');
+        }
+
+        update() {
+            // 移动蛇
+            const head = this.snake[0];
+            const newHead = {
+                x: head.x + this.direction.x,
+                y: head.y + this.direction.y
+            };
+
+            // 边界检查
+            if (newHead.x < 0 || newHead.x >= 20 || newHead.y < 0 || newHead.y >= 20) {
+                this.isRunning = false;
+                clearInterval(this.interval);
+                alert('游戏结束! 分数: ' + this.score);
+                return;
+            }
+
+            this.snake.unshift(newHead);
+
+            // 吃食物
+            if (newHead.x === this.food.x && newHead.y === this.food.y) {
+                this.score += 10;
+                document.getElementById('score').textContent = this.score;
+                this.food = {
+                    x: Math.floor(Math.random() * 20),
+                    y: Math.floor(Math.random() * 20)
+                };
+            } else {
+                this.snake.pop();
+            }
+
+            this.draw();
+        }
+
+        draw() {
+            this.ctx.fillStyle = '#ecf0f1';
+            this.ctx.fillRect(0, 0, 400, 400);
+
+            // 画蛇
+            this.ctx.fillStyle = '#2ecc71';
+            this.snake.forEach(seg => {
+                this.ctx.fillRect(seg.x * 20, seg.y * 20, 18, 18);
+            });
+
+            // 画食物
+            this.ctx.fillStyle = '#e74c3c';
+            this.ctx.fillRect(this.food.x * 20, this.food.y * 20, 18, 18);
+        }
+    }
+
+    var game = null;
+
+    // 登录
+    document.getElementById('login-btn').addEventListener('click', async () => {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        const users = await firebase.database().ref('users').once('value');
+        const userData = users.val();
+
+        if (userData[username] && userData[username].password === simpleHash(password)) {
+            document.getElementById('auth-panel').classList.remove('show');
+            document.getElementById('game-container').classList.add('show');
+
+            // 初始化游戏
+            game = new SnakeGame(document.getElementById('canvas'));
+            game.draw();
+        } else {
+            document.getElementById('msg').textContent = '登录失败';
+        }
+    });
+
+    // 开始按钮
+    document.getElementById('start-btn').addEventListener('click', () => {
+        console.log('开始按钮被点击');
+        if (game) game.start();
+    });
+
+    // 键盘控制
+    document.addEventListener('keydown', (e) => {
+        if (!game || !game.isRunning) return;
+        switch(e.key) {
+            case 'ArrowUp': game.direction = {x: 0, y: -1}; break;
+            case 'ArrowDown': game.direction = {x: 0, y: 1}; break;
+            case 'ArrowLeft': game.direction = {x: -1, y: 0}; break;
+            case 'ArrowRight': game.direction = {x: 1, y: 0}; break;
+        }
+    });
+    </script>
+</body>
+</html>
