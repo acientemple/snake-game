@@ -4,14 +4,23 @@ const firebaseConfig = {
     databaseURL: "https://snake-game-6e39e-default-rtdb.asia-southeast1.firebasedatabase.app/"
 };
 
-// 初始化 Firebase
-firebase.initializeApp(firebaseConfig);
-
 // 获取数据库引用
-const database = firebase.database();
+let database = null;
 
-// 是否启用 Firebase（设为 true 则优先使用 Firebase）
-window.useFirebase = true;
+// 初始化 Firebase（带错误处理）
+if (typeof firebase !== 'undefined' && firebase.apps) {
+    try {
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+        window.useFirebase = true;
+    } catch (e) {
+        console.error('Firebase 初始化失败:', e);
+        window.useFirebase = false;
+    }
+} else {
+    console.error('Firebase SDK 未加载，请检查网络连接');
+    window.useFirebase = false;
+}
 
 // 数据操作函数
 const FirebaseDB = {
