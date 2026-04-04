@@ -5149,6 +5149,17 @@ class MultiplayerManager {
             targetScore: parseInt(document.getElementById('mp-target-score').value)
         };
 
+        // 检查 RoomManager 是否可用
+        if (typeof RoomManager === 'undefined') {
+            document.getElementById('create-room-error').textContent = '房间服务未初始化，请刷新页面重试';
+            console.error('RoomManager 未定义，firebase.js 可能未成功加载');
+            return;
+        }
+        if (!window.useFirebase) {
+            document.getElementById('create-room-error').textContent = 'Firebase 连接失败，请检查网络';
+            return;
+        }
+
         try {
             const roomId = await RoomManager.createRoom(this.currentPlayer, settings);
             console.log('Room created with ID:', roomId);
@@ -5178,6 +5189,17 @@ class MultiplayerManager {
         const roomId = document.getElementById('join-room-id').value.trim();
         if (!roomId) {
             document.getElementById('join-room-error').textContent = '请输入房间ID';
+            return;
+        }
+
+        // 检查 RoomManager 是否可用
+        if (typeof RoomManager === 'undefined') {
+            document.getElementById('join-room-error').textContent = '房间服务未初始化，请刷新页面重试';
+            console.error('RoomManager 未定义，firebase.js 可能未成功加载');
+            return;
+        }
+        if (!window.useFirebase) {
+            document.getElementById('join-room-error').textContent = 'Firebase 连接失败，请检查网络';
             return;
         }
 
