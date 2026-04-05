@@ -24,31 +24,41 @@ if (typeof firebase !== 'undefined' && firebase.apps) {
 
 // 数据操作函数
 const FirebaseDB = {
+    // 检查数据库是否可用
+    isAvailable() {
+        return database !== null && window.useFirebase;
+    },
+
     // 读取所有数据
     async getAll() {
+        if (!this.isAvailable()) return { users: {}, records: [], topRecords: [] };
         const snapshot = await database.ref('/').once('value');
         return snapshot.val() || { users: {}, records: [], topRecords: [] };
     },
 
     // 保存用户
     async saveUser(username, userData) {
+        if (!this.isAvailable()) return;
         await database.ref('users/' + username).set(userData);
     },
 
     // 读取用户
     async getUser(username) {
+        if (!this.isAvailable()) return null;
         const snapshot = await database.ref('users/' + username).once('value');
         return snapshot.val();
     },
 
     // 读取所有用户
     async getAllUsers() {
+        if (!this.isAvailable()) return {};
         const snapshot = await database.ref('users').once('value');
         return snapshot.val() || {};
     },
 
     // 保存成绩记录
     async saveRecord(record) {
+        if (!this.isAvailable()) return;
         const recordsRef = database.ref('records');
         const newRecordRef = recordsRef.push();
         await newRecordRef.set(record);
@@ -56,6 +66,7 @@ const FirebaseDB = {
 
     // 读取所有成绩
     async getAllRecords() {
+        if (!this.isAvailable()) return [];
         const snapshot = await database.ref('records').once('value');
         const records = [];
         snapshot.forEach(child => {
@@ -66,6 +77,7 @@ const FirebaseDB = {
 
     // 保存最高分记录
     async saveTopRecord(record) {
+        if (!this.isAvailable()) return;
         const recordsRef = database.ref('topRecords');
         const newRecordRef = recordsRef.push();
         await newRecordRef.set(record);
@@ -73,6 +85,7 @@ const FirebaseDB = {
 
     // 读取最高分记录
     async getTopRecords() {
+        if (!this.isAvailable()) return [];
         const snapshot = await database.ref('topRecords').once('value');
         const records = [];
         snapshot.forEach(child => {
@@ -83,6 +96,7 @@ const FirebaseDB = {
 
     // 批量保存（用于初始化）
     async batchSave(data) {
+        if (!this.isAvailable()) return;
         if (data.users) {
             for (const [key, value] of Object.entries(data.users)) {
                 await database.ref('users/' + key).set(value);
@@ -105,9 +119,14 @@ const FirebaseDB = {
 // 多人游戏房间系统
 // ============================================
 const RoomManager = {
+    // 检查数据库是否可用
+    isAvailable() {
+        return database !== null && window.useFirebase;
+    },
+
     // 创建房间
     async createRoom(hostUsername, settings = {}) {
-        const roomRef = database.ref('rooms').push();
+        if (!this.isAvailable()) return null;
         const roomId = roomRef.key;
         const roomData = {
             roomId,
